@@ -1,0 +1,73 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Build with Maven
+      run: cd backend && ./mvnw clean package -DskipTests
+    
+    - name: Run tests
+      run: cd backend && ./mvnw test
+  
+  build-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: cd frontend && npm ci
+    
+    - name: Build
+      run: cd frontend && npm run build
+      
+  deploy-backend:
+    needs: build-backend
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    # This is a placeholder for the actual deployment step
+    # In a real scenario, you would use the appropriate action for your hosting provider
+    - name: Deploy to Railway
+      run: echo "Deploying to Railway..."
+      # Example: railway up --service backend
+      
+  deploy-frontend:
+    needs: build-frontend
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    # This is a placeholder for the actual deployment step
+    # In a real scenario, you would use the appropriate action for your hosting provider
+    - name: Deploy to Vercel
+      run: echo "Deploying to Vercel..."
+      # Example: vercel --prod

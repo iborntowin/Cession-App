@@ -1,0 +1,1 @@
+ALTER TABLE cessions ADD COLUMN document_bytes BYTEA; 

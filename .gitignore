@@ -1,0 +1,150 @@
+# ===================================
+# COMPREHENSIVE .GITIGNORE FOR CESSION APP
+# ===================================
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.stackdump
+desktop.ini
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===================================
+# NODE.JS / NPM
+# ===================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.yarn-integrity
+
+# ===================================
+# FRONTEND (SVELTE/VITE)
+# ===================================
+frontend/dist/
+frontend/build/
+frontend/.svelte-kit/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Vite temporary files
+frontend/vite.config.js.timestamp-*
+
+# ===================================
+# BACKEND (SPRING BOOT/MAVEN)
+# ===================================
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/.mvn/wrapper/maven-wrapper.properties
+backend/data/
+backend/.idea/
+backend/.git/
+backend/cession-app/
+backend/cession-backend/
+
+# ===================================
+# TAURI (RUST)
+# ===================================
+frontend/src-tauri/target/
+frontend/src-tauri/Cargo.lock
+frontend/src-tauri/backend/*.jar
+
+# ===================================
+# MOBILE CLIENT (REACT NATIVE/EXPO)
+# ===================================
+mobile-client/node_modules/
+mobile-client/.expo/
+mobile-client/.git/
+
+# ===================================
+# BUILD OUTPUTS & DEPLOYMENTS
+# ===================================
+dist/
+build/
+out/
+deployment_package/
+deployment_package2/
+*.zip
+*.rar
+deployment_package.zip
+deployment_package.rar
+
+# ===================================
+# DATABASE FILES
+# ===================================
+*.db
+*.mv.db
+*.trace.db
+
+# ===================================
+# LOG FILES
+# ===================================
+*.log
+logs/
+
+# ===================================
+# TEMPORARY & CACHE FILES
+# ===================================
+*.tmp
+*.temp
+.cache/
+*.tgz
+*.tar.gz
+
+# ===================================
+# JAVA COMPILED FILES
+# ===================================
+*.class
+
+# ===================================
+# ENVIRONMENT FILES
+# ===================================
+# Keep .env.example files but ignore actual .env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ===================================
+# KEEP IMPORTANT FILES
+# ===================================
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+!mobile-client/.env.example
+!frontend/src-tauri/tauri.conf.json
+!backend/pom.xml
+!frontend/package.json
+!frontend/package-lock.json
+!mobile-client/package.json
+!mobile-client/package-lock.json
+
+# ===================================
+# PROJECT SPECIFIC EXCLUSIONS
+# ===================================
+# Exclude nested git repositories
+backend/.git/
+mobile-client/.git/
+
+# Exclude IDE specific folders
+backend/.idea/
+
+# Exclude test stackdump files
+bash.exe.stackdump

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1242" height="2688" viewBox="0 0 1242 2688" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1242" height="2688" fill="#ffffff"/>
+  <g transform="translate(621, 1344)">
+    <circle r="80" fill="#2563eb" opacity="0.1"/>
+    <circle r="60" fill="#2563eb" opacity="0.2"/>
+    <circle r="40" fill="#2563eb" opacity="0.3"/>
+    <text x="0" y="-10" font-family="Arial, sans-serif" font-size="32" font-weight="bold" 
+          text-anchor="middle" dominant-baseline="central" fill="#2563eb">CM</text>
+    <text x="0" y="20" font-family="Arial, sans-serif" font-size="14" 
+          text-anchor="middle" dominant-baseline="central" fill="#64748b">Cession Manager</text>
+    <text x="0" y="40" font-family="Arial, sans-serif" font-size="12" 
+          text-anchor="middle" dominant-baseline="central" fill="#94a3b8">Mobile Client</text>
+  </g>
+</svg>

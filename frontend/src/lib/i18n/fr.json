@@ -1,0 +1,824 @@
+{
+  "common": {
+    
+    "app": {
+      "title": "Gestion des Cessions",
+      "name": "Application de Cessions"
+    },
+    "actions": {
+      "view": "Voir",
+      "create": "Créer",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "search": "Rechercher",
+      "clear": "Effacer",
+      "back": "Retour",
+      "download": "Télécharger",
+      "logout": "Déconnexion",
+      "add": "Ajouter",
+      "next": "Suivant",
+      "previous": "Précédent",
+      "login": "Connexion",
+      "signup": "Inscription",
+      "submit": "Soumettre",
+      "close": "Fermer",
+      "confirm": "Confirmer",
+      "filter": "Filtrer",
+      "sort": "Trier",
+      "refresh": "Actualiser",
+      "upload": "Téléverser",
+      "print": "Imprimer",
+      "export": "Exporter",
+      "import": "Importer"
+    },
+    "navigation": {
+      "dashboard": "Tableau de bord",
+      "clients": "Clients",
+      "cessions": "Cessions",
+      "inventory": "Inventaire",
+      "selling": "Ventes",
+      "finance": "Finance",
+      "financial": "Finance",
+      "settings": "Paramètres",
+      "logout": "Déconnexion",
+      "back": "Retour"
+    },
+    "view": "Voir",
+    "view_all": "Voir Tout",
+    "client": {
+      "new": "Nouveau Client",
+      "edit": "Modifier le Client",
+      "profile": "Profil du Client",
+      "info": "Informations du Client",
+      "full_name": "Nom Complet",
+      "cin": "Numéro CIN (8 chiffres)",
+      "enter_cin": "Entrez le numéro CIN à 8 chiffres",
+      "cin_hint": "0/8",
+      "cin_error": "Veuillez entrer un CIN valide",
+      "cin_status": {
+        "valid": "Numéro CIN valide",
+        "invalid": "Numéro CIN invalide",
+        "length": "Le CIN doit contenir 8 chiffres",
+        "default": "Veuillez entrer un numéro CIN"
+      }
+    },
+    "cession": {
+      "new": "Nouvelle Cession",
+
+      "edit": "Modifier la Cession",
+      "details": "Détails de la Cession",
+      "view_full_details":"Voir les détails complets",
+      "document": "Document",
+      "status": {
+        "active": "Active",
+        "finished":"Terminée",
+        "completed": "Terminée",
+        "cancelled": "Annulée"
+      }
+    },
+    "documents": {
+      "id_card": "Carte d'Identité",
+      "job_card": "Carte de Travail",
+      "other": "Autres Documents",
+      "upload": "Téléverser un Document",
+      "download": "Télécharger le Document"
+    },
+    "validation": {
+      "required": "Ce champ est obligatoire",
+      "invalid_format": "Format invalide",
+      "min_length": "Longueur minimale de {{length}} caractères",
+      "max_length": "Longueur maximale de {{length}} caractères"
+    },
+    "alerts": {
+      "success": "Succès",
+      "error": "Erreur",
+      "warning": "Avertissement",
+      "info": "Information"
+    },
+    "loading": "Chargement...",
+    "no_data": "Aucune donnée disponible",
+    "confirm": "Êtes-vous sûr ?",
+    "language": {
+      "select": "Sélectionner la Langue",
+      "en": "English",
+      "fr": "Français",
+      "ar": "العربية"
+    },
+    "settings": {
+      "title": "Paramètres",
+      "description": "Gérer les paramètres de l'application",
+      "language": "Langue",
+      "theme": "Thème",
+      "notifications": "Notifications",
+      "additional_settings": {
+        "title": "Paramètres Supplémentaires",
+        "description": "Gérer les paramètres supplémentaires de l'application",
+        "language": "Langue",
+        "theme": "Thème",
+        "coming_soon": "Bientôt disponible",
+        "notifications": "Notifications"
+      },
+      "account": "Compte",
+      "security": "Sécurité",
+      "language_settings": {
+        "title": "Paramètres de la Langue",
+        "description": "Gérer les paramètres de la langue de l'application",
+        "language": "Langue",
+        "theme": "Thème",
+        "rtl_support": "Support RTL",
+        "notifications": "Notifications",
+        "current_selection": "Langue sélectionnée"
+      },
+      "preferences": "Préférences"
+    },
+    "app_name": "Gestion des Cessions",
+    "not_provided": "Non fourni",
+    "error": {
+      "general": "Une erreur s'est produite",
+      "required": "Ce champ est requis",
+      "invalid": "Valeur invalide",
+      "network": "Erreur réseau",
+      "unauthorized": "Accès non autorisé",
+      "not_found": "Non trouvé",
+      "server": "Erreur serveur"
+    },
+    "success": {
+      "saved": "Enregistré avec succès",
+      "updated": "Mis à jour avec succès",
+      "deleted": "Supprimé avec succès",
+      "created": "Créé avec succès"
+    },
+    "form": {
+      "required": "Requis",
+      "optional": "Optionnel",
+      "submit": "Soumettre",
+      "reset": "Réinitialiser",
+      "validation": {
+        "required": "Ce champ est requis",
+        "email": "Veuillez entrer un e-mail valide",
+        "min_length": "Doit contenir au moins {min} caractères",
+        "max_length": "Doit contenir au plus {max} caractères",
+        "password_match": "Les mots de passe doivent correspondre"
+      }
+    },
+    "pagination": {
+      "page": "Page",
+      "of": "sur",
+      "items": "éléments",
+      "per_page": "par page",
+      "showing": "Affichage",
+      "to": "à",
+      "of_total": "sur {total}"
+    },
+    "app_title": "Application de Cessions",
+    "cin": "CIN",
+    "client_number": "Numéro de Client",
+    "started": "Commencé",
+    "showing_results": "Affichage de {count} résultats",
+    "no_results": "Aucun résultat trouvé",
+    "try_adjusting_filters": "Essayez d'ajuster vos filtres",
+    "name": "Nom",
+    "status": "Statut",
+    "months": "mois"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "subtitle": "Aperçu de votre entreprise",
+  
+    "stats": {
+      "total_clients": "Total Clients",
+      "total_cessions": "Total Cessions",
+      "total_inventory": "Total Inventaire",
+      "total_sales": "Total Ventes",
+      "total_profit": "Total Bénéfice",
+      "active_cessions": "Cessions Actives",
+      "active_clients": "Clients Actifs",
+      "active_products": "Produits Actifs",
+      "active_sales": "Ventes Actives",
+      "active_expenses": "Dépenses Actives",
+      "finished_cessions": "Cessions Terminées",
+      "finished_clients": "Clients Terminés",
+      "finished_products": "Produits Terminés",
+      "finished_sales": "Ventes Terminées",
+      "finished_expenses": "Dépenses Terminées",
+      "total_expenses": "Total Dépenses"
+    },
+    "actions": {
+      "workplaces": "Lieux de travail",
+      "workplaces_desc": "Gérer vos lieux de travail",
+      "payments": "Paiements",
+      "payments_desc": "Gérer vos paiements",
+      "new_client": "Nouveau Client",
+      "new_cession": "Nouvelle Cession",
+      "new_product": "Nouveau Produit",
+      "new_sale": "Nouvelle Vente",
+      "view_clients": "Voir les clients",
+      "new_expense": "Nouvelle Dépense",
+      "new_client_desc": "Créer un nouveau client",
+      "new_cession_desc": "Créer une nouvelle cession",
+      "new_product_description": "Créer un nouveau produit",
+      "new_sale_description": "Créer une nouvelle vente",
+      "new_expense_description": "Créer une nouvelle dépense",
+      "view_clients_desc": "Voir tous les clients"
+    },
+    "recent_clients": {
+      "title": "Clients Récents",
+      "empty": "Aucun client trouvé",
+      "columns": {
+        "name": "Nom",
+        "cin": "CIN",
+        "action": "Action"
+      }
+    },
+    "recent_cessions": {
+      "title": "Cessions Récentes",
+      "empty": "Aucune cession trouvée",
+      "columns": {
+        "client": "Client",
+        "amount": "Montant",
+        "status": "Statut",
+        "action": "Action"
+      },
+      "status": {
+        "active": "Active",
+        "finished": "Terminée"
+      }
+    }
+  },
+  "clients": {
+    "title": "Clients",
+    "subtitle": "Gérer vos clients",
+    "new": "Nouveau Client",
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "search": {
+      "placeholder": "Rechercher des clients...",
+      "toggle": "Basculer la recherche",
+      "name": "Nom",
+      "cin": "Numéro d'Identité",
+      "worker_number": "Numéro d'Employé",
+      "job": "Emploi",
+      "workplace": "Lieu de Travail",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "clear": "Effacer la recherche"
+    },
+    "view": {
+      "grid": "Vue grille",
+      "list": "Vue liste"
+    },
+    "count": "{count} {count, plural, one=client other=clients}",
+    "details": {
+      "title": "Détails du Client",
+      "subtitle": "Voir et gérer les informations du client",
+      "full_name": "Nom Complet",
+      "cin":"Numéro d'Identité",
+      "not_found": "Client non trouvé",
+      
+
+      "worker_number": "Numéro d'Employé",
+      "actions": {
+        "edit": "Modifier le Client",
+        "create_cession": "Créer une Cession"
+      },
+      "cessions":{"view_all":"Voir toutes les cessions",
+      "view_full_details":"Voir les détails complets",
+      "no_cessions":"Aucune cession trouvée",
+      "title":"Cessions",
+    "table":{
+      "start_date":"Date de début",
+      "view_details":"Voir les détails",
+      "id":"ID de la table",
+      "amount":"Montant",
+      "status":"Statut",
+      "actions":"Actions"
+    }},
+      "workplace": "Lieu de Travail",
+      "job": "Emploi",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "create_cession": "Créer une Cession",
+      "view_full_details": "Voir les détails complets",
+      "work_info": {
+        "title": "Informations du Travail",
+        "subtitle": "Voir et gérer les informations du travail du client",
+        "workplace": "Lieu de Travail",
+        "worker_number": "Numéro d'Employé",
+        "job": "Emploi"
+      },
+      "personal_info": {
+        "title": "Informations Personnelles",
+        "subtitle": "Voir et gérer les informations personnelles du client",
+        "full_name": "Nom Complet",
+        "cin": "Numéro d'Identité",
+        "phone": "Téléphone",
+        "address": "Adresse",
+        "worker_number": "Numéro d'Employé",
+        "workplace": "Lieu de Travail"
+      }
+    },
+    "actions": {
+      "view_details": "Voir les détails",
+      "new_client": "Nouveau Client",
+      "create_client": "Créer un client",
+      "new_cession": "Nouvelle Cession",
+      "create_cession": "Créer une cession"
+    },
+    "edit": {
+      "title": "Modifier le Client",
+      "subtitle": "Mettre à jour les informations du client",
+      "back_to_client": "Retour au Client",
+      "client_info": "Informations du Client",
+      "full_name": "Nom Complet",
+      "worker_number": "Numéro d'Employé",
+      "cin": "Numéro d'Identité",
+      "workplace": "Lieu de Travail",
+      "job": "Emploi",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "save_changes": "Enregistrer les Modifications",
+      "cancel": "Annuler",
+      "required_field": "*",
+      "select_workplace": "Sélectionner un lieu de travail",
+      "select_job": "Sélectionner un emploi",
+      "saving": "Enregistrement...",
+      "not_found": "Client non trouvé",
+      "load_error": "Échec du chargement des lieux de travail et des emplois",
+      "required_fields": "Veuillez remplir tous les champs obligatoires",
+      "cin_validation": "Le numéro d'identité doit comporter exactement 8 chiffres",
+      "success": "Client mis à jour avec succès",
+      "error": "Échec de la mise à jour du client",
+      "delete": "Supprimer le client",
+      "delete_confirm_title": "Confirmer la suppression du client",
+      "delete_confirm_message": "Cette action supprimera définitivement le client {name} et toutes ses cessions associées. Cette action est irréversible.",
+      "delete_confirm_instruction": "Pour confirmer, tapez le nom complet du client ci-dessous :",
+      "delete_confirm_button": "Supprimer définitivement",
+      "delete_cancel_button": "Annuler",
+      "delete_name_mismatch": "Le nom saisi ne correspond pas. Veuillez taper le nom complet du client pour confirmer.",
+      "delete_success": "Client et toutes ses cessions supprimés avec succès.",
+      "delete_error": "Erreur lors de la suppression du client."
+    }
+  },
+  "cessions": {
+    "title": "Cessions",
+    "subtitle": "Gérer vos cessions",
+    "new": "Nouvelle Cession",
+    "status": {
+      "active": "Active",
+      "finished": "Terminée",
+      "cancelled": "Annulée",
+      "pending": "En attente"
+    },
+    "search": {
+      "placeholder": "Rechercher des cessions...",
+      "toggle": "Basculer la recherche",
+      "clear": "Effacer la recherche"
+    },
+    "view": {
+      "grid": "Vue grille",
+      "list": "Vue liste"
+    },
+    "count": "{count} {count, plural, one=cession other=cessions}",
+    "details": {
+      "title": "Détails de la Cession",
+      "subtitle": "Voir et gérer les informations de la cession",
+      "client": "Client",
+      "date": "Date",
+      "amount": "Montant",
+      "end_date":"Date de fin",
+      "start_date":"Date de début",
+      "actions":{
+        "edit":"Modifier la Cession",
+        "delete":"Supprimer la Cession",
+        "view_profile":"Voir le Profil",
+        "preview_document":"Aperçu PDF",
+        "download_document":"Télécharger le Document",
+        "view_details":"Voir les détails",
+        "back": "Retour"
+      },
+      "total_loan":"Montant Total",
+      "monthly_payment":"Paiement Mensuel",
+      "notes": "Notes",
+      "edit": "Modifier la Cession",
+      "delete": "Supprimer la Cession",
+      "view_profile": "Voir le Profil",
+      "not_found": "Cession non trouvée",
+      "client_info": "Informations du Client",
+      "cession_info": "Informations de la Cession",
+      "cession_details": "Détails de la Cession",
+      "cession_status": "Statut de la Cession",
+      "cession_notes": "Notes de la Cession",
+      "cession_actions": "Actions de la Cession",
+      "status":{
+        "active":"Active",
+        "finished":"Terminée",
+        "cancelled":"Annulée"
+      },
+      "cession_table": "Table de la Cession",
+      "client_name":"Nom du Client",
+      "bank_agency": "Banque/Agence",
+      "progress_info": "Informations sur la progression",
+      "current_progress": "Progression actuelle",
+      "remaining_balance": "Solde restant",
+      "months_remaining": "{count} mois",
+      "expected_payoff": "Remboursement attendu"
+    },
+    "filters":{
+      "title":"Filtrer les cessions",
+      "client_name":"Nom du Client",
+      "client_cin":"Numéro d'Identité",
+      "client_number":"Numéro de Client",
+      "client_job":"Emploi",
+      "client_workplace":"Lieu de Travail",
+      "client_address":"Adresse",
+      "client_phone":"Téléphone",
+      "amount":"Montant",
+      "status":"Statut",
+      "all_status":"Tous les statuts",
+      "client_email":"E-mail"
+    },
+    "errors": {
+      "invalid_id": "ID de cession invalide",
+      "not_found": "Cession non trouvée",
+      "load_failed": "Échec du chargement des détails de la cession",
+      "preview_failed": "Échec de l'aperçu du document",
+      "download_failed": "Échec du téléchargement du document"
+    },
+    "create": {
+      "title": "Créer une cession",
+      "subtitle": "Remplissez les informations pour créer une nouvelle cession.",
+      "select_client": "Sélectionner un client",
+      "selected_client": "Client sélectionné",
+      "name": "Nom",
+      "cin": "CIN",
+      "client_number": "Numéro du client",
+      "job": "Emploi",
+      "workplace": "Lieu de travail",
+      "address": "Adresse",
+      "cession_details": "Détails de la cession",
+      "monthly_payment": "Paiement Mensuel",
+      "bank_agency": "Banque/Agence",
+      "summary": "Résumé",
+      "total_amount": "Montant total",
+      "preview_pdf": "Aperçu PDF",
+      "create_cession": "Créer la cession",
+      "start_date_hint": "Laissez la date d'aujourd'hui ou choisissez une autre date.",
+      "validation": {
+        "required_fields": "Veuillez remplir tous les champs obligatoires.",
+        "success": "Cession créée avec succès !"
+      },
+      "search_client": "Rechercher un client"
+    },
+    "view_full_details": "Voir les détails complets"
+  },
+  "inventory": {
+    "title": "Inventaire",
+    "subtitle": "Gérez votre stock",
+    "add_product": "Ajouter un produit",
+    "manage_categories": "Gérer les catégories",
+    "search": {
+      "placeholder": "Rechercher des produits..."
+    },
+    "filters": {
+      "all_categories": "Toutes les catégories",
+      "sort_by": "Trier par",
+      "name": "Nom",
+      "price": "Prix",
+      "stock": "Stock"
+    },
+    "stock": "Stock",
+    "category": "Catégorie",
+    "sku": "Code produit",
+    "stock_status": {
+      "in_stock": "En stock",
+      "low": "Stock faible"
+    },
+    "create": {
+      "title": "Ajouter un nouveau produit",
+      "steps": {
+        "basic_info": "Informations de base",
+        "pricing": "Tarification",
+        "inventory": "Inventaire",
+        "details": "Détails supplémentaires"
+      },
+      "fields": {
+        "name": "Nom du produit",
+        "name_placeholder": "Entrez le nom du produit",
+        "sku": "Code produit",
+        "sku_placeholder": "Entrez le code produit",
+        "description": "Description",
+        "description_placeholder": "Entrez la description du produit",
+        "category": "Catégorie",
+        "select_category": "Sélectionner une catégorie",
+        "new_category": "Nouvelle catégorie",
+        "purchase_price": "Prix d'achat",
+        "selling_price": "Prix de vente",
+        "stock_quantity": "Quantité en stock",
+        "reorder_point": "Seuil de réapprovisionnement",
+        "supplier": "Fournisseur",
+        "supplier_placeholder": "Entrez le nom du fournisseur",
+        "specs": "Spécifications",
+        "specs_placeholder": "Entrez les spécifications du produit",
+        "image_url": "URL de l'image",
+        "image_url_placeholder": "Entrez l'URL de l'image"
+      },
+      "submit": "Ajouter le produit"
+    },
+    "validation": {
+      "login_required": "Veuillez vous connecter pour accéder à l'inventaire",
+      "load_error": "Erreur lors du chargement des données d'inventaire",
+      "search_error": "Erreur lors de la recherche de produits"
+    },
+    "no_products": {
+      "title": "Aucun produit trouvé",
+      "subtitle": "Commencez par ajouter votre premier produit"
+    },
+    "delete": {
+      "confirm": "Êtes-vous sûr de vouloir supprimer ce produit ?",
+      "success": "Produit supprimé avec succès",
+      "error": "Erreur lors de la suppression du produit"
+    },
+    "edit": {
+      "title": "Modifier le produit",
+      "steps": {
+        "basic_info": "Informations de base",
+        "pricing": "Tarification",
+        "inventory": "Inventaire",
+        "details": "Détails"
+      }
+    },
+    "create": {
+      "steps": {
+        "basic_info": "Informations de base",
+        "pricing": "Tarification",
+        "inventory": "Inventaire",
+        "details": "Détails"
+      }
+    }
+  },
+  "selling": {
+    "title": "Ventes",
+    "subtitle": "Gérez vos ventes",
+    "new": "Nouvelle vente",
+    "count": "{count} {count, plural, one=vente other=ventes}",
+    "details": {
+      "title": "Détails de la vente",
+      "subtitle": "Afficher et gérer les informations de vente",
+      "client": "Client",
+      "date": "Date",
+      "amount": "Montant",
+      "status": "Statut",
+      "notes": "Notes",
+      "edit": "Modifier la vente",
+      "delete": "Supprimer la vente"
+    },
+    "create": {
+      "title": "Créer une nouvelle vente",
+      "subtitle": "Sélectionnez les produits et entrez les détails de la vente",
+      "select_products": "Sélectionner des produits",
+      "sale_details": "Détails de la vente",
+      "payment_details": "Détails de paiement",
+      "total": "Montant total",
+      "create_sale": "Créer la vente"
+    },
+    "search": {
+      "placeholder": "Rechercher des produits..."
+    },
+    "time_range": {
+      "today": "Aujourd'hui",
+      "week": "Cette semaine",
+      "month": "Ce mois",
+      "year": "Cette année",
+      "all": "Toutes périodes"
+    },
+    "stats": {
+      "total_profit": "Bénéfice total",
+      "total_sales": "Ventes totales",
+      "average_profit": "Bénéfice moyen par vente"
+    },
+    "chart": {
+      "title": "Aperçu des ventes",
+      "type": {
+        "line": "Graphique linéaire",
+        "bar": "Graphique à barres"
+      },
+      "export": {
+        "title": "Exporter les données",
+        "format": "Format",
+        "csv": "CSV",
+        "excel": "Excel"
+      }
+    },
+    "sell_product": {
+      "title": "Vendre un produit",
+      "select_product": "Sélectionner un produit",
+      "quantity": "Quantité",
+      "selling_price": "Prix de vente",
+      "submit": "Vendre le produit",
+      "success": "{quantity} unité(s) de {product} vendue(s) avec succès !",
+      "error": "Erreur lors de la vente du produit : {error}"
+    },
+    "validation": {
+      "select_product": "Veuillez sélectionner un produit à vendre.",
+      "invalid_quantity": "Quantité invalide. Veuillez entrer une valeur positive inférieure ou égale au stock actuel.",
+      "invalid_price": "Le prix de vente doit être supérieur ou égal à 0."
+    },
+    "recent_sales": {
+      "title": "Ventes récentes",
+      "no_sales": "Aucune vente trouvée",
+      "columns": {
+        "date": "Date",
+        "product": "Produit",
+        "quantity": "Quantité",
+        "price": "Prix",
+        "profit": "Bénéfice"
+      }
+    }
+  },
+  "finance": {
+    "title": "Suivi Financier",
+    "subtitle": "Surveillez vos dépenses et ventes",
+    "month_selector": "Sélectionner un mois",
+    "recent_sales": "Ventes récentes",
+    "recent_expenses": "Dépenses récentes",
+    "month_picker": "Choisir le mois",
+    "stats": {
+      "total_sales": "Ventes totales",
+      "total_profit": "Bénéfice total",
+      "total_expenses": "Dépenses totales",
+      "net_income": "Revenu net",
+      "net_profit": "Bénéfice net"
+    },
+    "expenses": {
+      "title": "Dépenses",
+      "add": "Ajouter une dépense",
+      "no_expenses": "Aucune dépense trouvée",
+      "columns": {
+        "date": "Date",
+        "category": "Catégorie",
+        "description": "Description",
+        "amount": "Montant"
+      }
+    },
+    "sales": {
+      "title": "Ventes",
+      "no_sales": "Aucune vente trouvée",
+      "trend": "Tendance des ventes",
+      "columns": {
+        "date": "Date",
+        "product": "Produit",
+        "quantity": "Quantité",
+        "price": "Prix",
+        "profit": "Bénéfice"
+      }
+    },
+    "charts": {
+      "title": "Dépenses par catégorie",
+      "no_data": "Aucune donnée disponible",
+      "expenses_by_category": "Dépenses par catégorie",
+      "sales_trend": "Tendance des ventes",
+      "income_by_category": "Revenus par catégorie",
+      "profit_trend": "Tendance du bénéfice",
+      "download": "Télécharger le rapport",
+      "print": "Imprimer le rapport"
+    },
+    "validation": {
+      "login_required": "Veuillez vous connecter pour accéder à cette page",
+      "load_error": "Erreur de chargement des données financières"
+    },
+    "table_headers": {
+      "date": "Date",
+      "category": "Catégorie",
+      "description": "Description",
+      "product": "Produit",
+      "quantity": "Quantité",
+      "price": "Prix",
+      "profit": "Bénéfice",
+      "amount": "Montant"
+    },
+    "modals": {
+      "expense": {
+        "title": "Ajouter une dépense",
+        "submit": "Ajouter la dépense"
+      },
+      "income": {
+        "title": "Ajouter un revenu",
+        "submit": "Ajouter le revenu"
+      }
+    },
+    "pagination": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "page": "Page {current} sur {total}"
+    },
+    "buttons": {
+      "add_expense": "Ajouter une dépense",
+      "add_income": "Ajouter un revenu"
+    },
+    "sort": {
+      "date": "Date",
+      "category": "Catégorie",
+      "description": "Description",
+      "amount": "Montant"
+    },
+    "error": {
+      "load_data": "Erreur de chargement des données :",
+      "load_summary": "Échec du chargement du résumé financier"
+    },
+    "unknown_product": "Produit inconnu"
+  },
+  "payments": {
+    "stats": {
+      "total_paid": "Total Payé",
+      "remaining_balance": "Solde Restant",
+      "progress": "Progression"
+    },
+    "form": {
+      "add_payment": "Ajouter un Paiement",
+      "amount": "Montant",
+      "payment_date": "Date de Paiement",
+      "notes": "Notes"
+    },
+    "history": {
+      "title": "Historique des Paiements",
+      "start_date": "Date de Début",
+      "end_date": "Date de Fin",
+      "loading": "Chargement des paiements...",
+      "no_payments": "Aucun paiement trouvé pour la période sélectionnée",
+      "columns": {
+        "date": "Date",
+        "amount": "Montant",
+        "notes": "Notes"
+      }
+    },
+    "validation": {
+      "required_fields": "Veuillez remplir tous les champs obligatoires",
+      "invalid_amount": "Veuillez entrer un montant de paiement valide",
+      "amount_exceeds_balance": "Le montant du paiement ne peut pas dépasser le solde restant"
+    },
+    "success": {
+      "added": "Paiement ajouté avec succès"
+    },
+    "errors": {
+      "invalid_cession_id": "ID de cession invalide",
+      "load_failed": "Échec du chargement des paiements",
+      "add_failed": "Échec de l'ajout du paiement"
+    },
+    "tracker": {
+      "month": "Mois {n}",
+      "paid_on": "Payé le {date} ({amount})",
+      "partial_paid": "{percent}% du mois payé",
+      "title": "Suivi des paiements sur 18 mois",
+      "months_paid": "mois payés",
+      "months_left": "mois restants",
+      "fully_paid": "Entièrement remboursé !"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérer vos paramètres"
+  },
+  "auth": {
+    "logout": "Déconnexion",
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Connectez-vous à votre compte",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "remember": "Se souvenir de moi",
+      "forgot": "Mot de passe oublié ?",
+      "submit": "Se connecter",
+      "no_account": "Pas de compte ?",
+      "signup": "S'inscrire",
+      "error": {
+        "invalid": "E-mail ou mot de passe invalide",
+        "required": "Veuillez entrer votre e-mail et votre mot de passe"
+      }
+    },
+    "signup": {
+      "title": "Inscription",
+      "subtitle": "Créer un nouveau compte",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "confirm_password": "Confirmer le mot de passe",
+      "first_name": "Prénom",
+      "last_name": "Nom",
+      "submit": "Créer un compte",
+      "have_account": "Vous avez déjà un compte ?",
+      "login": "Se connecter",
+      "error": {
+        "required": "Veuillez remplir tous les champs",
+        "password_length": "Le mot de passe doit contenir au moins 6 caractères",
+        "password_match": "Les mots de passe doivent correspondre",
+        "email_invalid": "Veuillez entrer une adresse e-mail valide"
+      }
+    }
+  },
+  "footer": {
+    "copyright": "© 2024 Gestion des Cessions. Tous droits réservés."
+  }
+}

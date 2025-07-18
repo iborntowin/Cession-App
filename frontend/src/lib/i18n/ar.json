@@ -1,0 +1,758 @@
+{
+  "common": {
+    "app": {
+      "title": "إدارة الإحالات",
+      "name": "تطبيق الإحالات"
+    },
+    "details": {
+      "view_full_details": "عرض التفاصيل الكاملة"
+    },
+    "name": "الاسم",
+    "status": "الحالة",
+    "actions": {
+      "create": "إنشاء",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "back": "رجوع",
+      "download": "تحميل",
+      "logout": "تسجيل الخروج",
+      "view": "عرض التفاصيل",
+      "search": "بحث",
+      "clear": "مسح",
+      "add": "إضافة",
+      "next": "التالي",
+      "previous": "السابق",
+      "login": "تسجيل الدخول",
+      "signup": "إنشاء حساب",
+      "submit": "إرسال",
+      "close": "إغلاق",
+      "confirm": "تأكيد",
+      "filter": "تصفية",
+      "sort": "ترتيب",
+      "refresh": "تحديث",
+      "upload": "رفع",
+      "print": "طباعة",
+      "export": "تصدير",
+      "import": "استيراد",
+      "saving": "جاري الحفظ..."
+    },
+    "navigation": {
+      "dashboard": "لوحة التحكم",
+      "clients": "العملاء",
+      "cessions": "الإحالات",
+      "inventory": "المخزون",
+      "selling": "المبيعات",
+      "finance": "المالية",
+      "settings": "الإعدادات",
+      "logout": "تسجيل الخروج",
+      "financial": "المالية"
+    },
+    "view": "عرض",
+    "view_all": "عرض الكل",
+    "client": {
+      "new": "عميل جديد",
+      "edit": "تعديل العميل",
+      "profile": "ملف العميل",
+      "info": "معلومات العميل",
+      "full_name": "الاسم الكامل",
+      "cin": "رقم التعريف الوطني (8 أرقام)",
+      "enter_cin": "أدخل رقم التعريف الوطني المكون من 8 أرقام",
+      "cin_hint": "0/8",
+      "cin_error": "الرجاء إدخال رقم تعريف وطني صالح",
+      "cin_status": {
+        "valid": "رقم تعريف وطني صالح",
+        "invalid": "رقم تعريف وطني غير صالح",
+        "length": "يجب أن يتكون رقم التعريف من 8 أرقام",
+        "default": "الرجاء إدخال رقم التعريف الوطني"
+      }
+    },
+    "cession": {
+      "new": "الإحالة جديد",
+      "edit": "تعديل الإحالة",
+      "details": "تفاصيل الإحالة",
+      "document": "المستند",
+      "status": {
+        "active": "نشط",
+        "completed": "مكتمل",
+        "cancelled": "ملغي"
+      }
+    },
+    "documents": {
+      "id_card": "بطاقة الهوية",
+      "job_card": "بطاقة العمل",
+      "other": "مستندات أخرى",
+      "upload": "رفع مستند",
+      "download": "تحميل المستند"
+    },
+    "validation": {
+      "required": "هذا الحقل مطلوب",
+      "invalid_format": "صيغة غير صالحة",
+      "min_length": "الحد الأدنى للطول هو {{length}} حروف",
+      "max_length": "الحد الأقصى للطول هو {{length}} حروف"
+    },
+    "alerts": {
+      "success": "تم بنجاح",
+      "error": "حدث خطأ",
+      "warning": "تحذير",
+      "info": "معلومات"
+    },
+    "loading": "جاري التحميل...",
+    "no_data": "لا توجد بيانات",
+    "confirm": "هل أنت متأكد؟",
+    "language": {
+      "select": "اختر اللغة",
+      "en": "English",
+      "fr": "Français",
+      "ar": "العربية"
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "description": "إدارة تفضيلات التطبيق وإعدادات اللغة",
+      "language_settings": {
+        "title": "إعدادات اللغة",
+        "description": "اختر لغتك المفضلة للتطبيق",
+        "current_selection": "المحدد حالياً",
+        "rtl_support": " اليمين إلى اليسار"
+      },
+      "additional_settings": {
+        "title": "إعدادات إضافية",
+        "description": "ستتوفر المزيد من الإعدادات هنا في التحديثات المستقبلية",
+        "coming_soon": "قريباً..."
+      },
+      "language": "اللغة",
+      "theme": "المظهر",
+      "notifications": "الإشعارات",
+      "account": "الحساب",
+      "security": "الأمان",
+      "preferences": "التفضيلات"
+    },
+    "app_name": "إدارة الإحالات",
+    "not_provided": "غير متوفر",
+    "error": {
+      "general": "حدث خطأ",
+      "required": "هذا الحقل مطلوب",
+      "invalid": "قيمة غير صالحة",
+      "network": "خطأ في الشبكة",
+      "unauthorized": "غير مصرح",
+      "not_found": "غير موجود",
+      "server": "خطأ في الخادم"
+    },
+    "success": {
+      "saved": "تم الحفظ بنجاح",
+      "updated": "تم التحديث بنجاح",
+      "deleted": "تم الحذف بنجاح",
+      "created": "تم الإنشاء بنجاح"
+    },
+    "form": {
+      "required": "مطلوب",
+      "optional": "اختياري",
+      "submit": "إرسال",
+      "reset": "إعادة تعيين",
+      "validation": {
+        "required": "هذا الحقل مطلوب",
+        "email": "يرجى إدخال بريد إلكتروني صالح",
+        "min_length": "يجب أن يكون {min} أحرف على الأقل",
+        "max_length": "يجب أن يكون {max} أحرف على الأكثر",
+        "password_match": "يجب أن تتطابق كلمات المرور"
+      }
+    },
+    "pagination": {
+      "page": "صفحة",
+      "of": "من",
+      "items": "عنصر",
+      "per_page": "لكل صفحة",
+      "showing": "عرض",
+      "to": "إلى",
+      "of_total": "من {total}"
+    },
+    "app_title": "تطبيق الإحالات",
+    "cin": "رقم الهوية",
+    "client_number": "رقم العميل",
+    "started": "بدأ",
+    "showing_results": "عرض {count} نتيجة",
+    "no_results": "لم يتم العثور على نتائج",
+    "try_adjusting_filters": "حاول تعديل المرشحات",
+    "months": "أشهر"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "subtitle": "نظرة عامة على عملك",
+    "stats": {
+      "total_clients": "إجمالي العملاء",
+      "total_cessions": "إجمالي الإحالات",
+      "total_inventory": "إجمالي المخزون",
+      "total_sales": "إجمالي المبيعات",
+      "active_cessions": "الإحالات النشطة",
+      "finished_cessions": "الإحالات المنتهية",
+      "total_profit": "إجمالي الربح",
+      "total_expenses": "إجمالي المصروفات"
+    },
+    "actions": {
+      "new_client": "عميل جديد",
+      "new_client_desc": "إضافة ملف عميل جديد",
+      "view_clients": "عرض العملاء",
+      "view_clients_desc": "عرض جميع العملاء",
+      "new_cession": "الإحالة جديد",
+      "new_cession_desc": "إنشاء الإحالة جديد",
+      "workplaces": "أماكن العمل",
+      "workplaces_desc": "إدارة أماكن العمل",
+      "payments": "المدفوعات",
+      "payments_desc": "إدارة المدفوعات"
+    },
+    "recent_clients": {
+      "title": "العملاء الأخيرون",
+      "empty": "لم يتم العثور على عملاء",
+      "columns": {
+        "name": "الاسم",
+        "cin": "رقم التعريف",
+        "action": "إجراء"
+      }
+    },
+    "recent_cessions": {
+      "title": "الإحالات الأخيرة",
+      "empty": "لم يتم العثور على الإحالةات",
+      "columns": {
+        "client": "العميل",
+        "amount": "المبلغ",
+        "status": "الحالة",
+        "action": "إجراء"
+      },
+      "status": {
+        "active": "نشط",
+        "finished": "مكتمل"
+      }
+    }
+  },
+  "clients": {
+    "title": "العملاء",
+    "subtitle": "إدارة عملائك",
+    "new": "عميل جديد",
+    "create_cession": "إنشاء الإحالة",
+
+    "search": {
+      "title": "بحث",
+      "name": "البحث بالاسم",
+      "name_placeholder": "أدخل اسم العميل...",
+      "cin": "البحث برقم البطاقة الوطنية",
+      "cin_placeholder": "أدخل رقم البطاقة الوطنية...",
+      "worker_number": "البحث برقم العامل",
+      "worker_number_placeholder": "أدخل رقم العامل...",
+      "client_number": "البحث برقم العميل",
+      "client_number_placeholder": "أدخل رقم العميل...",
+      "clear": "مسح البحث"
+    },
+    "details": {
+      "title": "تفاصيل العميل",
+      "job": "الوظيفة",
+      "subtitle": "عرض وإدارة معلومات العميل",
+      "not_found": "العميل غير موجود",
+      "actions": {
+        "edit": "تعديل العميل",
+        "create_cession": "إنشاء الإحالة"
+      },
+      "personal_info": {
+        "title": "المعلومات الشخصية",
+        "full_name": "الاسم الكامل",
+        "cin": "رقم البطاقة الوطنية",
+        "phone": "رقم الهاتف",
+        "address": "العنوان"
+      },
+      "work_info": {
+        "title": "معلومات العمل",
+        "job": "المهنة",
+        "workplace": "مكان العمل",
+        "worker_number": "رقم العامل"
+      },
+      "cessions": {
+        "title": "الإحالات",
+        "details": {
+          "view_full_details": "عرض التفاصيل الكاملة"
+        },
+        "view_all": "عرض جميع الإحالات",
+        "no_cessions": "لا توجد الإحالةات لهذا العميل",
+        "table": {
+          "id": "المعرف",
+          "start_date": "تاريخ البدء",
+          "amount": "المبلغ",
+          "status": "الحالة",
+          "actions": "الإجراءات",
+          "view_details": "عرض التفاصيل"
+        }
+      },
+      "cin": "رقم الهوية",
+      "worker_number": "رقم العامل",
+      "workplace": "مكان العمل",
+      "create_cession": "إنشاء الإحالة",
+      "view_full_details": "عرض التفاصيل الكاملة",
+      "status": {
+        "active": "نشط",
+        "inactive": "غير نشط"
+      }
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+"count": "عميل",
+    "edit": {
+      "title": "تعديل العميل",
+      "subtitle": "تحديث معلومات العميل",
+      "back_to_client": "العودة إلى العميل",
+      "client_info": "معلومات العميل",  
+      "full_name": "الاسم الكامل",
+      "worker_number": "رقم العامل",
+      "cin": "رقم الهوية",
+      "workplace": "مكان العمل",
+      "job": "الوظيفة",
+      "phone": "رقم الهاتف",
+      "address": "العنوان",
+      "save_changes": "حفظ التغييرات",
+      "cancel": "إلغاء",
+      "required_field": "*",
+      "select_workplace": "اختر مكان العمل",
+      "select_job": "اختر الوظيفة",
+      "saving": "جاري الحفظ...",
+      "not_found": "العميل غير موجود",
+      "load_error": "فشل تحميل أماكن العمل والوظائف",
+      "required_fields": "يرجى ملء جميع الحقول المطلوبة",
+      "cin_validation": "يجب أن يكون رقم الهوية 8 أرقام بالضبط",
+      "success": "تم تحديث العميل بنجاح",
+      "error": "فشل تحديث العميل",
+      "delete": "حذف العميل",
+      "delete_confirm_title": "تأكيد حذف العميل",
+      "delete_confirm_message": "سيتم حذف العميل {name} وجميع الإحالات المرتبطة به نهائيًا. هذا الإجراء لا يمكن التراجع عنه.",
+      "delete_confirm_instruction": "للتأكيد، اكتب الاسم الكامل للعميل أدناه:",
+      "delete_confirm_button": "حذف نهائيًا",
+      "delete_cancel_button": "إلغاء",
+      "delete_name_mismatch": "الاسم المدخل غير مطابق. يرجى كتابة الاسم الكامل للعميل للتأكيد.",
+      "delete_success": "تم حذف العميل وجميع إحالاته بنجاح.",
+      "delete_error": "حدث خطأ أثناء حذف العميل."
+    }
+  },
+  "cessions": {
+    "view_full_details": "عرض التفاصيل الكاملة",
+    "title": "الإحالات",
+    "subtitle": "إدارة الإحالات",
+    "new": "الإحالة جديد",
+    "count": "{count} {count, plural, one=الإحالة other=الإحالةات}",
+    "details": {
+      "title": "تفاصيل الإحالة",
+      "client_info": "معلومات العميل",
+      "cession_info": "معلومات التحويل",
+      "client": "العميل",
+      "view_profile": "عرض الملف الشخصي",
+      "bank_agency": "البنك / الوكالة",
+      "total_loan": "إجمالي القرض",
+      "monthly_payment": "الدفعة الشهرية",
+      "start_date": "تاريخ البدء",
+      "end_date": "تاريخ الانتهاء",
+      "status": {
+        "active": "نشط",
+        "finished": "مكتمل",
+        "cancelled": "ملغي",
+        "pending": "قيد الانتظار"
+      },
+      "progress_info": "معلومات التقدم",
+      "current_progress": "التقدم الحالي",
+      "remaining_balance": "الرصيد المتبقي",
+      "months_remaining": "الأشهر المتبقية",
+      "expected_payoff": "تاريخ السداد المتوقع",
+      "total_paid": "المبلغ المدفوع",
+      "remaining": "الرصيد المتبقي",
+      "progress": "التقدم",
+      "add_payment": "إضافة دفعة",
+      "amount": "المبلغ",
+      "payment_date": "تاريخ الدفع",
+      "notes": "ملاحظات",
+      "payment_history": "سجل المدفوعات",
+      "actions": {
+        "back": "رجوع",
+        "preview_document": "معاينة المستند",
+        "download_document": "تحميل المستند",
+        "print_document": "طباعة المستند",
+        "edit_cession": "تعديل الإحالة",
+        "delete_cession": "حذف الإحالة",
+        "add_payment": "إضافة دفعة",
+        "add_payment_desc": "إضافة مدفوعات جديدة",
+        "add_payment_success": "تم إضافة الدفعة بنجاح",
+        "add_payment_error": "فشل إضافة الدفعة",
+        "add_payment_success_desc": "تم إضافة الدفعة بنجاح",
+        "view_full_details": "عرض التفاصيل الكاملة"
+      },
+      "view_profile": "عرض الملف الشخصي"
+    },
+    "create": {
+      "title": "إنشاء تحويل جديد",
+      "subtitle": "اختر العميل وأدخل تفاصيل التحويل أدناه",
+      "select_client": "اختر العميل",
+      "search_client": "البحث عن العملاء...",
+      "client_details": "تفاصيل العميل",
+      "cession_details": "تفاصيل التحويل",
+      "selected_client": "العميل المختار",
+      "name": "الاسم",
+      "cin": "رقم الهوية",
+      "client_number": "رقم العميل",
+      "job": "الوظيفة",
+      "workplace": "مكان العمل",
+      "address": "العنوان",
+      "summary": "ملخص",
+      "monthly_payment": "الدفعة الشهرية",
+      "bank_agency": "البنك / الوكالة",
+      "total_amount": "المبلغ الإجمالي",
+      "preview_pdf": "معاينة PDF",
+      "create_cession": "إنشاء التحويل",
+      "change_client": "تغيير العميل",
+      "validation": {
+        "select_client": "الرجاء اختيار العميل أولاً",
+        "required_fields": "الرجاء ملء جميع الحقول المطلوبة",
+        "success": "تم إنشاء التحويل بنجاح",
+        "error": "فشل في إنشاء التحويل"
+      }
+    },
+    "filters": {
+      "title": "التصفية",
+      "client_name": "اسم العميل",
+      "client_cin": "رقم الهوية",
+      "client_number": "رقم العميل",
+      "amount": "المبلغ",
+      "status": "الحالة",
+      "date_range": "النطاق الزمني",
+      "start_date": "تاريخ البدء",
+      "end_date": "تاريخ الانتهاء",
+      "clear": "مسح التصفية",
+      "all_status": "جميع الحالات"
+    },
+    "errors": {
+      "invalid_id": "معرف الإحالة غير صالح",
+      "not_found": "الإحالة غير موجود",
+      "load_failed": "فشل في تحميل تفاصيل الإحالة",
+      "preview_failed": "فشل في معاينة المستند",
+      "download_failed": "فشل في تحميل المستند"
+    }
+  },
+  "inventory": {
+    "title": "المخزون",
+    "subtitle": "إدارة مخزونك",
+    "add_product": "إضافة منتج",
+    "manage_categories": "إدارة الفئات",
+    "search": {
+      "placeholder": "البحث عن المنتجات..."
+    },
+    "filters": {
+      "all_categories": "جميع الفئات",
+      "sort_by": "ترتيب حسب",
+      "name": "الاسم",
+      "price": "السعر",
+      "stock": "المخزون"
+    },
+    "stock": "المخزون",
+    "category": "الفئة",
+    "sku": "رمز المنتج",
+    "stock_status": {
+      "in_stock": "متوفر",
+      "low": "مخزون منخفض"
+    },
+    "create": {
+      "title": "إضافة منتج جديد",
+      "steps": {
+        "basic_info": "المعلومات الأساسية",
+        "pricing": "التسعير",
+        "inventory": "المخزون",
+        "details": "تفاصيل إضافية"
+      },
+      "fields": {
+        "name": "اسم المنتج",
+        "name_placeholder": "أدخل اسم المنتج",
+        "sku": "رمز المنتج",
+        "sku_placeholder": "أدخل رمز المنتج",
+        "description": "الوصف",
+        "description_placeholder": "أدخل وصف المنتج",
+        "category": "الفئة",
+        "select_category": "اختر فئة",
+        "new_category": "فئة جديدة",
+        "purchase_price": "سعر الشراء",
+        "selling_price": "سعر البيع",
+        "stock_quantity": "كمية المخزون",
+        "reorder_point": "نقطة إعادة الطلب",
+        "supplier": "المورد",
+        "supplier_placeholder": "أدخل اسم المورد",
+        "specs": "المواصفات",
+        "specs_placeholder": "أدخل مواصفات المنتج",
+        "image_url": "رابط الصورة",
+        "image_url_placeholder": "أدخل رابط الصورة"
+      },
+      "submit": "إضافة المنتج"
+    },
+    "validation": {
+      "login_required": "يرجى تسجيل الدخول للوصول إلى المخزون",
+      "load_error": "خطأ في تحميل بيانات المخزون",
+      "search_error": "خطأ في البحث عن المنتجات"
+    },
+    "no_products": {
+      "title": "لم يتم العثور على منتجات",
+      "subtitle": "ابدأ بإضافة منتجك الأول"
+    },
+    "delete": {
+      "confirm": "هل أنت متأكد من حذف هذا المنتج؟",
+      "success": "تم حذف المنتج بنجاح",
+      "error": "خطأ في حذف المنتج"
+    }
+  },
+  "selling": {
+    "title": "المبيعات",
+    "subtitle": "إدارة مبيعاتك",
+    "new": "بيع جديد",
+    "count": "{count} {count, plural, one=بيع other=مبيعات}",
+    "details": {
+      "title": "تفاصيل البيع",
+      "subtitle": "عرض وإدارة معلومات البيع",
+      "client": "العميل",
+      "date": "التاريخ",
+      "amount": "المبلغ",
+      "status": "الحالة",
+      "notes": "ملاحظات",
+      "edit": "تعديل البيع",
+      "delete": "حذف البيع"
+    },
+    "create": {
+      "title": "إنشاء بيع جديد",
+      "subtitle": "اختر المنتجات وأدخل تفاصيل البيع",
+      "select_products": "اختر المنتجات",
+      "sale_details": "تفاصيل البيع",
+      "payment_details": "تفاصيل الدفع",
+      "total": "المبلغ الإجمالي",
+      "create_sale": "إنشاء البيع"
+    },
+    "search": {
+      "placeholder": "البحث عن المنتجات..."
+    },
+    "time_range": {
+      "today": "اليوم",
+      "week": "هذا الأسبوع",
+      "month": "هذا الشهر",
+      "year": "هذا العام",
+      "all": "كل الوقت"
+    },
+    "stats": {
+      "total_profit": "إجمالي الربح",
+      "total_sales": "إجمالي المبيعات",
+      "average_profit": "متوسط الربح لكل عملية بيع"
+    },
+    "chart": {
+      "title": "نظرة عامة على المبيعات",
+      "type": {
+        "line": "رسم بياني خطي",
+        "bar": "رسم بياني شريطي"
+      },
+      "export": {
+        "title": "تصدير البيانات",
+        "format": "الصيغة",
+        "csv": "CSV",
+        "excel": "Excel"
+      }
+    },
+    "sell_product": {
+      "title": "بيع منتج",
+      "select_product": "اختر منتجاً",
+      "quantity": "الكمية",
+      "selling_price": "سعر البيع",
+      "submit": "بيع المنتج",
+      "success": "تم بيع {quantity} وحدة من {product} بنجاح!",
+      "error": "خطأ في بيع المنتج: {error}"
+    },
+    "validation": {
+      "select_product": "الرجاء اختيار منتج للبيع.",
+      "invalid_quantity": "كمية غير صالحة. الرجاء إدخال قيمة موجبة أقل من أو تساوي المخزون الحالي.",
+      "invalid_price": "يجب أن يكون سعر البيع 0 أو أكبر."
+    },
+    "recent_sales": {
+      "title": "المبيعات الأخيرة",
+      "no_sales": "لم يتم العثور على مبيعات",
+      "columns": {
+        "date": "التاريخ",
+        "product": "المنتج",
+        "quantity": "الكمية",
+        "price": "السعر",
+        "profit": "الربح"
+      }
+    }
+  },
+  "product": {
+    "stock_quantity":"الكمية الحالية",
+    "name": "الاسم",
+    "category": "الفئة",
+    "price": "السعر",
+    "quantity": "الكمية",
+    "description": "الوصف"
+  },
+  "finance": {
+    "title": "التتبع المالي",
+    "subtitle": "مراقبة نفقاتك ومبيعاتك",
+    "month_selector": "اختر الشهر",
+    "recent_sales": "المبيعات الأخيرة",
+    "recent_expenses": "النفقات الأخيرة",
+    "month_picker": "اختر الشهر",
+    "stats": {
+      "total_sales": "إجمالي المبيعات",
+      "total_profit": "إجمالي الربح",
+      "total_expenses": "إجمالي النفقات",
+      "net_income": "صافي الدخل",
+      "net_profit": "صافي الربح"
+    },
+    "expenses": {
+      "title": "النفقات",
+      "add": "إضافة نفقة",
+      "no_expenses": "لم يتم العثور على نفقات",
+      "columns": {
+        "date": "التاريخ",
+        "category": "الفئة",
+        "description": "الوصف",
+        "amount": "المبلغ"
+      }
+    },
+    "sales": {
+      "title": "المبيعات",
+      "no_sales": "لم يتم العثور على مبيعات",
+      "trend": "اتجاه المبيعات",
+      "columns": {
+        "date": "التاريخ",
+        "product": "المنتج",
+        "quantity": "الكمية",
+        "price": "السعر",
+        "profit": "الربح"
+      }
+    },
+    "charts": {
+      "title": "النفقات حسب الفئة",
+      "no_data": "لا توجد بيانات متاحة",
+      "expenses_by_category": "النفقات حسب الفئة",
+      "sales_trend": "اتجاه المبيعات",
+      "income_by_category": "الإيرادات حسب الفئة",
+      "profit_trend": "اتجاه الربح",
+      "download": "تحميل التقرير",
+      "print": "طباعة التقرير"
+    },
+    "validation": {
+      "login_required": "يرجى تسجيل الدخول للوصول إلى هذه الصفحة",
+      "load_error": "خطأ في تحميل البيانات المالية"
+    },
+    "table_headers": {
+      "date": "التاريخ",
+      "category": "الفئة",
+      "description": "الوصف",
+      "product": "المنتج",
+      "quantity": "الكمية",
+      "price": "السعر",
+      "profit": "الربح",
+      "amount": "المبلغ"
+    },
+    "modals": {
+      "expense": {
+        "title": "إضافة نفقة",
+        "submit": "إضافة نفقة"
+      },
+      "income": {
+        "title": "إضافة دخل",
+        "submit": "إضافة دخل"
+      }
+    },
+    "pagination": {
+      "previous": "السابق",
+      "next": "التالي",
+      "page": "الصفحة {current} من {total}"
+    },
+    "buttons": {
+      "add_expense": "إضافة نفقة",
+      "add_income": "إضافة دخل"
+    },
+    "sort": {
+      "date": "التاريخ",
+      "category": "الفئة",
+      "description": "الوصف",
+      "amount": "المبلغ"
+    },
+    "error": {
+      "load_data": "خطأ في تحميل البيانات:",
+      "load_summary": "فشل في تحميل الملخص المالي"
+    },
+    "unknown_product": "منتج غير معروف"
+  },
+  "payments": {
+    "stats": {
+      "total_paid": "إجمالي المدفوع",
+      "remaining_balance": "الرصيد المتبقي",
+      "progress": "التقدم"
+    },
+    "form": {
+      "add_payment": "إضافة دفعة",
+      "amount": "المبلغ",
+      "payment_date": "تاريخ الدفع",
+      "notes": "ملاحظات"
+    },
+    "history": {
+      "title": "سجل المدفوعات",
+      "start_date": "تاريخ البداية",
+      "end_date": "تاريخ النهاية",
+      "loading": "جاري تحميل المدفوعات...",
+      "no_payments": "لم يتم العثور على مدفوعات للفترة المحددة",
+      "columns": {
+        "date": "التاريخ",
+        "amount": "المبلغ",
+        "notes": "ملاحظات"
+      }
+    },
+    "validation": {
+      "required_fields": "يرجى ملء جميع الحقول المطلوبة",
+      "invalid_amount": "يرجى إدخال مبلغ دفعة صالح",
+      "amount_exceeds_balance": "لا يمكن أن يتجاوز مبلغ الدفع الرصيد المتبقي"
+    },
+    "success": {
+      "added": "تم إضافة الدفعة بنجاح"
+    },
+    "errors": {
+      "invalid_cession_id": "معرف الإحالة غير صالح",
+      "load_failed": "فشل في تحميل المدفوعات",
+      "add_failed": "فشل في إضافة الدفعة"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "تسجيل الدخول",
+      "subtitle": "سجل دخولك إلى حسابك",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "remember": "تذكرني",
+      "forgot": "نسيت كلمة المرور؟",
+      "submit": "تسجيل الدخول",
+      "no_account": "ليس لديك حساب؟",
+      "signup": "إنشاء حساب",
+      "error": {
+        "invalid": "بريد إلكتروني أو كلمة مرور غير صحيحة",
+        "required": "يرجى إدخال البريد الإلكتروني وكلمة المرور"
+      }
+    },
+    "signup": {
+      "title": "إنشاء حساب",
+      "subtitle": "إنشاء حساب جديد",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "confirm_password": "تأكيد كلمة المرور",
+      "first_name": "الاسم الأول",
+      "last_name": "الاسم الأخير",
+      "submit": "إنشاء حساب",
+      "have_account": "لديك حساب بالفعل؟",
+      "login": "تسجيل الدخول",
+      "error": {
+        "required": "يرجى ملء جميع الحقول",
+        "password_length": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+        "password_match": "يجب أن تتطابق كلمات المرور",
+        "email_invalid": "يرجى إدخال بريد إلكتروني صالح"
+      }
+    }
+  },
+  "footer": {
+    "copyright": "© 2024 إدارة الإحالات. جميع الحقوق محفوظة."
+  }
+}
