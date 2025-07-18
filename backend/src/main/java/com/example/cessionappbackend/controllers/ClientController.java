@@ -88,16 +88,26 @@ public class ClientController {
         try {
             boolean cinExists = false;
             boolean workerNumberExists = false;
+            String cinClientId = null;
+            String workerNumberClientId = null;
             
             if (cin != null && !cin.trim().isEmpty()) {
-                cinExists = clientService.getClientByCin(cin).isPresent();
+                var cinClient = clientService.getClientByCin(cin);
+                if (cinClient.isPresent()) {
+                    cinExists = true;
+                    cinClientId = cinClient.get().getId().toString();
+                }
             }
             
             if (workerNumber != null && !workerNumber.trim().isEmpty()) {
-                workerNumberExists = clientService.getClientByWorkerNumber(workerNumber).isPresent();
+                var workerNumberClient = clientService.getClientByWorkerNumber(workerNumber);
+                if (workerNumberClient.isPresent()) {
+                    workerNumberExists = true;
+                    workerNumberClientId = workerNumberClient.get().getId().toString();
+                }
             }
             
-            return ResponseEntity.ok(new DuplicateCheckResponse(cinExists, workerNumberExists));
+            return ResponseEntity.ok(new DuplicateCheckResponse(cinExists, workerNumberExists, cinClientId, workerNumberClientId));
         } catch (Exception e) {
             logger.error("Error checking for duplicates", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -108,10 +118,14 @@ public class ClientController {
     public static class DuplicateCheckResponse {
         public final boolean cinExists;
         public final boolean workerNumberExists;
+        public final String cinClientId;
+        public final String workerNumberClientId;
         
-        public DuplicateCheckResponse(boolean cinExists, boolean workerNumberExists) {
+        public DuplicateCheckResponse(boolean cinExists, boolean workerNumberExists, String cinClientId, String workerNumberClientId) {
             this.cinExists = cinExists;
             this.workerNumberExists = workerNumberExists;
+            this.cinClientId = cinClientId;
+            this.workerNumberClientId = workerNumberClientId;
         }
     }
 

@@ -7,6 +7,7 @@
   import { showAlert, loading } from '$lib/stores';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
+  import { t } from '$lib/i18n';
 
   let isSaving = false;
   let workplaces = [];
@@ -33,11 +34,11 @@
 
   let cinLength = 0;
   let cinInput = '';
-  let cinDuplicateCheck = { exists: false, checking: false };
+  let cinDuplicateCheck = { exists: false, checking: false, clientId: null };
 
   let workerNumberLength = 0;
   let workerNumberInput = '';
-  let workerNumberDuplicateCheck = { exists: false, checking: false };
+  let workerNumberDuplicateCheck = { exists: false, checking: false, clientId: null };
 
   // Reactive status calculations
   $: cinStatus = getCinStatusValue(cinLength, cinDuplicateCheck);
@@ -189,17 +190,21 @@
     if (cinDebounceTimer) clearTimeout(cinDebounceTimer);
     
     cinDebounceTimer = setTimeout(async () => {
-      cinDuplicateCheck = { exists: false, checking: true };
+      cinDuplicateCheck = { exists: false, checking: true, clientId: null };
       try {
         const result = await clientsApi.checkDuplicate(cin, null);
         if (result.success) {
-          cinDuplicateCheck = { exists: result.data.cinExists, checking: false };
+          cinDuplicateCheck = { 
+            exists: result.data.cinExists, 
+            checking: false, 
+            clientId: result.data.cinClientId 
+          };
         } else {
-          cinDuplicateCheck = { exists: false, checking: false };
+          cinDuplicateCheck = { exists: false, checking: false, clientId: null };
         }
       } catch (error) {
         console.error('Error checking CIN duplicate:', error);
-        cinDuplicateCheck = { exists: false, checking: false };
+        cinDuplicateCheck = { exists: false, checking: false, clientId: null };
       }
     }, 500); // 500ms debounce
   }
@@ -209,17 +214,21 @@
     if (workerNumberDebounceTimer) clearTimeout(workerNumberDebounceTimer);
     
     workerNumberDebounceTimer = setTimeout(async () => {
-      workerNumberDuplicateCheck = { exists: false, checking: true };
+      workerNumberDuplicateCheck = { exists: false, checking: true, clientId: null };
       try {
         const result = await clientsApi.checkDuplicate(null, workerNumber);
         if (result.success) {
-          workerNumberDuplicateCheck = { exists: result.data.workerNumberExists, checking: false };
+          workerNumberDuplicateCheck = { 
+            exists: result.data.workerNumberExists, 
+            checking: false, 
+            clientId: result.data.workerNumberClientId 
+          };
         } else {
-          workerNumberDuplicateCheck = { exists: false, checking: false };
+          workerNumberDuplicateCheck = { exists: false, checking: false, clientId: null };
         }
       } catch (error) {
         console.error('Error checking Worker Number duplicate:', error);
-        workerNumberDuplicateCheck = { exists: false, checking: false };
+        workerNumberDuplicateCheck = { exists: false, checking: false, clientId: null };
       }
     }, 500); // 500ms debounce
   }
@@ -259,6 +268,25 @@
         return length < 8 ? `⚠️ Please enter ${8 - length} more digit${8 - length > 1 ? 's' : ''} (${length}/8)` : 'Invalid CIN number';
       default:
         return 'Enter your 8-digit National ID number (CIN)';
+    }
+  }
+
+  // Function to handle viewing duplicate client profile
+  function viewDuplicateClient(type) {
+    let clientId = null;
+    
+    if (type === 'cin' && cinDuplicateCheck.clientId) {
+      clientId = cinDuplicateCheck.clientId;
+    } else if (type === 'workerNumber' && workerNumberDuplicateCheck.clientId) {
+      clientId = workerNumberDuplicateCheck.clientId;
+    }
+    
+    if (clientId) {
+      goto(`/clients/${clientId}`);
+    } else {
+      // Fallback to search if no client ID is available
+      const searchValue = type === 'cin' ? cinInput : workerNumberInput;
+      goto(`/clients?search=${searchValue}`);
     }
   }
 
@@ -515,9 +543,21 @@
                 style="width: {(cinLength / 8) * 100}%"
               ></div>
             </div>
-            <p class={`mt-1 text-sm ${getCinTextColor()}`}>
-              {cinStatusMessage}
-            </p>
+            <div class={`mt-1 text-sm ${getCinTextColor()}`}>
+              <p>{cinStatusMessage}</p>
+              {#if cinStatus === 'duplicate'}
+                <button
+                  type="button"
+                  on:click={() => viewDuplicateClient('cin')}
+                  class="mt-2 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                  </svg>
+                  {$t('cessions.details.view_profile')}
+                </button>
+              {/if}
+            </div>
           </div>
           <!-- Worker Number Input -->
           <div>
@@ -555,9 +595,21 @@
                 style="width: {(workerNumberLength / 10) * 100}%"
               ></div>
             </div>
-            <p class={`mt-1 text-sm ${getWorkerNumberTextColor()}`}>
-              {workerNumberStatusMessage}
-            </p>
+            <div class={`mt-1 text-sm ${getWorkerNumberTextColor()}`}>
+              <p>{workerNumberStatusMessage}</p>
+              {#if workerNumberStatus === 'duplicate'}
+                <button
+                  type="button"
+                  on:click={() => viewDuplicateClient('workerNumber')}
+                  class="mt-2 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                  </svg>
+                  {$t('cessions.details.view_profile')}
+                </button>
+              {/if}
+            </div>
           </div>
         </div>
 
