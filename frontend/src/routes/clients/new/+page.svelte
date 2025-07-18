@@ -32,12 +32,55 @@
   let otherDocuments = [];
 
   let cinLength = 0;
-  let cinStatus = 'empty';
   let cinInput = '';
+  let cinDuplicateCheck = { exists: false, checking: false };
 
   let workerNumberLength = 0;
-  let workerNumberStatus = 'empty';
   let workerNumberInput = '';
+  let workerNumberDuplicateCheck = { exists: false, checking: false };
+
+  // Reactive status calculations
+  $: cinStatus = getCinStatusValue(cinLength, cinDuplicateCheck);
+  $: workerNumberStatus = getWorkerNumberStatusValue(workerNumberLength, workerNumberDuplicateCheck);
+  
+  // Reactive status messages
+  $: cinStatusMessage = getCinStatusMessage(cinStatus, cinLength, cinDuplicateCheck);
+  $: workerNumberStatusMessage = getWorkerNumberStatusMessage(workerNumberStatus, workerNumberLength, workerNumberDuplicateCheck);
+
+  // Functions to calculate status values
+  function getCinStatusValue(length, duplicateCheck) {
+    if (length === 0) {
+      return 'empty';
+    } else if (length < 8) {
+      return 'invalid';
+    } else if (length === 8) {
+      if (duplicateCheck.checking) {
+        return 'checking';
+      } else if (duplicateCheck.exists) {
+        return 'duplicate';
+      } else {
+        return 'valid';
+      }
+    }
+    return 'empty';
+  }
+
+  function getWorkerNumberStatusValue(length, duplicateCheck) {
+    if (length === 0) {
+      return 'empty';
+    } else if (length < 10) {
+      return 'invalid';
+    } else if (length === 10) {
+      if (duplicateCheck.checking) {
+        return 'checking';
+      } else if (duplicateCheck.exists) {
+        return 'duplicate';
+      } else {
+        return 'valid';
+      }
+    }
+    return 'empty';
+  }
 
   let phoneNumberLength = 0;
   let phoneNumberStatus = 'empty';
@@ -105,16 +148,81 @@
     }
   }
 
-  // Add reactive statements to filter out non-digits:
-  $: cinInput = cinInput.replace(/[^\d]/g, '').slice(0, 8);
-  $: cinLength = cinInput.length;
-  $: formData.cin = cinInput;
-  $: cinStatus = cinLength === 8 ? 'valid' : cinLength > 0 ? 'invalid' : 'empty';
+  // Debounce timers for duplicate checking
+  let cinDebounceTimer = null;
+  let workerNumberDebounceTimer = null;
 
-  $: workerNumberInput = workerNumberInput.replace(/[^\d]/g, '').slice(0, 10);
-  $: workerNumberLength = workerNumberInput.length;
-  $: formData.workerNumber = workerNumberInput;
-  $: workerNumberStatus = workerNumberLength === 10 ? 'valid' : workerNumberLength > 0 ? 'invalid' : 'empty';
+  // Handle CIN input changes
+  function handleCinInput(event) {
+    let value = event.target.value.replace(/[^\d]/g, '').slice(0, 8);
+    cinInput = value;
+    cinLength = value.length;
+    formData.cin = value;
+    
+    // Reset duplicate check when input changes
+    cinDuplicateCheck = { exists: false, checking: false };
+    
+    // Check for duplicates if CIN is complete
+    if (cinLength === 8) {
+      checkCinDuplicate(value);
+    }
+  }
+
+  // Handle Worker Number input changes
+  function handleWorkerNumberInput(event) {
+    let value = event.target.value.replace(/[^\d]/g, '').slice(0, 10);
+    workerNumberInput = value;
+    workerNumberLength = value.length;
+    formData.workerNumber = value;
+    
+    // Reset duplicate check when input changes
+    workerNumberDuplicateCheck = { exists: false, checking: false };
+    
+    // Check for duplicates if Worker Number is complete
+    if (workerNumberLength === 10) {
+      checkWorkerNumberDuplicate(value);
+    }
+  }
+
+  // Debounced function to check CIN duplicates
+  async function checkCinDuplicate(cin) {
+    if (cinDebounceTimer) clearTimeout(cinDebounceTimer);
+    
+    cinDebounceTimer = setTimeout(async () => {
+      cinDuplicateCheck = { exists: false, checking: true };
+      try {
+        const result = await clientsApi.checkDuplicate(cin, null);
+        if (result.success) {
+          cinDuplicateCheck = { exists: result.data.cinExists, checking: false };
+        } else {
+          cinDuplicateCheck = { exists: false, checking: false };
+        }
+      } catch (error) {
+        console.error('Error checking CIN duplicate:', error);
+        cinDuplicateCheck = { exists: false, checking: false };
+      }
+    }, 500); // 500ms debounce
+  }
+
+  // Debounced function to check Worker Number duplicates
+  async function checkWorkerNumberDuplicate(workerNumber) {
+    if (workerNumberDebounceTimer) clearTimeout(workerNumberDebounceTimer);
+    
+    workerNumberDebounceTimer = setTimeout(async () => {
+      workerNumberDuplicateCheck = { exists: false, checking: true };
+      try {
+        const result = await clientsApi.checkDuplicate(null, workerNumber);
+        if (result.success) {
+          workerNumberDuplicateCheck = { exists: result.data.workerNumberExists, checking: false };
+        } else {
+          workerNumberDuplicateCheck = { exists: false, checking: false };
+        }
+      } catch (error) {
+        console.error('Error checking Worker Number duplicate:', error);
+        workerNumberDuplicateCheck = { exists: false, checking: false };
+      }
+    }, 500); // 500ms debounce
+  }
 
   // Get color for the background track of the CIN bar - ALWAYS GRAY
   function getCinBarTrackColor() {
@@ -123,27 +231,34 @@
 
   // Update the progress bar color logic for CIN and Worker Number:
   function getCinBarFillColor() {
+    if (cinStatus === 'duplicate') return 'bg-red-500';
     if (cinStatus === 'valid') return 'bg-green-500';
+    if (cinStatus === 'checking') return 'bg-blue-500';
     if (cinStatus === 'invalid') return 'bg-yellow-500';
     return 'bg-gray-400';
   }
 
   // Get text color status
   function getCinTextColor() {
+    if (cinStatus === 'duplicate') return 'text-red-600';
     if (cinStatus === 'valid') return 'text-green-600';
+    if (cinStatus === 'checking') return 'text-blue-600';
     if (cinStatus === 'invalid') return 'text-yellow-600';
     return 'text-gray-500';
   }
 
   // Get status message
-  function getCinStatusMessage() {
-    switch (cinStatus) {
+  function getCinStatusMessage(status, length, duplicateCheck) {
+    if (duplicateCheck.checking) return 'Checking if this CIN already exists...';
+    switch (status) {
+      case 'duplicate':
+        return '❌ This CIN already exists! Please use a different CIN number.';
       case 'valid':
-        return 'Valid CIN number';
+        return '✅ Perfect! This CIN is valid and available.';
       case 'invalid':
-        return cinLength < 8 ? 'CIN must be 8 digits' : 'Invalid CIN number';
+        return length < 8 ? `⚠️ Please enter ${8 - length} more digit${8 - length > 1 ? 's' : ''} (${length}/8)` : 'Invalid CIN number';
       default:
-        return 'Please enter a CIN number';
+        return 'Enter your 8-digit National ID number (CIN)';
     }
   }
 
@@ -200,54 +315,46 @@
   function getPhoneNumberStatusMessage() {
     switch (phoneNumberStatus) {
       case 'valid':
-        return 'Valid phone number';
+        return '✅ Great! This phone number is valid.';
       case 'invalid':
-        return phoneNumberLength < 8 ? 'Phone number must be 8 digits' : 'Invalid phone number';
+        return phoneNumberLength < 8 ? `⚠️ Please enter ${8 - phoneNumberLength} more digit${8 - phoneNumberLength > 1 ? 's' : ''} (${phoneNumberLength}/8)` : 'Invalid phone number';
       default:
-        return 'Please enter a phone number';
+        return 'Enter your 8-digit phone number (optional)';
     }
   }
 
-  // Handle Worker Number input
-  function handleWorkerNumberInput(event) {
-    let value = event.target.value.replace(/[^\d]/g, '');
-    if (value.length > 10) value = value.slice(0, 10);
-    workerNumberInput = value;
-    workerNumberLength = workerNumberInput.length;
-    formData.workerNumber = value;
-    // Update workerNumberStatus
-    if (workerNumberLength === 10) {
-      workerNumberStatus = 'valid';
-    } else if (workerNumberLength > 0) {
-      workerNumberStatus = 'invalid';
-    } else {
-      workerNumberStatus = 'empty';
-    }
-  }
+
 
   // Update the progress bar color logic for CIN and Worker Number:
   function getWorkerNumberBarFillColor() {
+    if (workerNumberStatus === 'duplicate') return 'bg-red-500';
     if (workerNumberStatus === 'valid') return 'bg-green-500';
+    if (workerNumberStatus === 'checking') return 'bg-blue-500';
     if (workerNumberStatus === 'invalid') return 'bg-yellow-500';
     return 'bg-gray-400';
   }
 
   // Get text color status for Worker Number
   function getWorkerNumberTextColor() {
+    if (workerNumberStatus === 'duplicate') return 'text-red-600';
     if (workerNumberStatus === 'valid') return 'text-green-600';
+    if (workerNumberStatus === 'checking') return 'text-blue-600';
     if (workerNumberStatus === 'invalid') return 'text-yellow-600';
     return 'text-gray-500';
   }
 
   // Get status message for Worker Number
-  function getWorkerNumberStatusMessage() {
-    switch (workerNumberStatus) {
+  function getWorkerNumberStatusMessage(status, length, duplicateCheck) {
+    if (duplicateCheck.checking) return 'Checking if this Worker Number already exists...';
+    switch (status) {
+      case 'duplicate':
+        return '❌ This Worker Number already exists! Please use a different number.';
       case 'valid':
-        return 'Valid worker number';
+        return '✅ Excellent! This Worker Number is valid and available.';
       case 'invalid':
-        return workerNumberLength < 10 ? 'Worker number must be 10 digits' : 'Invalid worker number';
+        return length < 10 ? `⚠️ Please enter ${10 - length} more digit${10 - length > 1 ? 's' : ''} (${length}/10)` : 'Invalid worker number';
       default:
-        return 'Please enter a worker number';
+        return 'Enter your 10-digit Worker Number';
     }
   }
 
@@ -381,7 +488,8 @@
               <input
                 type="text"
                 id="cin"
-                bind:value={cinInput}
+                value={cinInput}
+                on:input={handleCinInput}
                 required
                 pattern="\d*"
                 inputmode="numeric"
@@ -399,14 +507,16 @@
             <div class="mt-2 h-2 w-full rounded-full bg-gray-200 relative overflow-hidden">
               <div
                 class="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
+                class:bg-red-500={cinStatus === 'duplicate'}
                 class:bg-green-500={cinStatus === 'valid'}
+                class:bg-blue-500={cinStatus === 'checking'}
                 class:bg-yellow-500={cinStatus === 'invalid'}
                 class:bg-gray-400={cinStatus === 'empty'}
                 style="width: {(cinLength / 8) * 100}%"
               ></div>
             </div>
             <p class={`mt-1 text-sm ${getCinTextColor()}`}>
-              {getCinStatusMessage()}
+              {cinStatusMessage}
             </p>
           </div>
           <!-- Worker Number Input -->
@@ -418,7 +528,8 @@
               <input
                 type="text"
                 id="workerNumber"
-                bind:value={workerNumberInput}
+                value={workerNumberInput}
+                on:input={handleWorkerNumberInput}
                 required
                 pattern="\d*"
                 inputmode="numeric"
@@ -436,14 +547,16 @@
             <div class="mt-2 h-2 w-full rounded-full bg-gray-200 relative overflow-hidden">
               <div
                 class="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
+                class:bg-red-500={workerNumberStatus === 'duplicate'}
                 class:bg-green-500={workerNumberStatus === 'valid'}
+                class:bg-blue-500={workerNumberStatus === 'checking'}
                 class:bg-yellow-500={workerNumberStatus === 'invalid'}
                 class:bg-gray-400={workerNumberStatus === 'empty'}
                 style="width: {(workerNumberLength / 10) * 100}%"
               ></div>
             </div>
             <p class={`mt-1 text-sm ${getWorkerNumberTextColor()}`}>
-              {getWorkerNumberStatusMessage()}
+              {workerNumberStatusMessage}
             </p>
           </div>
         </div>
@@ -634,7 +747,7 @@
         <div class="pt-5">
           <button
             type="submit"
-            disabled={isSaving || cinStatus !== 'valid' || !formData.fullName}
+            disabled={isSaving || cinStatus !== 'valid' || workerNumberStatus !== 'valid' || !formData.fullName}
             class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {#if isSaving}
@@ -651,5 +764,5 @@
 
 <!-- Hidden color classes to ensure Tailwind generates them for progress bars -->
 <div class="hidden">
-  <div class="bg-green-500 bg-yellow-500 bg-gray-400"></div>
+  <div class="bg-green-500 bg-yellow-500 bg-gray-400 bg-red-500 bg-blue-500"></div>
 </div>

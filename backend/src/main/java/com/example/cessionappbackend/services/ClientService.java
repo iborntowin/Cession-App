@@ -177,6 +177,11 @@ public class ClientService {
         return clientRepository.findByCin(cin).map(this::convertToDto);
     }
 
+    @Transactional(readOnly = true)
+    public Optional<ClientDTO> getClientByWorkerNumber(String workerNumber) {
+        return clientRepository.findByWorkerNumber(workerNumber).map(this::convertToDto);
+    }
+
 
 
     private Integer generateClientNumber() {

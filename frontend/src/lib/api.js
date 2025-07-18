@@ -181,6 +181,23 @@ export const clientsApi = {
     } catch (error) {
       return { success: false, error: error.message };
     }
+  },
+
+  checkDuplicate: async (cin, workerNumber) => {
+    try {
+      const params = new URLSearchParams();
+      if (cin) params.append('cin', cin);
+      if (workerNumber) params.append('workerNumber', workerNumber);
+
+      const response = await fetch(`${BACKEND_URL}/api/v1/clients/check-duplicate?${params.toString()}`, {
+        headers: getAuthHeaders()
+      });
+      const data = await handleResponse(response);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Client API - checkDuplicate error:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
 

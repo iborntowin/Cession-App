@@ -77,6 +77,44 @@ public class ClientController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // GET /api/v1/clients/check-duplicate - Check if CIN or Worker Number already exists
+    @GetMapping("/check-duplicate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DuplicateCheckResponse> checkDuplicate(
+            @RequestParam(required = false) String cin,
+            @RequestParam(required = false) String workerNumber) {
+        logger.debug("Checking for duplicate CIN or Worker Number. Current authentication: {}", SecurityContextHolder.getContext().getAuthentication());
+        
+        try {
+            boolean cinExists = false;
+            boolean workerNumberExists = false;
+            
+            if (cin != null && !cin.trim().isEmpty()) {
+                cinExists = clientService.getClientByCin(cin).isPresent();
+            }
+            
+            if (workerNumber != null && !workerNumber.trim().isEmpty()) {
+                workerNumberExists = clientService.getClientByWorkerNumber(workerNumber).isPresent();
+            }
+            
+            return ResponseEntity.ok(new DuplicateCheckResponse(cinExists, workerNumberExists));
+        } catch (Exception e) {
+            logger.error("Error checking for duplicates", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // Response class for duplicate check
+    public static class DuplicateCheckResponse {
+        public final boolean cinExists;
+        public final boolean workerNumberExists;
+        
+        public DuplicateCheckResponse(boolean cinExists, boolean workerNumberExists) {
+            this.cinExists = cinExists;
+            this.workerNumberExists = workerNumberExists;
+        }
+    }
+
 
 
     // POST /api/v1/clients - Create a new client
