@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Cession Management App",
   "version": "1.0.0",
-  "identifier": "com.electro.cessionapp",
+  "identifier": "com.nassimmaaoui.cessionapp",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -13,13 +13,9 @@
     "windows": [
       {
         "title": "Cession Management App",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 800,
-        "minHeight": 600,
-        "resizable": true,
         "fullscreen": false,
-        "center": true,
+        "maximized": true,
+        "resizable": true,
         "decorations": true,
         "transparent": false,
         "alwaysOnTop": false,
@@ -37,6 +33,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "Nassim Maaoui ©",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -48,27 +45,25 @@
       "backend/cession-app-backend-0.0.1-SNAPSHOT.jar",
       "backend/app.jar"
     ],
-    "externalBin": [],
-    "copyright": "Copyright © 2025 Electro Mousser. All rights reserved.",
+    "copyright": "Copyright © 2025 Nassim Maaoui. All rights reserved.",
     "category": "Business",
     "shortDescription": "Professional cession management application",
     "longDescription": "A comprehensive desktop application for managing financial cessions with integrated backend services, real-time monitoring, and advanced error recovery.",
     "windows": {
       "wix": {
-        "language": ["en-US"]
+        "language": [
+          "en-US"
+        ]
       }
     },
     "macOS": {
-      "frameworks": [],
-      "minimumSystemVersion": "10.13",
-      "exceptionDomain": "",
-      "signingIdentity": null,
-      "providerShortName": null,
-      "entitlements": null
+      "minimumSystemVersion": "10.13"
     },
     "linux": {
       "deb": {
-        "depends": ["default-jre | openjdk-17-jre | openjdk-11-jre"],
+        "depends": [
+          "default-jre | openjdk-17-jre | openjdk-11-jre"
+        ],
         "priority": "optional",
         "section": "utils"
       },

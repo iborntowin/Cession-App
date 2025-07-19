@@ -732,10 +732,17 @@
     "unknown_product": "Produit inconnu"
   },
   "payments": {
+    "title": "Intelligence des Paiements",
+    "subtitle": "Analyse et gestion avancées des paiements",
+    "loading": "Chargement de l'intelligence des paiements...",
     "stats": {
       "total_paid": "Total Payé",
       "remaining_balance": "Solde Restant",
-      "progress": "Progression"
+      "progress": "Progression",
+      "total_revenue": "Chiffre d'Affaires Total",
+      "total_payments": "Total des Paiements",
+      "average_payment": "Paiement Moyen",
+      "active_clients": "Clients Actifs"
     },
     "form": {
       "add_payment": "Ajouter un Paiement",
@@ -755,13 +762,91 @@
         "notes": "Notes"
       }
     },
+    "search": {
+      "placeholder": "Rechercher paiements, clients, montants...",
+      "advanced_filters": "Filtres Avancés",
+      "min_amount": "Montant Min",
+      "max_amount": "Montant Max",
+      "client": "Client",
+      "all_clients": "Tous les clients",
+      "time_range": "Période",
+      "last_7_days": "7 derniers jours",
+      "last_30_days": "30 derniers jours",
+      "last_3_months": "3 derniers mois",
+      "last_year": "Dernière année",
+      "all_time": "Toute période"
+    },
+    "views": {
+      "table": "Tableau",
+      "analytics": "Analyses"
+    },
+    "analytics": {
+      "title": "Tableau de Bord Analytique",
+      "kpi_cards": "Indicateurs Clés de Performance",
+      "payment_trends": "Tendances des Paiements (12 Mois)",
+      "top_clients": "Meilleurs Clients Performants",
+      "risk_analysis": "Analyse des Clients à Haut Risque",
+      "monthly_trends": "Tendances Mensuelles",
+      "client_performance": "Performance des Clients",
+      "vs_last_month": "vs mois dernier",
+      "this_week": "cette semaine",
+      "vs_average": "vs moyenne",
+      "new": "nouveau",
+      "this_month": "ce mois"
+    },
+    "risk": {
+      "title": "Analyse des Risques",
+      "high_risk_clients": "Clients à Haut Risque",
+      "clients_at_risk": "clients à risque",
+      "overdue_clients": "Clients en Retard (≥ 3 mois)",
+      "risk_score": "Risque",
+      "cession_days_ago": "Cession : il y a {days} jours",
+      "last_payment_days_ago": "Dernier paiement : il y a {days} jours",
+      "no_payments_recorded": "Aucun paiement enregistré",
+      "requires_attention": "Nécessite une attention immédiate"
+    },
+    "alerts": {
+      "critical_alerts": "Alertes Critiques",
+      "overdue_message": "{count} clients avec des paiements en retard (>3 mois)",
+      "risk_message": "{count} clients à haut risque identifiés"
+    },
+    "table": {
+      "client": "Client",
+      "amount": "Montant",
+      "date": "Date",
+      "status": "Statut",
+      "notes": "Notes",
+      "actions": "Actions",
+      "completed": "Terminé",
+      "view": "Voir",
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "bulk_actions": {
+      "selected": "{count} paiements sélectionnés",
+      "export_selected": "Exporter la Sélection",
+      "clear_selection": "Effacer la Sélection"
+    },
+    "pagination": {
+      "show": "Afficher",
+      "per_page": "par page",
+      "page_of": "Page {current} sur {total}",
+      "results": "({count} résultats)"
+    },
+    "export": {
+      "title": "Exporter",
+      "success": "Paiements exportés avec succès",
+      "error": "Échec de l'export : {error}"
+    },
     "validation": {
       "required_fields": "Veuillez remplir tous les champs obligatoires",
       "invalid_amount": "Veuillez entrer un montant de paiement valide",
       "amount_exceeds_balance": "Le montant du paiement ne peut pas dépasser le solde restant"
     },
     "success": {
-      "added": "Paiement ajouté avec succès"
+      "added": "Paiement ajouté avec succès",
+      "updated": "Paiement mis à jour avec succès",
+      "deleted": "Paiement supprimé avec succès"
     },
     "errors": {
       "invalid_cession_id": "ID de cession invalide",

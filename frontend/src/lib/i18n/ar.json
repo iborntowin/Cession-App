@@ -680,10 +680,17 @@
     "unknown_product": "منتج غير معروف"
   },
   "payments": {
+    "title": "ذكاء المدفوعات",
+    "subtitle": "تحليل وإدارة متقدمة للمدفوعات",
+    "loading": "جاري تحميل ذكاء المدفوعات...",
     "stats": {
       "total_paid": "إجمالي المدفوع",
       "remaining_balance": "الرصيد المتبقي",
-      "progress": "التقدم"
+      "progress": "التقدم",
+      "total_revenue": "إجمالي الإيرادات",
+      "total_payments": "إجمالي المدفوعات",
+      "average_payment": "متوسط الدفعة",
+      "active_clients": "العملاء النشطون"
     },
     "form": {
       "add_payment": "إضافة دفعة",
@@ -703,13 +710,91 @@
         "notes": "ملاحظات"
       }
     },
+    "search": {
+      "placeholder": "البحث في المدفوعات والعملاء والمبالغ...",
+      "advanced_filters": "مرشحات متقدمة",
+      "min_amount": "الحد الأدنى للمبلغ",
+      "max_amount": "الحد الأقصى للمبلغ",
+      "client": "العميل",
+      "all_clients": "جميع العملاء",
+      "time_range": "النطاق الزمني",
+      "last_7_days": "آخر 7 أيام",
+      "last_30_days": "آخر 30 يوماً",
+      "last_3_months": "آخر 3 أشهر",
+      "last_year": "العام الماضي",
+      "all_time": "كل الأوقات"
+    },
+    "views": {
+      "table": "جدول",
+      "analytics": "التحليلات"
+    },
+    "analytics": {
+      "title": "لوحة التحليلات",
+      "kpi_cards": "مؤشرات الأداء الرئيسية",
+      "payment_trends": "اتجاهات المدفوعات (12 شهراً)",
+      "top_clients": "أفضل العملاء أداءً",
+      "risk_analysis": "تحليل العملاء عالي المخاطر",
+      "monthly_trends": "الاتجاهات الشهرية",
+      "client_performance": "أداء العملاء",
+      "vs_last_month": "مقارنة بالشهر الماضي",
+      "this_week": "هذا الأسبوع",
+      "vs_average": "مقارنة بالمتوسط",
+      "new": "جديد",
+      "this_month": "هذا الشهر"
+    },
+    "risk": {
+      "title": "تحليل المخاطر",
+      "high_risk_clients": "العملاء عالي المخاطر",
+      "clients_at_risk": "عملاء معرضون للخطر",
+      "overdue_clients": "العملاء المتأخرون (≥ 3 أشهر)",
+      "risk_score": "درجة المخاطر",
+      "cession_days_ago": "الإحالة: منذ {days} يوماً",
+      "last_payment_days_ago": "آخر دفعة: منذ {days} يوماً",
+      "no_payments_recorded": "لا توجد مدفوعات مسجلة",
+      "requires_attention": "يتطلب اهتماماً فورياً"
+    },
+    "alerts": {
+      "critical_alerts": "تنبيهات حرجة",
+      "overdue_message": "{count} عملاء لديهم مدفوعات متأخرة (>3 أشهر)",
+      "risk_message": "تم تحديد {count} عملاء عالي المخاطر"
+    },
+    "table": {
+      "client": "العميل",
+      "amount": "المبلغ",
+      "date": "التاريخ",
+      "status": "الحالة",
+      "notes": "ملاحظات",
+      "actions": "الإجراءات",
+      "completed": "مكتمل",
+      "view": "عرض",
+      "edit": "تعديل",
+      "delete": "حذف"
+    },
+    "bulk_actions": {
+      "selected": "{count} مدفوعات محددة",
+      "export_selected": "تصدير المحدد",
+      "clear_selection": "مسح التحديد"
+    },
+    "pagination": {
+      "show": "عرض",
+      "per_page": "لكل صفحة",
+      "page_of": "صفحة {current} من {total}",
+      "results": "({count} نتيجة)"
+    },
+    "export": {
+      "title": "تصدير",
+      "success": "تم تصدير المدفوعات بنجاح",
+      "error": "فشل التصدير: {error}"
+    },
     "validation": {
       "required_fields": "يرجى ملء جميع الحقول المطلوبة",
       "invalid_amount": "يرجى إدخال مبلغ دفعة صالح",
       "amount_exceeds_balance": "لا يمكن أن يتجاوز مبلغ الدفع الرصيد المتبقي"
     },
     "success": {
-      "added": "تم إضافة الدفعة بنجاح"
+      "added": "تم إضافة الدفعة بنجاح",
+      "updated": "تم تحديث الدفعة بنجاح",
+      "deleted": "تم حذف الدفعة بنجاح"
     },
     "errors": {
       "invalid_cession_id": "معرف الإحالة غير صالح",

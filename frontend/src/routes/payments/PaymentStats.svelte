@@ -1,27 +1,56 @@
 <script>
   import { onMount } from 'svelte';
   import Chart from 'chart.js/auto';
-  import { formatCurrency } from '$lib/utils';
+  import { formatCurrency } from '$lib/utils/formatters';
 
-  export let totalAmount = 0;
-  export let averageAmount = 0;
-  export let paymentsByMonth = {};
+  export let payments = [];
+  export let paymentTrends = {};
+  export let topClients = [];
+  export let paymentPatterns = {};
 
   let monthlyChart;
+  let totalAmount = 0;
+  let averageAmount = 0;
+  let totalTransactions = 0;
+  let paymentsByMonth = {};
+
+  // Calculate stats reactively
+  $: {
+    if (payments && payments.length > 0) {
+      totalAmount = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+      totalTransactions = payments.length;
+      averageAmount = totalTransactions > 0 ? totalAmount / totalTransactions : 0;
+      
+      // Calculate monthly data
+      paymentsByMonth = {};
+      payments.forEach(payment => {
+        const date = new Date(payment.paymentDate);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        paymentsByMonth[monthKey] = (paymentsByMonth[monthKey] || 0) + payment.amount;
+      });
+    } else {
+      totalAmount = 0;
+      averageAmount = 0;
+      totalTransactions = 0;
+      paymentsByMonth = {};
+    }
+  }
 
   onMount(() => {
     // Monthly payments chart
     const monthlyCtx = document.getElementById('monthlyChart');
-    if (monthlyCtx) {
+    if (monthlyCtx && Object.keys(paymentsByMonth).length > 0) {
       monthlyChart = new Chart(monthlyCtx, {
         type: 'line',
         data: {
-          labels: Object.keys(paymentsByMonth),
+          labels: Object.keys(paymentsByMonth).sort(),
           datasets: [{
             label: 'Payment Amount',
-            data: Object.values(paymentsByMonth),
+            data: Object.keys(paymentsByMonth).sort().map(key => paymentsByMonth[key]),
             borderColor: '#6366f1',
-            tension: 0.4
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            tension: 0.4,
+            fill: true
           }]
         },
         options: {
@@ -33,6 +62,16 @@
             title: {
               display: true,
               text: 'Monthly Payment Distribution'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return '$' + value.toLocaleString();
+                }
+              }
             }
           }
         }

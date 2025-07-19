@@ -685,10 +685,17 @@
     "unknown_product": "Unknown Product"
   },
   "payments": {
+    "title": "Payment Intelligence",
+    "subtitle": "Advanced payment analytics & management",
+    "loading": "Loading payment intelligence...",
     "stats": {
       "total_paid": "Total Paid",
       "remaining_balance": "Remaining Balance",
-      "progress": "Progress"
+      "progress": "Progress",
+      "total_revenue": "Total Revenue",
+      "total_payments": "Total Payments",
+      "average_payment": "Average Payment",
+      "active_clients": "Active Clients"
     },
     "form": {
       "add_payment": "Add Payment",
@@ -708,13 +715,91 @@
         "notes": "Notes"
       }
     },
+    "search": {
+      "placeholder": "Search payments, clients, amounts...",
+      "advanced_filters": "Advanced Filters",
+      "min_amount": "Min Amount",
+      "max_amount": "Max Amount",
+      "client": "Client",
+      "all_clients": "All clients",
+      "time_range": "Time Range",
+      "last_7_days": "Last 7 days",
+      "last_30_days": "Last 30 days",
+      "last_3_months": "Last 3 months",
+      "last_year": "Last year",
+      "all_time": "All time"
+    },
+    "views": {
+      "table": "Table",
+      "analytics": "Analytics"
+    },
+    "analytics": {
+      "title": "Analytics Dashboard",
+      "kpi_cards": "Key Performance Indicators",
+      "payment_trends": "Payment Trends (12 Months)",
+      "top_clients": "Top Performing Clients",
+      "risk_analysis": "High-Risk Clients Analysis",
+      "monthly_trends": "Monthly Trends",
+      "client_performance": "Client Performance",
+      "vs_last_month": "vs last month",
+      "this_week": "this week",
+      "vs_average": "vs average",
+      "new": "new",
+      "this_month": "this month"
+    },
+    "risk": {
+      "title": "Risk Analysis",
+      "high_risk_clients": "High-Risk Clients",
+      "clients_at_risk": "clients at risk",
+      "overdue_clients": "Overdue Clients (≥ 3 months)",
+      "risk_score": "Risk",
+      "cession_days_ago": "Cession: {days} days ago",
+      "last_payment_days_ago": "Last payment: {days} days ago",
+      "no_payments_recorded": "No payments recorded",
+      "requires_attention": "Requires immediate attention"
+    },
+    "alerts": {
+      "critical_alerts": "Critical Alerts",
+      "overdue_message": "{count} clients with overdue payments (>3 months)",
+      "risk_message": "{count} high-risk clients identified"
+    },
+    "table": {
+      "client": "Client",
+      "amount": "Amount",
+      "date": "Date",
+      "status": "Status",
+      "notes": "Notes",
+      "actions": "Actions",
+      "completed": "Completed",
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "bulk_actions": {
+      "selected": "{count} payments selected",
+      "export_selected": "Export Selected",
+      "clear_selection": "Clear Selection"
+    },
+    "pagination": {
+      "show": "Show",
+      "per_page": "per page",
+      "page_of": "Page {current} of {total}",
+      "results": "({count} results)"
+    },
+    "export": {
+      "title": "Export",
+      "success": "Payments exported successfully",
+      "error": "Export failed: {error}"
+    },
     "validation": {
       "required_fields": "Please fill all required fields",
       "invalid_amount": "Please enter a valid payment amount",
       "amount_exceeds_balance": "Payment amount cannot exceed remaining balance"
     },
     "success": {
-      "added": "Payment added successfully"
+      "added": "Payment added successfully",
+      "updated": "Payment updated successfully",
+      "deleted": "Payment deleted successfully"
     },
     "errors": {
       "invalid_cession_id": "Invalid cession ID",
