@@ -299,9 +299,9 @@
     {#if !loading && payments.length > 0}
       <div class="mt-8">
         <h3 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
-          18-Month Payment Tracker
+          {$t('payments.tracker.title')}
           {#if (fullMonths + partialMonthFraction) >= 18}
-            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 animate-bounce">🎉 Fully Paid!</span>
+            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 animate-bounce">🎉 {$t('payments.tracker.fully_paid')}</span>
           {/if}
         </h3>
         <div class="mb-2">
@@ -309,9 +309,9 @@
             <div class="bg-green-500 h-2.5 rounded-full transition-all duration-300" style="width: {Math.min(((fullMonths + partialMonthFraction)/18)*100,100)}%"></div>
           </div>
           <div class="flex justify-between text-xs text-gray-500 mt-1">
-            <span>{(fullMonths + partialMonthFraction).toFixed(2)} / 18 months paid</span>
+            <span>{(fullMonths + partialMonthFraction).toFixed(2)} / 18 {$t('payments.tracker.months_paid')}</span>
             {#if (fullMonths + partialMonthFraction) < 18}
-              <span>{(18 - (fullMonths + partialMonthFraction)).toFixed(2)} months left</span>
+              <span>{(18 - (fullMonths + partialMonthFraction)).toFixed(2)} {$t('payments.tracker.months_left')}</span>
             {/if}
           </div>
         </div>

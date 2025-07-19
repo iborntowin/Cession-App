@@ -36,7 +36,9 @@
       "print": "طباعة",
       "export": "تصدير",
       "import": "استيراد",
-      "saving": "جاري الحفظ..."
+      "saving": "جاري الحفظ...",
+      "back_to_salary_cessions": "العودة إلى الإحالات على الأجر",
+      "back_to_client_details": "العودة إلى تفاصيل العميل"
     },
     "navigation": {
       "dashboard": "لوحة التحكم",
@@ -196,6 +198,8 @@
       "view_clients_desc": "عرض جميع العملاء",
       "new_cession": "الإحالة جديد",
       "new_cession_desc": "إنشاء الإحالة جديد",
+      "salary_cessions": "الإحالات على الأجر",
+      "salary_cessions_desc": "التقارير الشهرية للإحالات على الراتب",
       "workplaces": "أماكن العمل",
       "workplaces_desc": "إدارة أماكن العمل",
       "payments": "المدفوعات",
@@ -800,6 +804,15 @@
       "invalid_cession_id": "معرف الإحالة غير صالح",
       "load_failed": "فشل في تحميل المدفوعات",
       "add_failed": "فشل في إضافة الدفعة"
+    },
+    "tracker": {
+      "title": "متتبع المدفوعات لـ 18 شهراً",
+      "month": "الشهر {n}",
+      "paid_on": "تم الدفع في {date} ({amount})",
+      "partial_paid": "{percent}% من الشهر مدفوع",
+      "months_paid": "أشهر مدفوعة",
+      "months_left": "أشهر متبقية",
+      "fully_paid": "مدفوع بالكامل!"
     }
   },
   "auth": {
@@ -835,6 +848,47 @@
         "password_match": "يجب أن تتطابق كلمات المرور",
         "email_invalid": "يرجى إدخال بريد إلكتروني صالح"
       }
+    }
+  },
+  "salary_cessions": {
+    "title": "قـــائمة إسمية في الإحالات على الأجر",
+    "subtitle": "ملخص شهري لتخصيصات الإحالات على الراتب",
+    "loading": "جاري تحميل الإحالات على الراتب...",
+    "filters": {
+      "month": "الشهر",
+      "all_clients": "جميع العملاء",
+      "group_by_client": "تجميع حسب العميل"
+    },
+    "search": {
+      "placeholder": "البحث في العملاء، الوكالات المصرفية..."
+    },
+    "table": {
+      "index": "العدد",
+      "full_name": "الإسم واللقب",
+      "monthly_installment": "القسط الشهري",
+      "assigned_amount": "مبلغ الإحالة",
+      "bank_agency": "البنك/الوكالة"
+    },
+    "analytics": {
+      "total_installments": "إجمالي الأقساط الشهرية",
+      "total_assigned": "إجمالي المبالغ المحالة",
+      "client_count": "العملاء",
+      "cession_count": "الإحالات"
+    },
+    "totals": {
+      "label": "المجموع"
+    },
+    "export": {
+      "csv": "تصدير CSV",
+      "print": "طباعة التقرير",
+      "success": "تم تصدير التقرير بنجاح",
+      "error": "فشل التصدير: {error}"
+    },
+    "pagination": {
+      "show": "عرض",
+      "per_page": "لكل صفحة",
+      "page_of": "صفحة {current} من {total}",
+      "results": "نتيجة"
     }
   },
   "footer": {

@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { showAlert, loading } from '$lib/stores';
   import { cessionsApi, api } from '$lib/api';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -10,6 +11,9 @@
   import { format, addMonths } from 'date-fns';
   import { ar } from 'date-fns/locale';
   import { t } from '$lib/i18n';
+
+  // Check if we came from salary cessions page
+  $: fromSalaryCessions = $page.url.searchParams.get('from') === 'salary-cessions';
   
   export let data;
   
@@ -228,17 +232,32 @@
   <title>{$t('cessions.details.title')} | {$t('common.app_title')}</title>
 </svelte:head>
 
-<div class="mb-6">
-  <button
-    on:click={() => window.history.back()}
-    class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 mb-4"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-      <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-    </svg>
-    {$t('cessions.details.actions.back')}
-  </button>
-</div>
+<!-- Back Navigation -->
+{#if fromSalaryCessions}
+  <div class="mb-6">
+    <button
+      on:click={() => goto('/salary-cessions')}
+      class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+      </svg>
+      {$t('common.actions.back_to_salary_cessions') || 'Back to Salary Cessions'}
+    </button>
+  </div>
+{:else}
+  <div class="mb-6">
+    <button
+      on:click={() => window.history.back()}
+      class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+      </svg>
+      {$t('cessions.details.actions.back')}
+    </button>
+  </div>
+{/if}
 
 <div class="flex justify-end space-x-4 mb-6">
   <button

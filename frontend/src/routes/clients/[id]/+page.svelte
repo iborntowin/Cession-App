@@ -14,6 +14,9 @@
   import { t } from '$lib/i18n';
   import { format } from 'date-fns';
 
+  // Check if we came from salary cessions page
+  $: fromSalaryCessions = $page.url.searchParams.get('from') === 'salary-cessions';
+
   export let data;
 
   let client = data.client;
@@ -114,6 +117,21 @@
 </svelte:head>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Back to Salary Cessions Button -->
+  {#if fromSalaryCessions}
+    <div class="mb-6">
+      <button
+        on:click={() => goto('/salary-cessions')}
+        class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+        {$t('common.actions.back_to_salary_cessions') || 'Back to Salary Cessions'}
+      </button>
+    </div>
+  {/if}
+
   {#if data.error}
     <div class="bg-red-50 text-red-700 p-4 rounded-md">
       {data.error}
@@ -253,7 +271,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                           <span class="px-2 py-1 text-xs font-medium rounded-full {getStatusClass(cession.status)}">
-                            {$t(`cessions.status.${cession.status.toLowerCase()}`)}
+                            {$t(`cessions.details.status.${cession.status.toLowerCase()}`)}
                           </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

@@ -31,7 +31,9 @@
       "upload": "Téléverser",
       "print": "Imprimer",
       "export": "Exporter",
-      "import": "Importer"
+      "import": "Importer",
+      "back_to_salary_cessions": "Retour aux Cessions sur Salaire",
+      "back_to_client_details": "Retour aux Détails du Client"
     },
     "navigation": {
       "dashboard": "Tableau de bord",
@@ -212,6 +214,8 @@
       "payments_desc": "Gérer vos paiements",
       "new_client": "Nouveau Client",
       "new_cession": "Nouvelle Cession",
+      "salary_cessions": "Cessions sur Salaire",
+      "salary_cessions_desc": "Rapports mensuels des cessions sur salaire",
       "new_product": "Nouveau Produit",
       "new_sale": "Nouvelle Vente",
       "view_clients": "Voir les clients",
@@ -416,7 +420,8 @@
       "status":{
         "active":"Active",
         "finished":"Terminée",
-        "cancelled":"Annulée"
+        "cancelled":"Annulée",
+        "pending":"En attente"
       },
       "cession_table": "Table de la Cession",
       "client_name":"Nom du Client",
@@ -901,6 +906,47 @@
         "password_match": "Les mots de passe doivent correspondre",
         "email_invalid": "Veuillez entrer une adresse e-mail valide"
       }
+    }
+  },
+  "salary_cessions": {
+    "title": "Liste Nominative des Cessions sur Salaire",
+    "subtitle": "Résumé mensuel des affectations de cessions sur salaire",
+    "loading": "Chargement des cessions sur salaire...",
+    "filters": {
+      "month": "Mois",
+      "all_clients": "Tous les clients",
+      "group_by_client": "Grouper par Client"
+    },
+    "search": {
+      "placeholder": "Rechercher clients, agences bancaires..."
+    },
+    "table": {
+      "index": "Index",
+      "full_name": "Nom Complet",
+      "monthly_installment": "Mensualité",
+      "assigned_amount": "Montant Cédé",
+      "bank_agency": "Banque/Agence"
+    },
+    "analytics": {
+      "total_installments": "Total des Mensualités",
+      "total_assigned": "Total des Montants Cédés",
+      "client_count": "Clients",
+      "cession_count": "Cessions"
+    },
+    "totals": {
+      "label": "TOTAUX"
+    },
+    "export": {
+      "csv": "Exporter CSV",
+      "print": "Imprimer Rapport",
+      "success": "Rapport exporté avec succès",
+      "error": "Échec de l'export : {error}"
+    },
+    "pagination": {
+      "show": "Afficher",
+      "per_page": "par page",
+      "page_of": "Page {current} sur {total}",
+      "results": "résultats"
     }
   },
   "footer": {

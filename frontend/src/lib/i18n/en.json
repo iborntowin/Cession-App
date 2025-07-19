@@ -28,6 +28,8 @@
       "signup": "Sign Up",
       "submit": "Submit",
       "close": "Close",
+      "back_to_salary_cessions": "Back to Salary Cessions",
+      "back_to_client_details": "Back to Client Details",
       "confirm": "Confirm",
       "filter": "Filter",
       "sort": "Sort",
@@ -196,6 +198,8 @@
       "view_clients_desc": "View all clients",
       "new_cession": "New Cession",
       "new_cession_desc": "Create a new cession",
+      "salary_cessions": "Salary Cessions",
+      "salary_cessions_desc": "Monthly salary cession reports",
       "workplaces": "Workplaces",
       "workplaces_desc": "Manage workplaces",
       "payments": "Payments",
@@ -805,6 +809,15 @@
       "invalid_cession_id": "Invalid cession ID",
       "load_failed": "Failed to load payments",
       "add_failed": "Failed to add payment"
+    },
+    "tracker": {
+      "title": "18-Month Payment Tracker",
+      "month": "Month {n}",
+      "paid_on": "Paid on {date} ({amount})",
+      "partial_paid": "{percent}% of month paid",
+      "months_paid": "months paid",
+      "months_left": "months left",
+      "fully_paid": "Fully Paid!"
     }
   },
   "auth": {
@@ -840,6 +853,47 @@
         "password_match": "Passwords must match",
         "email_invalid": "Please enter a valid email"
       }
+    }
+  },
+  "salary_cessions": {
+    "title": "Nominal List of Salary Cessions",
+    "subtitle": "Monthly summary of salary cession assignments",
+    "loading": "Loading salary cessions...",
+    "filters": {
+      "month": "Month",
+      "all_clients": "All clients",
+      "group_by_client": "Group by Client"
+    },
+    "search": {
+      "placeholder": "Search clients, bank agencies..."
+    },
+    "table": {
+      "index": "Index",
+      "full_name": "Full Name",
+      "monthly_installment": "Monthly Installment",
+      "assigned_amount": "Assigned Amount",
+      "bank_agency": "Bank/Agency"
+    },
+    "analytics": {
+      "total_installments": "Total Monthly Installments",
+      "total_assigned": "Total Assigned Amounts",
+      "client_count": "Clients",
+      "cession_count": "Cessions"
+    },
+    "totals": {
+      "label": "TOTALS"
+    },
+    "export": {
+      "csv": "Export CSV",
+      "print": "Print Report",
+      "success": "Report exported successfully",
+      "error": "Export failed: {error}"
+    },
+    "pagination": {
+      "show": "Show",
+      "per_page": "per page",
+      "page_of": "Page {current} of {total}",
+      "results": "results"
     }
   },
   "footer": {

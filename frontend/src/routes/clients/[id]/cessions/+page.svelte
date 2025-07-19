@@ -142,28 +142,28 @@
   <div class="flex justify-between items-center mb-6">
     <div>
       <a href={`/clients/${data.id}`} class="text-primary-600 hover:text-primary-800 mb-2 inline-block">
-        &larr; Back to Client Details
+        &larr; {$t('common.actions.back_to_client_details')}
       </a>
       <h1 class="text-2xl font-bold text-gray-800">
-        {client ? `${client.fullName}'s Cessions` : 'Client Cessions'}
+        {client ? `${client.fullName}'s ${$t('common.navigation.cessions')}` : $t('clients.details.cessions.title')}
       </h1>
     </div>
     
     {#if client}
-      <a href={`/clients/${data.id}/cessions/new`} class="btn btn-primary">Add New Cession</a>
+      <a href={`/clients/${data.id}/cessions/new`} class="btn btn-primary">{$t('clients.details.actions.create_cession')}</a>
     {/if}
   </div>
   
   {#if client}
     <div class="card mb-6">
-      <h2 class="text-lg font-semibold mb-2">Client Information</h2>
+      <h2 class="text-lg font-semibold mb-2">{$t('clients.details.client_info')}</h2>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <p class="text-sm text-gray-500">Full Name</p>
+          <p class="text-sm text-gray-500">{$t('clients.details.personal_info.full_name')}</p>
           <p class="font-medium">{client.fullName}</p>
         </div>
         <div>
-          <p class="text-sm text-gray-500">CIN (ID Number)</p>
+          <p class="text-sm text-gray-500">{$t('clients.details.personal_info.cin')}</p>
           <p class="font-medium">{client.cin}</p>
         </div>
       </div>
