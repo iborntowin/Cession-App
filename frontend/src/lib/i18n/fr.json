@@ -260,22 +260,32 @@
       "inactive": "Inactif"
     },
     "search": {
-      "placeholder": "Rechercher des clients...",
-      "toggle": "Basculer la recherche",
-      "name": "Nom",
-      "cin": "Numéro d'Identité",
-      "worker_number": "Numéro d'Employé",
+      "title": "Recherche",
+      "name": "Rechercher par nom",
+      "name_placeholder": "Entrez le nom du client...",
+      "cin": "Rechercher par numéro d'identité",
+      "cin_placeholder": "Entrez le numéro d'identité...",
+      "worker_number": "Rechercher par numéro d'employé",
+      "worker_number_placeholder": "Entrez le numéro d'employé...",
+      "client_number": "Rechercher par numéro de client",
+      "client_number_placeholder": "Entrez le numéro de client...",
       "job": "Emploi",
       "workplace": "Lieu de Travail",
       "phone": "Téléphone",
       "address": "Adresse",
-      "clear": "Effacer la recherche"
+      "clear": "Effacer la recherche",
+      "placeholder": "Rechercher des clients...",
+      "toggle": "Basculer la recherche"
     },
     "view": {
       "grid": "Vue grille",
       "list": "Vue liste"
     },
-    "count": "{count} {count, plural, one=client other=clients}",
+    "count": {
+      "zero": "Aucun client",
+      "one": "{count} client",
+      "other": "{count} clients"
+    },
     "details": {
       "title": "Détails du Client",
       "subtitle": "Voir et gérer les informations du client",

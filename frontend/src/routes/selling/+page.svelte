@@ -6,6 +6,8 @@
   import Chart from 'chart.js/auto';
   import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
   import { t } from '$lib/i18n';
+  import { fade, fly, scale } from 'svelte/transition';
+  import { quintOut, cubicOut } from 'svelte/easing';
 
   let products = [];
   let selectedProduct = null;
@@ -26,6 +28,10 @@
   let chartCanvas;
   let chartType = 'line';
   let exportFormat = 'csv';
+  let viewMode = 'grid';
+  let showQuickSell = false;
+  let cartItems = [];
+  let showCart = false;
 
   onMount(async () => {
     await loadProducts();
@@ -395,55 +401,391 @@
   }
 </script>
 
-<div class="container mx-auto px-4 py-8">
-  <div class="flex justify-between items-center mb-6">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">{$t('selling.title')}</h1>
-      <p class="text-gray-600">{$t('selling.subtitle')}</p>
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-emerald-50">
+  <!-- Modern Header with Glassmorphism -->
+  <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {$t('selling.title')}
+              </h1>
+              <p class="text-sm text-gray-500 font-medium">{$t('selling.subtitle')}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <!-- Quick Stats -->
+          <div class="hidden md:flex items-center space-x-4 px-4 py-2 bg-white/60 rounded-xl backdrop-blur-sm">
+            <div class="text-center">
+              <div class="text-lg font-bold text-green-600">{formatCurrency(profitStats.totalProfit)}</div>
+              <div class="text-xs text-gray-500">Profit</div>
+            </div>
+            <div class="w-px h-8 bg-gray-300"></div>
+            <div class="text-center">
+              <div class="text-lg font-bold text-blue-600">{profitStats.totalSales}</div>
+              <div class="text-xs text-gray-500">Sales</div>
+            </div>
+          </div>
+
+          <!-- Quick Sell Button -->
+          <button
+            on:click={() => showQuickSell = !showQuickSell}
+            class="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Quick Sell
+          </button>
+
+          <!-- Cart Button -->
+          <button
+            on:click={() => showCart = !showCart}
+            class="relative p-2 bg-white/60 rounded-xl backdrop-blur-sm hover:bg-white/80 transition-colors"
+          >
+            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.293 2.293A1 1 0 005 16h12M7 13v4a2 2 0 002 2h6a2 2 0 002-2v-4"/>
+            </svg>
+            {#if cartItems.length > 0}
+              <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                {cartItems.length}
+              </span>
+            {/if}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Search and Filters -->
-  <div class="mb-6">
-    <div class="flex flex-col md:flex-row gap-4">
-      <div class="flex-1">
-        <input
-          type="text"
-          bind:value={searchQuery}
-          placeholder={$t('selling.search.placeholder')}
-          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-      </div>
-      <div class="flex gap-2">
-        <select
-          bind:value={selectedTimeRange}
-          class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="today">{$t('selling.time_range.today')}</option>
-          <option value="week">{$t('selling.time_range.week')}</option>
-          <option value="month">{$t('selling.time_range.month')}</option>
-          <option value="year">{$t('selling.time_range.year')}</option>
-          <option value="all">{$t('selling.time_range.all')}</option>
-        </select>
-      </div>
-    </div>
-  </div>
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <!-- Enhanced Search and Filters -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+        <!-- Search Bar -->
+        <div class="flex-1 max-w-md">
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input
+              type="text"
+              bind:value={searchQuery}
+              placeholder={$t('selling.search.placeholder')}
+              class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+            />
+          </div>
+        </div>
 
-  <!-- Stats Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <div class="bg-white p-6 rounded-lg shadow">
-      <h3 class="text-lg font-semibold text-gray-700 mb-2">{$t('selling.stats.total_profit')}</h3>
-      <p class="text-2xl font-bold text-green-600">{formatCurrency(profitStats.totalProfit)}</p>
+        <!-- Filters and View Toggle -->
+        <div class="flex items-center space-x-3">
+          <!-- Time Range Filter -->
+          <select
+            bind:value={selectedTimeRange}
+            class="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          >
+            <option value="today">{$t('selling.time_range.today')}</option>
+            <option value="week">{$t('selling.time_range.week')}</option>
+            <option value="month">{$t('selling.time_range.month')}</option>
+            <option value="year">{$t('selling.time_range.year')}</option>
+            <option value="all">{$t('selling.time_range.all')}</option>
+          </select>
+
+          <!-- View Mode Toggle -->
+          <button
+            on:click={() => viewMode = viewMode === 'grid' ? 'list' : 'grid'}
+            class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2"
+          >
+            {#if viewMode === 'grid'}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+              </svg>
+              <span>List</span>
+            {:else}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+              </svg>
+              <span>Grid</span>
+            {/if}
+          </button>
+        </div>
+      </div>
     </div>
-    <div class="bg-white p-6 rounded-lg shadow">
-      <h3 class="text-lg font-semibold text-gray-700 mb-2">{$t('selling.stats.total_sales')}</h3>
-      <p class="text-2xl font-bold text-blue-600">{profitStats.totalSales}</p>
+
+    <!-- Enhanced Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">{$t('selling.stats.total_profit')}</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">{formatCurrency(profitStats.totalProfit)}</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">{$t('selling.stats.total_sales')}</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">{profitStats.totalSales}</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">{$t('selling.stats.average_profit')}</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2">{formatCurrency(profitStats.averageProfit)}</p>
+          </div>
+          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Available Products</p>
+            <p class="text-3xl font-bold text-orange-600 mt-2">{filteredProducts.length}</p>
+          </div>
+          <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="bg-white p-6 rounded-lg shadow">
-      <h3 class="text-lg font-semibold text-gray-700 mb-2">{$t('selling.stats.average_profit')}</h3>
-      <p class="text-2xl font-bold text-purple-600">{formatCurrency(profitStats.averageProfit)}</p>
+
+    <!-- Quick Sell Panel -->
+    {#if showQuickSell}
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8" transition:fly={{ y: -20, duration: 300 }}>
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Quick Sell
+          </h3>
+          <button
+            on:click={() => showQuickSell = false}
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">{$t('selling.sell_product.select_product')}</label>
+            <select
+              bind:value={selectedProduct}
+              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+            >
+              <option value={null}>Select a product</option>
+              {#each filteredProducts as product}
+                <option value={product}>{product.name} (Stock: {product.stock_quantity})</option>
+              {/each}
+            </select>
+          </div>
+          
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">{$t('selling.sell_product.quantity')}</label>
+            <input
+              type="number"
+              bind:value={quantityToSell}
+              min="1"
+              max={selectedProduct?.stock_quantity || 1}
+              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+            />
+          </div>
+          
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">{$t('selling.sell_product.selling_price')}</label>
+            <input
+              type="number"
+              bind:value={sellingPriceToSell}
+              min="0"
+              step="0.01"
+              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+            />
+          </div>
+          
+          <div class="flex items-end">
+            <button
+              on:click={handleSellProduct}
+              disabled={isSelling || !selectedProduct}
+              class="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {#if isSelling}
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Selling...
+              {:else}
+                Sell Now
+              {/if}
+            </button>
+          </div>
+        </div>
+
+        {#if selectedProduct}
+          <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-600">Expected Profit:</span>
+              <span class="font-semibold text-green-600">
+                {formatCurrency((sellingPriceToSell - (selectedProduct.purchase_price || 0)) * quantityToSell)}
+              </span>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Products Grid/List -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+      <div class="p-6 border-b border-gray-100">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-gray-900">Available Products</h2>
+          <div class="text-sm text-gray-500">
+            {filteredProducts.length} products available
+          </div>
+        </div>
+      </div>
+
+      {#if $loading}
+        <div class="flex flex-col items-center justify-center h-96 space-y-4">
+          <div class="relative">
+            <div class="w-16 h-16 border-4 border-green-200 rounded-full animate-spin"></div>
+            <div class="absolute top-0 left-0 w-16 h-16 border-4 border-green-600 rounded-full animate-spin border-t-transparent"></div>
+          </div>
+          <p class="text-gray-600 font-medium">Loading products...</p>
+        </div>
+      {:else if filteredProducts.length === 0}
+        <div class="text-center py-16">
+          <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No products available</h3>
+          <p class="text-gray-500 mb-6">Add products to your inventory to start selling</p>
+          <a
+            href="/inventory"
+            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Add Products
+          </a>
+        </div>
+      {:else}
+        <div class="p-6">
+          <div class={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
+            {#each filteredProducts as product, i (product.id)}
+              <div 
+                class="group bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-100 p-6 hover:shadow-xl hover:border-green-200 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+                transition:fly={{ y: 20, delay: i * 50, duration: 300 }}
+                on:click={() => selectProduct(product)}
+              >
+                <!-- Product Header -->
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                      {product.name ? product.name.charAt(0).toUpperCase() : 'P'}
+                    </div>
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                        {product.name}
+                      </h3>
+                      <p class="text-sm text-gray-500 font-medium">SKU: {product.sku}</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Stock Status -->
+                  <div class="flex items-center space-x-1">
+                    <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span class="text-xs text-gray-500">{product.stock_quantity} in stock</span>
+                  </div>
+                </div>
+
+                <!-- Product Details -->
+                <div class="space-y-3 mb-6">
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600">Purchase Price:</span>
+                    <span class="font-semibold">{formatCurrency(product.purchase_price)}</span>
+                  </div>
+                  
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600">Selling Price:</span>
+                    <span class="font-semibold text-green-600">{formatCurrency(product.selling_price)}</span>
+                  </div>
+                  
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-600">Profit per unit:</span>
+                    <span class="font-semibold text-blue-600">
+                      {formatCurrency(product.selling_price - product.purchase_price)}
+                    </span>
+                  </div>
+
+                  <!-- Stock Level Indicator -->
+                  <div class="mt-4">
+                    <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>Stock Level</span>
+                      <span>{product.stock_quantity} units</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        class="h-2 rounded-full transition-all duration-300 {product.stock_quantity > 10 ? 'bg-green-500' : product.stock_quantity > 5 ? 'bg-yellow-500' : 'bg-red-500'}"
+                        style="width: {Math.min((product.stock_quantity / 20) * 100, 100)}%"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Button -->
+                <button
+                  on:click|stopPropagation={() => selectProduct(product)}
+                  class="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl group-hover:scale-105"
+                >
+                  <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                  </svg>
+                  Select to Sell
+                </button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
-  </div>
 
   <!-- Chart Section -->
   <div class="bg-white p-6 rounded-lg shadow mb-6">
@@ -555,5 +897,44 @@
             </tbody>
           </table>
     </div>
+    </div>
   </div>
-</div> 
+
+  <!-- Recent Sales Section -->
+  <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+    <div class="p-6 border-b border-gray-100">
+      <h2 class="text-xl font-semibold text-gray-900">{$t('selling.recent_sales.title')}</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.date')}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.product')}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.quantity')}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.price')}</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.profit')}</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {#if filteredSales.length === 0}
+            <tr>
+              <td colspan="5" class="px-6 py-4 text-center text-gray-500">{$t('selling.recent_sales.no_sales')}</td>
+            </tr>
+          {:else}
+            {#each filteredSales as sale}
+              <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{format(parseISO(sale.createdAt), 'PPp')}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.productName}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.quantity}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(sale.sellingPriceAtSale)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold text-green-600">{formatCurrency(sale.profit)}</td>
+              </tr>
+            {/each}
+          {/if}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

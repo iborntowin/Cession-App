@@ -298,7 +298,11 @@
       "active": "Active",
       "inactive": "Inactive"
     },
-    "count": "client",
+    "count": {
+      "zero": "No clients",
+      "one": "{count} client",
+      "other": "{count} clients"
+    },
     "edit": {
       "title": "Edit Client",
       "subtitle": "Update client information",
