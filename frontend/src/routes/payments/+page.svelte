@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { formatCurrency, formatDate } from '$lib/utils/formatters';
   import { goto } from '$app/navigation';
-  import { user, showAlert } from '$lib/stores';
+  import { user, showAlert, token } from '$lib/stores';
   import { paymentsApi, cessionsApi } from '$lib/api';
   import { slide, fade, fly, scale } from 'svelte/transition';
   import { quintOut, cubicOut } from 'svelte/easing';
@@ -48,12 +48,146 @@
   let overdueClients = [];
   let riskClients = [];
   let paymentTrends = [];
+  
+  /* ---------- carousel state ---------- */
+  let currentMonthIndex = 0;
+  let monthsData = [];
+  let autoSlideInterval;
   let clientPerformance = [];
   let showInsights = true;
 
   /* ---------- notifications & alerts ---------- */
   let criticalAlerts = [];
   let showNotifications = false;
+
+  /* ---------- sample data generation ---------- */
+  let generatingData = false;
+
+  async function generateSampleData() {
+    if (generatingData) return;
+    
+    try {
+      generatingData = true;
+      showAlert('Generating sample data...', 'info');
+
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${$token}`
+      };
+
+      // Create sample clients first
+      const sampleClients = [
+        { fullName: 'Ahmed Ben Ali', cin: '12345678', workerNumber: '1234567890' },
+        { fullName: 'Fatma Trabelsi', cin: '87654321', workerNumber: '0987654321' },
+        { fullName: 'Mohamed Gharbi', cin: '11223344', workerNumber: '1122334455' },
+        { fullName: 'Leila Mansouri', cin: '55667788', workerNumber: '5566778899' },
+        { fullName: 'Karim Bouazizi', cin: '99887766', workerNumber: '9988776655' }
+      ];
+
+      const createdClients = [];
+      for (const client of sampleClients) {
+        try {
+          const response = await fetch('http://localhost:8082/api/v1/clients', {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify(client)
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            createdClients.push(result);
+            console.log('Created client:', result.fullName);
+          }
+        } catch (e) {
+          console.warn('Client might already exist:', client.fullName);
+        }
+      }
+
+      // Create sample cessions for the last 12 months
+      const now = new Date();
+      const createdCessions = [];
+      
+      for (let i = 0; i < 12; i++) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const clientIndex = i % Math.max(createdClients.length, 1);
+        const client = createdClients[clientIndex] || { id: 'dummy-id' };
+        
+        const cession = {
+          clientId: client.id,
+          totalLoanAmount: 5000 + (i * 1000),
+          monthlyPayment: 400 + (i * 50),
+          startDate: monthDate.toISOString().split('T')[0],
+          bankOrAgency: `Bank ${i + 1}`,
+          status: 'ACTIVE'
+        };
+
+        try {
+          const response = await fetch('http://localhost:8082/api/v1/cessions', {
+            method: 'POST',
+            headers: authHeaders,
+            body: JSON.stringify(cession)
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            createdCessions.push(result);
+            console.log('Created cession for month:', monthDate.toISOString().slice(0, 7));
+          }
+        } catch (e) {
+          console.warn('Error creating cession:', e);
+        }
+      }
+
+      // Create sample payments for the last 6 months
+      for (let i = 0; i < 6; i++) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 15);
+        const cession = createdCessions[i];
+        
+        if (cession) {
+          // Create 1-3 payments per month
+          const paymentsCount = Math.floor(Math.random() * 3) + 1;
+          
+          for (let j = 0; j < paymentsCount; j++) {
+            const paymentDate = new Date(monthDate);
+            paymentDate.setDate(paymentDate.getDate() + (j * 7));
+            
+            const payment = {
+              cessionId: cession.id,
+              amount: Math.floor(Math.random() * 300) + 200,
+              paymentDate: paymentDate.toISOString().split('T')[0],
+              notes: `Sample payment ${j + 1} for ${monthDate.toISOString().slice(0, 7)}`
+            };
+
+            try {
+              const response = await fetch('http://localhost:8082/api/v1/payments', {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify(payment)
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                console.log('Created payment:', result.amount, 'for', paymentDate.toISOString().slice(0, 7));
+              }
+            } catch (e) {
+              console.warn('Error creating payment:', e);
+            }
+          }
+        }
+      }
+
+      showAlert('Sample data generated successfully!', 'success');
+      
+      // Reload the data to show the new sample data
+      await loadAll();
+      
+    } catch (error) {
+      console.error('Error generating sample data:', error);
+      showAlert('Error generating sample data: ' + error.message, 'error');
+    } finally {
+      generatingData = false;
+    }
+  }
 
   onMount(async () => {
     const u = $user;
@@ -74,8 +208,11 @@
         cessionsApi.getAll()
       ]);
 
+      console.log('API Responses:', { payRes, cesRes });
+      
       payments = payRes.success ? payRes.data : [];
-      cessions = cesRes.success ? cesRes.data : [];
+      // Fix: cessionsApi.getAll() returns data directly, not wrapped in success/data
+      cessions = Array.isArray(cesRes) ? cesRes : (cesRes.success ? cesRes.data : []);
 
       buildAdvancedAnalytics();
       applyFilters();
@@ -90,11 +227,47 @@
     const now = new Date();
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
     
+    console.log('=== ANALYTICS DEBUG ===');
+    console.log('Building analytics with data:', { 
+      paymentsCount: payments.length, 
+      cessionsCount: cessions.length,
+      samplePayment: payments[0],
+      sampleCession: cessions[0]
+    });
+    
+    // Detailed logging to understand data structure
+    if (payments.length > 0) {
+      console.log('Sample payment structure:', Object.keys(payments[0]));
+      console.log('Payment amount type:', typeof payments[0].amount, payments[0].amount);
+    }
+    if (cessions.length > 0) {
+      console.log('Sample cession structure:', Object.keys(cessions[0]));
+      console.log('Cession monthlyPayment:', cessions[0].monthlyPayment);
+      console.log('Cession monthlyDeduction:', cessions[0].monthlyDeduction);
+      console.log('Cession startDate:', cessions[0].startDate);
+      console.log('Cession createdAt:', cessions[0].createdAt);
+      console.log('Cession status:', cessions[0].status);
+      console.log('Full cession object:', cessions[0]);
+    }
+    
+    // Show alert if no data is found
+    if (payments.length === 0 && cessions.length === 0) {
+      console.warn('No data found in database. Database appears to be empty.');
+    }
+    
+    // Helper function to safely convert amounts to numbers
+    const safeAmount = (amount) => {
+      if (typeof amount === 'number') return amount;
+      if (typeof amount === 'string') return parseFloat(amount) || 0;
+      if (typeof amount === 'object' && amount !== null) return parseFloat(amount.toString()) || 0;
+      return 0;
+    };
+    
     // Basic analytics
-    const total = payments.reduce((s, p) => s + p.amount, 0);
+    const total = payments.reduce((s, p) => s + safeAmount(p.amount), 0);
     const avgPayment = payments.length ? total / payments.length : 0;
     
-    // Monthly trends
+    // Monthly trends - include current month and last 11 months
     const monthly = {};
     const last12Months = [];
     for (let i = 11; i >= 0; i--) {
@@ -104,30 +277,45 @@
       last12Months.push(key);
     }
     
+    // Also add current month if not already included
+    const currentMonth = now.toISOString().slice(0, 7);
+    if (!last12Months.includes(currentMonth)) {
+      monthly[currentMonth] = 0;
+      last12Months.push(currentMonth);
+    }
+    
+    console.log('Checking months:', last12Months);
+    console.log('Current date:', now.toISOString().slice(0, 7));
+    
+    // Also check what months our cessions actually start in
+    const cessionMonths = cessions.map(c => c.startDate ? c.startDate.slice(0, 7) : 'no-date').filter(m => m !== 'no-date');
+    console.log('Cession start months:', [...new Set(cessionMonths)].sort());
+    
     payments.forEach(p => {
       const month = new Date(p.paymentDate).toISOString().slice(0, 7);
       if (monthly.hasOwnProperty(month)) {
-        monthly[month] += p.amount;
+        monthly[month] += safeAmount(p.amount);
       }
     });
 
     // Client performance analysis
     const clientStats = {};
     payments.forEach(p => {
-      if (!clientStats[p.cessionClientName]) {
-        clientStats[p.cessionClientName] = {
-          name: p.cessionClientName,
+      const clientName = p.cessionClientName || 'Unknown Client';
+      if (!clientStats[clientName]) {
+        clientStats[clientName] = {
+          name: clientName,
           totalPaid: 0,
           paymentCount: 0,
           lastPayment: null,
           avgPayment: 0
         };
       }
-      clientStats[p.cessionClientName].totalPaid += p.amount;
-      clientStats[p.cessionClientName].paymentCount++;
+      clientStats[clientName].totalPaid += safeAmount(p.amount);
+      clientStats[clientName].paymentCount++;
       const paymentDate = new Date(p.paymentDate);
-      if (!clientStats[p.cessionClientName].lastPayment || paymentDate > clientStats[p.cessionClientName].lastPayment) {
-        clientStats[p.cessionClientName].lastPayment = paymentDate;
+      if (!clientStats[clientName].lastPayment || paymentDate > clientStats[clientName].lastPayment) {
+        clientStats[clientName].lastPayment = paymentDate;
       }
     });
 
@@ -163,13 +351,13 @@
     riskClients = cessions
       .filter(c => {
         const cessionDate = new Date(c.createdAt);
-        const hasRecentPayment = recentPaymentClientIds.has(c.clientName);
+        const hasRecentPayment = recentPaymentClientIds.has(c.client?.name || c.clientName);
         return cessionDate < threeMonthsAgo && !hasRecentPayment;
       })
       .map(c => ({
         ...c,
         daysSinceCreation: Math.floor((now - new Date(c.createdAt)) / 86400000),
-        daysSinceLastPayment: calculateDaysSinceLastPayment(c.clientName),
+        daysSinceLastPayment: calculateDaysSinceLastPayment(c.client?.name || c.clientName),
         riskScore: calculateRiskScore(c, now)
       }))
       .sort((a, b) => b.riskScore - a.riskScore)
@@ -201,6 +389,122 @@
       clientCount: Object.keys(clientStats).length,
       topClients: clientPerformance.slice(0, 5)
     };
+
+    // Get unique months from actual cession start dates and payment dates
+    const cessionStartMonths = [...new Set(cessions.map(c => c.startDate ? c.startDate.slice(0, 7) : null).filter(Boolean))];
+    const paymentMonths = [...new Set(payments.map(p => p.paymentDate ? p.paymentDate.slice(0, 7) : null).filter(Boolean))];
+    const allRelevantMonths = [...new Set([...cessionStartMonths, ...paymentMonths])].sort();
+    
+    console.log('Relevant months with actual data:', allRelevantMonths);
+    
+    // Use relevant months instead of arbitrary last 12 months
+    const monthsToAnalyze = allRelevantMonths.length > 0 ? allRelevantMonths : last12Months;
+    
+    // Prepare months data for carousel with proper collection rate calculation
+    monthsData = monthsToAnalyze.map(month => {
+      const actualPayments = monthly[month] || 0;
+      const date = new Date(month + '-01');
+      const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      
+      // Get active cessions for this month (cessions that should have payments)
+      const activeCessions = cessions.filter(c => {
+        // Handle different date field names
+        const startDate = c.startDate || c.createdAt;
+        if (!startDate) return false;
+        
+        try {
+          const cessionStart = new Date(startDate);
+          const monthStart = new Date(month + '-01');
+          const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+          
+          // Check if dates are valid
+          if (isNaN(cessionStart.getTime()) || isNaN(monthStart.getTime()) || isNaN(monthEnd.getTime())) {
+            return false;
+          }
+          
+          // Cession should be active if it started before or during this month
+          // and hasn't ended before this month
+          const isActive = cessionStart <= monthEnd;
+          const hasNotEnded = !c.endDate || new Date(c.endDate) >= monthStart;
+          const isActiveStatus = !c.status || c.status === 'ACTIVE';
+          
+          return isActive && hasNotEnded && isActiveStatus;
+        } catch (error) {
+          return false;
+        }
+      });
+      
+      // Calculate expected payments for this month
+      const expectedPayments = activeCessions.reduce((sum, c) => {
+        const monthlyAmount = c.monthlyPayment || c.monthlyDeduction || 0;
+        return sum + safeAmount(monthlyAmount);
+      }, 0);
+      
+      console.log(`Month ${month}: Active cessions: ${activeCessions.length}, Expected payments: ${expectedPayments}`);
+      
+      // Calculate new cessions created this month
+      const monthCessions = cessions.filter(c => {
+        const startMonth = c.startDate ? c.startDate.slice(0, 7) : null;
+        return startMonth === month;
+      });
+      
+      const totalNewCessionAmount = monthCessions.reduce((sum, c) => {
+        return sum + safeAmount(c.totalLoanAmount);
+      }, 0);
+      
+      // Collection rate: actual payments vs expected payments
+      const collectionRate = expectedPayments > 0 ? (actualPayments / expectedPayments * 100) : 0;
+      
+      return {
+        key: month,
+        name: monthName,
+        shortName: date.toLocaleDateString('en-US', { month: 'short' }),
+        paymentAmount: actualPayments,
+        expectedPayments: expectedPayments,
+        cessionAmount: totalNewCessionAmount, // New cessions created this month
+        cessionCount: monthCessions.length,
+        activeCessionCount: activeCessions.length,
+        paymentCount: payments.filter(p => p.paymentDate && p.paymentDate.slice(0, 7) === month).length,
+        collectionRate: collectionRate
+      };
+    });
+
+    // Set current month to the latest month with data
+    const monthWithData = monthsData.findIndex(m => m.paymentAmount > 0 || m.expectedPayments > 0);
+    currentMonthIndex = monthWithData >= 0 ? Math.max(monthWithData, monthsData.length - 3) : Math.max(0, monthsData.length - 1);
+    
+    console.log('Analytics built:', { 
+      total, 
+      avgPayment, 
+      monthsData: monthsData.slice(-3),
+      currentMonthIndex 
+    });
+  }
+
+  // Carousel navigation functions
+  function nextMonth() {
+    currentMonthIndex = (currentMonthIndex + 1) % monthsData.length;
+  }
+
+  function prevMonth() {
+    currentMonthIndex = currentMonthIndex === 0 ? monthsData.length - 1 : currentMonthIndex - 1;
+  }
+
+  function goToMonth(index) {
+    currentMonthIndex = index;
+  }
+
+  // Auto-slide functionality
+  function startAutoSlide() {
+    if (autoSlideInterval) clearInterval(autoSlideInterval);
+    autoSlideInterval = setInterval(nextMonth, 5000); // Change every 5 seconds
+  }
+
+  function stopAutoSlide() {
+    if (autoSlideInterval) {
+      clearInterval(autoSlideInterval);
+      autoSlideInterval = null;
+    }
   }
 
   function calculateRiskLevel(cession, now) {
@@ -432,6 +736,27 @@
             </button>
           </div>
 
+          <!-- Generate Sample Data Button (only show if no data) -->
+          {#if payments.length === 0 && cessions.length === 0}
+            <button
+              on:click={generateSampleData}
+              disabled={generatingData}
+              class="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium disabled:opacity-50"
+            >
+              {#if generatingData}
+                <svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Generating...
+              {:else}
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Generate Sample Data
+              {/if}
+            </button>
+          {/if}
+
           <!-- Export Button -->
           <button
             on:click={exportPayments}
@@ -569,23 +894,188 @@
 
           <!-- Charts Row -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Monthly Trend Chart -->
+            <!-- Monthly Trend Carousel -->
             <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <h3 class="text-lg font-semibold text-gray-900 mb-6">Payment Trends (12 Months)</h3>
-              <div class="space-y-4">
-                {#each analytics.last12Months?.slice(-6) || [] as month}
-                  {@const amount = analytics.monthly?.[month] || 0}
-                  {@const maxAmount = Math.max(...Object.values(analytics.monthly || {}))}
-                  <div class="flex items-center space-x-4">
-                    <span class="w-16 text-sm font-medium text-gray-600">{month.slice(-2)}/{month.slice(2,4)}</span>
-                    <div class="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
-                      <div 
-                        class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
-                        style="width: {maxAmount ? (amount / maxAmount * 100) : 0}%"
-                      ></div>
-                    </div>
-                    <span class="w-24 text-right text-sm font-semibold text-gray-900">{formatCurrency(amount)}</span>
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900">Monthly Analytics</h3>
+                <div class="flex items-center space-x-2">
+                  <button 
+                    on:click={prevMonth}
+                    class="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    on:mouseenter={stopAutoSlide}
+                    on:mouseleave={startAutoSlide}
+                  >
+                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                  </button>
+                  <button 
+                    on:click={nextMonth}
+                    class="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    on:mouseenter={stopAutoSlide}
+                    on:mouseleave={startAutoSlide}
+                  >
+                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Current Month Display -->
+              {#if monthsData[currentMonthIndex]}
+                {@const currentMonth = monthsData[currentMonthIndex]}
+                {@const maxValue = Math.max(currentMonth.paymentAmount, currentMonth.expectedPayments)}
+                <div class="mb-6" transition:fade={{ duration: 300 }}>
+                  <div class="text-center mb-4">
+                    <h4 class="text-2xl font-bold text-gray-900">{currentMonth.name}</h4>
+                    <p class="text-sm text-gray-500">Monthly Performance Overview</p>
                   </div>
+                  
+                  <!-- Month Stats Cards -->
+                  <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <p class="text-sm font-medium text-blue-700">Actual Payments</p>
+                          <p class="text-2xl font-bold text-blue-900">{formatCurrency(currentMonth.paymentAmount)}</p>
+                          <p class="text-xs text-blue-600 mt-1">{currentMonth.paymentCount} transactions</p>
+                        </div>
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <p class="text-sm font-medium text-green-700">Expected Payments</p>
+                          <p class="text-2xl font-bold text-green-900">{formatCurrency(currentMonth.expectedPayments)}</p>
+                          <p class="text-xs text-green-600 mt-1">{currentMonth.activeCessionCount} active cessions</p>
+                        </div>
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Visual Chart with Arrows -->
+                  <div class="relative bg-gray-50 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-4">
+                      <span class="text-sm font-medium text-gray-700">Payment Collection Analysis</span>
+                      <div class="flex items-center space-x-2">
+                        <div class="flex items-center space-x-1">
+                          <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                          <span class="text-xs text-gray-600">Actual</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                          <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                          <span class="text-xs text-gray-600">Expected</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Chart Bars with Arrows -->
+                    <div class="space-y-3">
+                      <div class="flex items-center space-x-3">
+                        <span class="w-16 text-xs font-medium text-gray-600">Actual</span>
+                        <div class="flex-1 relative">
+                          <div class="bg-gray-200 rounded-full h-6 overflow-hidden">
+                            <div 
+                              class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-2"
+                              style="width: {maxValue ? (currentMonth.paymentAmount / maxValue * 100) : 0}%"
+                            >
+                              {#if currentMonth.paymentAmount > 0}
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+                                </svg>
+                              {/if}
+                            </div>
+                          </div>
+                          <span class="absolute right-0 top-7 text-xs font-semibold text-blue-700">
+                            {formatCurrency(currentMonth.paymentAmount)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div class="flex items-center space-x-3">
+                        <span class="w-16 text-xs font-medium text-gray-600">Expected</span>
+                        <div class="flex-1 relative">
+                          <div class="bg-gray-200 rounded-full h-6 overflow-hidden">
+                            <div 
+                              class="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-2"
+                              style="width: {maxValue ? (currentMonth.expectedPayments / maxValue * 100) : 0}%"
+                            >
+                              {#if currentMonth.expectedPayments > 0}
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+                                </svg>
+                              {/if}
+                            </div>
+                          </div>
+                          <span class="absolute right-0 top-7 text-xs font-semibold text-green-700">
+                            {formatCurrency(currentMonth.expectedPayments)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Performance Indicator -->
+                    <div class="mt-4 p-3 bg-white rounded-lg border">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">Collection Rate</span>
+                        <span class="text-lg font-bold {currentMonth.collectionRate >= 80 ? 'text-green-600' : currentMonth.collectionRate >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                          {currentMonth.collectionRate.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div class="mt-2 bg-gray-200 rounded-full h-2">
+                        <div 
+                          class="h-full rounded-full transition-all duration-1000 {currentMonth.collectionRate >= 80 ? 'bg-green-500' : currentMonth.collectionRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}"
+                          style="width: {Math.min(currentMonth.collectionRate, 100)}%"
+                        ></div>
+                      </div>
+                      <p class="text-xs text-gray-500 mt-2">
+                        {#if currentMonth.collectionRate >= 80}
+                          Excellent collection performance
+                        {:else if currentMonth.collectionRate >= 50}
+                          Moderate collection performance - room for improvement
+                        {:else if currentMonth.expectedPayments > 0}
+                          Poor collection performance - immediate attention needed
+                        {:else}
+                          No expected payments for this month
+                        {/if}
+                      </p>
+                    </div>
+
+                    <!-- Additional Info -->
+                    {#if currentMonth.cessionAmount > 0}
+                      <div class="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                        <div class="flex items-center justify-between text-sm">
+                          <span class="text-blue-700 font-medium">New Cessions Created:</span>
+                          <span class="text-blue-900 font-bold">{formatCurrency(currentMonth.cessionAmount)}</span>
+                        </div>
+                        <p class="text-xs text-blue-600 mt-1">{currentMonth.cessionCount} new cessions this month</p>
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Navigation Dots -->
+              <div class="flex justify-center space-x-2 mt-4">
+                {#each monthsData as month, index}
+                  <button
+                    on:click={() => goToMonth(index)}
+                    class="w-2 h-2 rounded-full transition-all duration-200 {index === currentMonthIndex ? 'bg-blue-600 w-6' : 'bg-gray-300 hover:bg-gray-400'}"
+                    on:mouseenter={stopAutoSlide}
+                    on:mouseleave={startAutoSlide}
+                  ></button>
                 {/each}
               </div>
             </div>
