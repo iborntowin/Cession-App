@@ -37,6 +37,7 @@
       "export": "تصدير",
       "import": "استيراد",
       "saving": "جاري الحفظ...",
+      "retry": "إعادة المحاولة",
       "back_to_salary_cessions": "العودة إلى الإحالات على الأجر",
       "back_to_client_details": "العودة إلى تفاصيل العميل"
     },
@@ -133,6 +134,7 @@
     "app_name": "إدارة الإحالات",
     "not_provided": "غير متوفر",
     "error": {
+      "title": "خطأ",
       "general": "حدث خطأ",
       "required": "هذا الحقل مطلوب",
       "invalid": "قيمة غير صالحة",
@@ -344,6 +346,50 @@
     "title": "الإحالات",
     "subtitle": "إدارة الإحالات",
     "new": "الإحالة جديد",
+    "header": {
+      "total": "المجموع",
+      "active": "نشط"
+    },
+    "header": {
+      "total": "المجموع",
+      "active": "نشط"
+    },
+    "search": {
+      "placeholder": "البحث في الإحالات والعملاء والمبالغ..."
+    },
+    "filters": {
+      "title": "تصفية",
+      "active_only": "النشط فقط",
+      "high_value": "قيمة عالية",
+      "recent": "حديث",
+      "advanced": "مرشحات متقدمة",
+      "client_name": "اسم العميل",
+      "client_cin": "رقم الهوية",
+      "client_number": "رقم العميل",
+      "amount": "المبلغ",
+      "status": "الحالة",
+      "date_range": "النطاق الزمني",
+      "start_date": "تاريخ البدء",
+      "end_date": "تاريخ الانتهاء",
+      "clear": "مسح المرشحات",
+      "all_status": "جميع الحالات"
+    },
+    "results": {
+      "total_value": "القيمة الإجمالية"
+    },
+    "analytics": {
+      "total_value": "القيمة الإجمالية",
+      "total_cessions": "إجمالي الإحالات",
+      "avg_loan": "متوسط القرض",
+      "risk_score": "نقاط المخاطر",
+      "portfolio_risk": "مخاطر المحفظة",
+      "per_cession": "لكل إحالة",
+      "vs_last_month": "مقارنة بالشهر الماضي",
+      "active": "نشط",
+      "top_clients": "أفضل العملاء",
+      "cessions": "إحالات",
+      "total": "المجموع"
+    },
     "count": "{count} {count, plural, one=الإحالة other=الإحالةات}",
     "details": {
       "title": "تفاصيل الإحالة",
@@ -903,6 +949,79 @@
       "category": "الفئة",
       "description": "الوصف",
       "amount": "المبلغ"
+    },
+    "views": {
+      "dashboard": "لوحة التحكم",
+      "analytics": "التحليلات",
+      "reports": "التقارير"
+    },
+    "actions": {
+      "quick_actions": "إجراءات سريعة",
+      "track_expense": "تتبع نفقة جديدة",
+      "record_income": "تسجيل دخل جديد",
+      "export_report": "تصدير التقرير",
+      "download_data": "تحميل البيانات المالية"
+    },
+    "loading": {
+      "title": "جاري تحميل البيانات المالية",
+      "subtitle": "يرجى الانتظار بينما نجمع أحدث المعلومات"
+    },
+    "analytics": {
+      "vs_last_month": "مقارنة بالشهر الماضي",
+      "coming_soon": "قريباً",
+      "description": "ستتوفر التحليلات المتقدمة والرؤى التنبؤية قريباً لمساعدتك في اتخاذ قرارات مالية أفضل."
+    },
+    "reports": {
+      "coming_soon": "قريباً",
+      "description": "ستتوفر التقارير المفصلة وخيارات التصدير قريباً لمساعدتك في تتبع أدائك المالي."
+    },
+    "export": {
+      "format": "تنسيق التصدير",
+      "include_charts": "تضمين الرسوم البيانية",
+      "include_details": "تضمين تفاصيل المعاملات"
+    },
+    "expense": {
+      "add_title": "إضافة نفقة جديدة",
+      "add_subtitle": "تتبع نفقات عملك بكفاءة",
+      "success_title": "تم إضافة النفقة بنجاح!",
+      "success_message": "تم تسجيل نفقتك وستظهر في تقاريرك المالية.",
+      "step_category": "الفئة",
+      "step_details": "التفاصيل",
+      "step_review": "المراجعة",
+      "category": "الفئة",
+      "search_category": "البحث في الفئات...",
+      "description": "الوصف",
+      "description_placeholder": "أدخل وصف النفقة...",
+      "amount": "المبلغ (دينار تونسي)",
+      "formatted_amount": "المبلغ المنسق",
+      "date": "التاريخ",
+      "notes": "ملاحظات إضافية",
+      "notes_placeholder": "أضف أي تفاصيل إضافية حول هذه النفقة...",
+      "review_title": "مراجعة نفقتك",
+      "adding": "جاري الإضافة...",
+      "add_button": "إضافة النفقة",
+      "success": "تم إضافة النفقة بنجاح",
+      "error": "فشل في إضافة النفقة"
+    },
+    "categories": {
+      "water": "المياه",
+      "electricity": "الكهرباء",
+      "transport": "النقل",
+      "rent": "الإيجار",
+      "supplies": "المستلزمات",
+      "maintenance": "الصيانة",
+      "salaries": "الرواتب",
+      "insurance": "التأمين",
+      "taxes": "الضرائب",
+      "marketing": "التسويق",
+      "other": "أخرى"
+    },
+    "validation": {
+      "category_required": "يرجى اختيار فئة",
+      "description_required": "يجب أن يكون الوصف 3 أحرف على الأقل",
+      "amount_required": "يرجى إدخال مبلغ صالح أكبر من 0",
+      "date_required": "يرجى اختيار تاريخ",
+      "fix_errors": "يرجى إصلاح الأخطاء قبل الإرسال"
     },
     "error": {
       "load_data": "خطأ في تحميل البيانات:",

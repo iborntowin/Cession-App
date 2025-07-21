@@ -38,7 +38,8 @@
       "print": "Print",
       "export": "Export",
       "import": "Import",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "retry": "Retry"
     },
     "navigation": {
       "dashboard": "Dashboard",
@@ -133,6 +134,7 @@
     "app_name": "Cession Management",
     "not_provided": "Not provided",
     "error": {
+      "title": "Error",
       "general": "An error occurred",
       "required": "This field is required",
       "invalid": "Invalid value",
@@ -349,6 +351,50 @@
     "title": "Cessions",
     "subtitle": "Manage your cessions",
     "new": "New Cession",
+    "header": {
+      "total": "Total",
+      "active": "Active"
+    },
+    "header": {
+      "total": "Total",
+      "active": "Active"
+    },
+    "search": {
+      "placeholder": "Search cessions, clients, amounts..."
+    },
+    "filters": {
+      "title": "Filter",
+      "active_only": "Active Only",
+      "high_value": "High Value",
+      "recent": "Recent",
+      "advanced": "Advanced Filters",
+      "client_name": "Client Name",
+      "client_cin": "ID Number",
+      "client_number": "Client Number",
+      "amount": "Amount",
+      "status": "Status",
+      "date_range": "Date Range",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "clear": "Clear Filters",
+      "all_status": "All Statuses"
+    },
+    "results": {
+      "total_value": "Total Value"
+    },
+    "analytics": {
+      "total_value": "Total Value",
+      "total_cessions": "Total Cessions",
+      "avg_loan": "Average Loan",
+      "risk_score": "Risk Score",
+      "portfolio_risk": "Portfolio Risk",
+      "per_cession": "Per Cession",
+      "vs_last_month": "vs last month",
+      "active": "Active",
+      "top_clients": "Top Clients",
+      "cessions": "Cessions",
+      "total": "Total"
+    },
     "count": "{count} {count, plural, one=cession other=cessions}",
     "details": {
       "title": "Cession Details",
@@ -851,6 +897,82 @@
       "category": "Category",
       "description": "Description",
       "amount": "Amount"
+    },
+    "views": {
+      "dashboard": "Dashboard",
+      "analytics": "Analytics",
+      "reports": "Reports"
+    },
+    "actions": {
+      "quick_actions": "Quick Actions",
+      "track_expense": "Track new expense",
+      "record_income": "Record new income",
+      "export_report": "Export Report",
+      "download_data": "Download financial data"
+    },
+    "loading": {
+      "title": "Loading Financial Data",
+      "subtitle": "Please wait while we gather the latest information"
+    },
+    "analytics": {
+      "vs_last_month": "vs last month",
+      "coming_soon": "Coming Soon",
+      "description": "Advanced analytics and predictive insights will be available soon to help you make better financial decisions."
+    },
+    "reports": {
+      "coming_soon": "Coming Soon",
+      "description": "Detailed reports and export options will be available soon to help you track your financial performance."
+    },
+    "export": {
+      "format": "Export Format",
+      "include_charts": "Include Charts",
+      "include_details": "Include Transaction Details"
+    },
+    "expense": {
+      "add_title": "Add New Expense",
+      "add_subtitle": "Track your business expenses efficiently",
+      "success_title": "Expense Added Successfully!",
+      "success_message": "Your expense has been recorded and will be reflected in your financial reports.",
+      "step_category": "Category",
+      "step_details": "Details",
+      "step_review": "Review",
+      "category": "Category",
+      "search_category": "Search categories...",
+      "description": "Description",
+      "description_placeholder": "Enter expense description...",
+      "amount": "Amount (TND)",
+      "formatted_amount": "Formatted amount",
+      "date": "Date",
+      "notes": "Additional Notes",
+      "notes_placeholder": "Add any additional details about this expense...",
+      "review_title": "Review Your Expense",
+      "adding": "Adding...",
+      "add_button": "Add Expense",
+      "success": "Expense added successfully",
+      "error": "Failed to add expense"
+    },
+    "categories": {
+      "water": "Water",
+      "electricity": "Electricity",
+      "transport": "Transport",
+      "rent": "Rent",
+      "supplies": "Supplies",
+      "maintenance": "Maintenance",
+      "salaries": "Salaries",
+      "insurance": "Insurance",
+      "taxes": "Taxes",
+      "marketing": "Marketing",
+      "other": "Other"
+    },
+    "validation": {
+      "category_required": "Please select a category",
+      "description_required": "Description must be at least 3 characters",
+      "amount_required": "Please enter a valid amount greater than 0",
+      "date_required": "Please select a date",
+      "fix_errors": "Please fix the errors before submitting"
+    },
+    "modals": {
+      "add_expense": "Add Expense"
     },
     "error": {
       "load_data": "Error loading data:",

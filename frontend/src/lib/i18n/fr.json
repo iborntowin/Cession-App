@@ -1,6 +1,5 @@
 {
   "common": {
-    
     "app": {
       "title": "Gestion des Cessions",
       "name": "Application de Cessions"
@@ -32,6 +31,7 @@
       "print": "Imprimer",
       "export": "Exporter",
       "import": "Importer",
+      "retry": "Réessayer",
       "back_to_salary_cessions": "Retour aux Cessions sur Salaire",
       "back_to_client_details": "Retour aux Détails du Client"
     },
@@ -68,14 +68,13 @@
     },
     "cession": {
       "new": "Nouvelle Cession",
-
       "edit": "Modifier la Cession",
       "details": "Détails de la Cession",
-      "view_full_details":"Voir les détails complets",
+      "view_full_details": "Voir les détails complets",
       "document": "Document",
       "status": {
         "active": "Active",
-        "finished":"Terminée",
+        "finished": "Terminée",
         "completed": "Terminée",
         "cancelled": "Annulée"
       }
@@ -138,6 +137,7 @@
     "app_name": "Gestion des Cessions",
     "not_provided": "Non fourni",
     "error": {
+      "title": "Erreur",
       "general": "Une erreur s'est produite",
       "required": "Ce champ est requis",
       "invalid": "Valeur invalide",
@@ -188,7 +188,6 @@
   "dashboard": {
     "title": "Tableau de bord",
     "subtitle": "Aperçu de votre entreprise",
-  
     "stats": {
       "total_clients": "Total Clients",
       "total_cessions": "Total Cessions",
@@ -290,27 +289,27 @@
       "title": "Détails du Client",
       "subtitle": "Voir et gérer les informations du client",
       "full_name": "Nom Complet",
-      "cin":"Numéro d'Identité",
+      "cin": "Numéro d'Identité",
       "not_found": "Client non trouvé",
-      
-
       "worker_number": "Numéro d'Employé",
       "actions": {
         "edit": "Modifier le Client",
         "create_cession": "Créer une Cession"
       },
-      "cessions":{"view_all":"Voir toutes les cessions",
-      "view_full_details":"Voir les détails complets",
-      "no_cessions":"Aucune cession trouvée",
-      "title":"Cessions",
-    "table":{
-      "start_date":"Date de début",
-      "view_details":"Voir les détails",
-      "id":"ID de la table",
-      "amount":"Montant",
-      "status":"Statut",
-      "actions":"Actions"
-    }},
+      "cessions": {
+        "view_all": "Voir toutes les cessions",
+        "view_full_details": "Voir les détails complets",
+        "no_cessions": "Aucune cession trouvée",
+        "title": "Cessions",
+        "table": {
+          "start_date": "Date de début",
+          "view_details": "Voir les détails",
+          "id": "ID de la table",
+          "amount": "Montant",
+          "status": "Statut",
+          "actions": "Actions"
+        }
+      },
       "workplace": "Lieu de Travail",
       "job": "Emploi",
       "phone": "Téléphone",
@@ -381,6 +380,26 @@
     "title": "Cessions",
     "subtitle": "Gérer vos cessions",
     "new": "Nouvelle Cession",
+    "header": {
+      "total": "Total",
+      "active": "Actif"
+    },
+    "results": {
+      "total_value": "Valeur Totale"
+    },
+    "analytics": {
+      "total_value": "Valeur Totale",
+      "total_cessions": "Total des Cessions",
+      "avg_loan": "Prêt Moyen",
+      "risk_score": "Score de Risque",
+      "portfolio_risk": "Risque du Portefeuille",
+      "per_cession": "Par Cession",
+      "vs_last_month": "vs mois dernier",
+      "active": "Actif",
+      "top_clients": "Meilleurs Clients",
+      "cessions": "Cessions",
+      "total": "Total"
+    },
     "status": {
       "active": "Active",
       "finished": "Terminée",
@@ -403,19 +422,19 @@
       "client": "Client",
       "date": "Date",
       "amount": "Montant",
-      "end_date":"Date de fin",
-      "start_date":"Date de début",
-      "actions":{
-        "edit":"Modifier la Cession",
-        "delete":"Supprimer la Cession",
-        "view_profile":"Voir le Profil",
-        "preview_document":"Aperçu PDF",
-        "download_document":"Télécharger le Document",
-        "view_details":"Voir les détails",
+      "end_date": "Date de fin",
+      "start_date": "Date de début",
+      "actions": {
+        "edit": "Modifier la Cession",
+        "delete": "Supprimer la Cession",
+        "view_profile": "Voir le Profil",
+        "preview_document": "Aperçu PDF",
+        "download_document": "Télécharger le Document",
+        "view_details": "Voir les détails",
         "back": "Retour"
       },
-      "total_loan":"Montant Total",
-      "monthly_payment":"Paiement Mensuel",
+      "total_loan": "Montant Total",
+      "monthly_payment": "Paiement Mensuel",
       "notes": "Notes",
       "edit": "Modifier la Cession",
       "delete": "Supprimer la Cession",
@@ -427,14 +446,14 @@
       "cession_status": "Statut de la Cession",
       "cession_notes": "Notes de la Cession",
       "cession_actions": "Actions de la Cession",
-      "status":{
-        "active":"Active",
-        "finished":"Terminée",
-        "cancelled":"Annulée",
-        "pending":"En attente"
+      "status": {
+        "active": "Active",
+        "finished": "Terminée",
+        "cancelled": "Annulée",
+        "pending": "En attente"
       },
       "cession_table": "Table de la Cession",
-      "client_name":"Nom du Client",
+      "client_name": "Nom du Client",
       "bank_agency": "Banque/Agence",
       "progress_info": "Informations sur la progression",
       "current_progress": "Progression actuelle",
@@ -442,19 +461,20 @@
       "months_remaining": "{count} mois",
       "expected_payoff": "Remboursement attendu"
     },
-    "filters":{
-      "title":"Filtrer les cessions",
-      "client_name":"Nom du Client",
-      "client_cin":"Numéro d'Identité",
-      "client_number":"Numéro de Client",
-      "client_job":"Emploi",
-      "client_workplace":"Lieu de Travail",
-      "client_address":"Adresse",
-      "client_phone":"Téléphone",
-      "amount":"Montant",
-      "status":"Statut",
-      "all_status":"Tous les statuts",
-      "client_email":"E-mail"
+    "filters": {
+      "title": "Filtrer les cessions",
+      "client_name": "Nom du Client",
+      "client_cin": "Numéro d'Identité",
+      "active_only": "active",
+      "client_number": "Numéro de Client",
+      "client_job": "Emploi",
+      "client_workplace": "Lieu de Travail",
+      "client_address": "Adresse",
+      "client_phone": "Téléphone",
+      "amount": "Montant",
+      "status": "Statut",
+      "all_status": "Tous les statuts",
+      "client_email": "E-mail"
     },
     "errors": {
       "invalid_id": "ID de cession invalide",
@@ -500,7 +520,7 @@
     },
     "sort": {
       "name": "Trier par nom",
-      "price": "Trier par prix", 
+      "price": "Trier par prix",
       "stock": "Trier par stock",
       "margin": "Trier par marge"
     },
@@ -870,6 +890,82 @@
       "category": "Catégorie",
       "description": "Description",
       "amount": "Montant"
+    },
+    "views": {
+      "dashboard": "Tableau de bord",
+      "analytics": "Analyses",
+      "reports": "Rapports"
+    },
+    "actions": {
+      "quick_actions": "Actions rapides",
+      "track_expense": "Suivre une nouvelle dépense",
+      "record_income": "Enregistrer un nouveau revenu",
+      "export_report": "Exporter le rapport",
+      "download_data": "Télécharger les données financières"
+    },
+    "loading": {
+      "title": "Chargement des données financières",
+      "subtitle": "Veuillez patienter pendant que nous collectons les dernières informations"
+    },
+    "analytics": {
+      "vs_last_month": "par rapport au mois dernier",
+      "coming_soon": "Bientôt disponible",
+      "description": "Des analyses avancées et des insights prédictifs seront bientôt disponibles pour vous aider à prendre de meilleures décisions financières."
+    },
+    "reports": {
+      "coming_soon": "Bientôt disponible",
+      "description": "Des rapports détaillés et des options d'exportation seront bientôt disponibles pour vous aider à suivre vos performances financières."
+    },
+    "export": {
+      "format": "Format d'exportation",
+      "include_charts": "Inclure les graphiques",
+      "include_details": "Inclure les détails des transactions"
+    },
+    "expense": {
+      "add_title": "Ajouter une nouvelle dépense",
+      "add_subtitle": "Suivez efficacement vos dépenses d'entreprise",
+      "success_title": "Dépense ajoutée avec succès !",
+      "success_message": "Votre dépense a été enregistrée et sera reflétée dans vos rapports financiers.",
+      "step_category": "Catégorie",
+      "step_details": "Détails",
+      "step_review": "Révision",
+      "category": "Catégorie",
+      "search_category": "Rechercher des catégories...",
+      "description": "Description",
+      "description_placeholder": "Entrez la description de la dépense...",
+      "amount": "Montant (TND)",
+      "formatted_amount": "Montant formaté",
+      "date": "Date",
+      "notes": "Notes supplémentaires",
+      "notes_placeholder": "Ajoutez des détails supplémentaires sur cette dépense...",
+      "review_title": "Réviser votre dépense",
+      "adding": "Ajout en cours...",
+      "add_button": "Ajouter la dépense",
+      "success": "Dépense ajoutée avec succès",
+      "error": "Échec de l'ajout de la dépense"
+    },
+    "categories": {
+      "water": "Eau",
+      "electricity": "Électricité",
+      "transport": "Transport",
+      "rent": "Loyer",
+      "supplies": "Fournitures",
+      "maintenance": "Maintenance",
+      "salaries": "Salaires",
+      "insurance": "Assurance",
+      "taxes": "Taxes",
+      "marketing": "Marketing",
+      "other": "Autre"
+    },
+    "validation": {
+      "category_required": "Veuillez sélectionner une catégorie",
+      "description_required": "La description doit contenir au moins 3 caractères",
+      "amount_required": "Veuillez entrer un montant valide supérieur à 0",
+      "date_required": "Veuillez sélectionner une date",
+      "fix_errors": "Veuillez corriger les erreurs avant de soumettre"
+    },
+    "modals": {
+      "add_expense": "Ajouter une dépense"
     },
     "error": {
       "load_data": "Erreur de chargement des données :",
