@@ -469,6 +469,8 @@
     },
     "create": {
       "title": "Add New Product",
+      "success": "Product added successfully",
+      "error": "Failed to add product",
       "steps": {
         "basic_info": "Basic Information",
         "pricing": "Pricing",
@@ -511,6 +513,142 @@
       "confirm": "Are you sure you want to delete this product?",
       "success": "Product deleted successfully",
       "error": "Error deleting product"
+    },
+    "restock": {
+      "title": "Restock Product",
+      "quantity": "Restock Quantity",
+      "reason": "Reason",
+      "reason_placeholder": "Enter reason for restocking",
+      "submit": "Restock",
+      "success": "Successfully restocked {quantity} units of {product}",
+      "error": "Failed to restock product",
+      "invalid_quantity": "Please enter a valid quantity greater than 0",
+      "purchase_price_change": "Purchase Price Change Detected",
+      "new_purchase_price": "New Purchase Price",
+      "old_purchase_price": "Previous Purchase Price",
+      "update_purchase_price": "Update purchase price for future calculations?"
+    },
+    "profit": {
+      "percentage": "Profit %",
+      "margin": "Profit Margin",
+      "expected": "Expected Profit"
+    },
+    "edit": {
+      "title": "Edit Product",
+      "success": "Product updated successfully",
+      "error": "Failed to update product",
+      "steps": {
+        "basic_info": "Basic Information",
+        "pricing": "Pricing",
+        "inventory": "Inventory",
+        "details": "Additional Details"
+      },
+      "fields": {
+        "name": "Product Name",
+        "sku": "SKU",
+        "description": "Description",
+        "category": "Category",
+        "select_category": "Select category",
+        "purchase_price": "Purchase Price",
+        "selling_price": "Selling Price",
+        "stock_quantity": "Stock Quantity",
+        "reorder_point": "Reorder Point",
+        "supplier": "Supplier",
+        "supplier_placeholder": "Enter supplier name",
+        "specs": "Specifications",
+        "specs_placeholder": "Enter product specifications",
+        "image_url": "Image URL",
+        "image_url_placeholder": "Enter image URL"
+      },
+      "step_count": "Step {current} of {total}",
+      "previous": "Previous",
+      "next": "Next",
+      "save": "Save Changes",
+      "submit": "Save Product",
+      "validation": {
+        "name_required": "Product name is required",
+        "sku_required": "SKU is required",
+        "category_required": "Category is required",
+        "purchase_price_invalid": "Purchase price must be 0 or greater",
+        "selling_price_invalid": "Selling price must be 0 or greater",
+        "selling_price_less_than_purchase": "Selling price cannot be less than purchase price",
+        "stock_quantity_invalid": "Stock quantity must be 0 or greater",
+        "reorder_point_invalid": "Reorder point must be 0 or greater"
+      }
+    },
+    "restock": {
+      "title": "Restock Product",
+      "quantity": "Restock Quantity",
+      "reason": "Reason",
+      "submit": "Restock",
+      "cancel": "Cancel",
+      "success": "Successfully restocked {quantity} units of {product}",
+      "error": "Failed to restock product",
+      "invalid_quantity": "Please enter a valid restock quantity"
+    },
+    "profit": {
+      "expected": "Expected Profit",
+      "percentage": "Profit %",
+      "margin": "Profit Margin"
+    },
+    "actions": {
+      "restock": "Restock",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View"
+    },
+    "alerts": {
+      "inventory_alerts": "Inventory Alerts",
+      "items_require_attention": "items require immediate attention",
+      "out_of_stock": "Out of stock",
+      "low_stock": "Low stock: {quantity} remaining",
+      "overstock": "Potential overstock: {quantity} units"
+    },
+    "analytics": {
+      "title": "Analytics Dashboard",
+      "total_inventory_value": "Total Inventory Value",
+      "total_products": "Total Products",
+      "low_stock_items": "Low Stock Items",
+      "avg_profit_margin": "Avg. Profit Margin",
+      "top_performers": "Top Performers",
+      "vs_last_month": "vs last month",
+      "categories": "categories",
+      "requires_attention": "Requires attention",
+      "across_all_products": "Across all products",
+      "sales": "sales",
+      "revenue": "Revenue"
+    },
+    "search": {
+      "placeholder_advanced": "🔍 Search products, SKUs, categories...",
+      "loading": "Loading inventory...",
+      "error_loading": "Error Loading Inventory"
+    },
+    "filters": {
+      "all_categories": "All Categories",
+      "sort_by_name": "Sort by Name",
+      "sort_by_price": "Sort by Price", 
+      "sort_by_stock": "Sort by Stock",
+      "sort_by_margin": "Sort by Margin",
+      "filters": "Filters",
+      "stock_status": "Stock Status",
+      "all_items": "All Items",
+      "in_stock": "In Stock",
+      "low_stock": "Low Stock",
+      "out_of_stock": "Out of Stock",
+      "price_range": "Price Range",
+      "min": "Min",
+      "max": "Max",
+      "supplier": "Supplier",
+      "all_suppliers": "All Suppliers"
+    },
+    "header": {
+      "title": "Inventory Intelligence",
+      "subtitle": "Stock Management",
+      "products": "Products",
+      "alerts": "Alerts",
+      "auto_refresh": "Auto Refresh",
+      "categories": "Categories",
+      "add_product": "Add Product"
     }
   },
   "selling": {
@@ -590,6 +728,34 @@
         "price": "Price",
         "profit": "Profit"
       }
+    },
+    "actions": {
+      "quick_sell": "Quick Sell",
+      "sell_now": "Sell Now",
+      "selling": "Selling...",
+      "add_products": "Add Products",
+      "select_to_sell": "Select to Sell"
+    },
+    "product_info": {
+      "available_products": "Available Products",
+      "products_available": "products available",
+      "no_products_available": "No products available",
+      "add_products_to_start": "Add products to your inventory to start selling",
+      "in_stock": "in stock",
+      "purchase_price": "Purchase Price",
+      "selling_price": "Selling Price",
+      "profit_per_unit": "Profit per unit",
+      "stock_level": "Stock Level",
+      "units": "units",
+      "expected_profit": "Expected Profit"
+    },
+    "view_modes": {
+      "list": "List",
+      "grid": "Grid"
+    },
+    "loading": {
+      "products": "Loading products...",
+      "sales": "Loading sales..."
     }
   },
   "product": {

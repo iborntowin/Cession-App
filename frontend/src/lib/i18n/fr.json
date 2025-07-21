@@ -498,12 +498,17 @@
     "search": {
       "placeholder": "Rechercher des produits..."
     },
+    "sort": {
+      "name": "Trier par nom",
+      "price": "Trier par prix", 
+      "stock": "Trier par stock",
+      "margin": "Trier par marge"
+    },
     "filters": {
+      "title": "Filtres",
       "all_categories": "Toutes les catégories",
-      "sort_by": "Trier par",
-      "name": "Nom",
-      "price": "Prix",
-      "stock": "Stock"
+      "min": "Min",
+      "max": "Max"
     },
     "stock": "Stock",
     "category": "Catégorie",
@@ -522,11 +527,8 @@
       },
       "fields": {
         "name": "Nom du produit",
-        "name_placeholder": "Entrez le nom du produit",
         "sku": "Code produit",
-        "sku_placeholder": "Entrez le code produit",
         "description": "Description",
-        "description_placeholder": "Entrez la description du produit",
         "category": "Catégorie",
         "select_category": "Sélectionner une catégorie",
         "new_category": "Nouvelle catégorie",
@@ -535,11 +537,16 @@
         "stock_quantity": "Quantité en stock",
         "reorder_point": "Seuil de réapprovisionnement",
         "supplier": "Fournisseur",
-        "supplier_placeholder": "Entrez le nom du fournisseur",
         "specs": "Spécifications",
-        "specs_placeholder": "Entrez les spécifications du produit",
-        "image_url": "URL de l'image",
-        "image_url_placeholder": "Entrez l'URL de l'image"
+        "image_url": "URL de l'image"
+      },
+      "placeholders": {
+        "product_name": "Entrez le nom du produit",
+        "sku": "Entrez le code produit",
+        "description": "Entrez la description du produit",
+        "supplier": "Entrez le nom du fournisseur",
+        "specs": "Entrez les spécifications du produit",
+        "image_url": "Entrez l'URL de l'image"
       },
       "submit": "Ajouter le produit"
     },
@@ -557,22 +564,100 @@
       "success": "Produit supprimé avec succès",
       "error": "Erreur lors de la suppression du produit"
     },
+    "restock": {
+      "title": "Réapprovisionner le Produit",
+      "quantity": "Quantité de Réapprovisionnement",
+      "reason": "Raison",
+      "reason_placeholder": "Entrez la raison du réapprovisionnement",
+      "submit": "Réapprovisionner",
+      "success": "{quantity} unités de {product} réapprovisionnées avec succès",
+      "error": "Échec du réapprovisionnement du produit",
+      "invalid_quantity": "Veuillez entrer une quantité valide supérieure à 0",
+      "purchase_price_change": "Changement de Prix d'Achat Détecté",
+      "new_purchase_price": "Nouveau Prix d'Achat",
+      "old_purchase_price": "Prix d'Achat Précédent",
+      "update_purchase_price": "Mettre à jour le prix d'achat pour les calculs futurs ?"
+    },
+    "profit": {
+      "percentage": "Bénéfice %",
+      "margin": "Marge Bénéficiaire",
+      "expected": "Bénéfice Attendu"
+    },
     "edit": {
       "title": "Modifier le produit",
+      "success": "Produit mis à jour avec succès",
+      "error": "Échec de la mise à jour du produit",
       "steps": {
         "basic_info": "Informations de base",
         "pricing": "Tarification",
         "inventory": "Inventaire",
         "details": "Détails"
+      },
+      "fields": {
+        "name": "Nom du produit",
+        "sku": "Code produit",
+        "description": "Description",
+        "category": "Catégorie",
+        "select_category": "Sélectionner une catégorie",
+        "purchase_price": "Prix d'achat",
+        "selling_price": "Prix de vente",
+        "stock_quantity": "Quantité en stock",
+        "reorder_point": "Seuil de réapprovisionnement",
+        "supplier": "Fournisseur",
+        "supplier_placeholder": "Entrez le nom du fournisseur",
+        "specs": "Spécifications",
+        "specs_placeholder": "Entrez les spécifications du produit",
+        "image_url": "URL de l'image",
+        "image_url_placeholder": "Entrez l'URL de l'image"
+      },
+      "step_count": "Étape {current} sur {total}",
+      "submit": "Enregistrer le produit",
+      "validation": {
+        "name_required": "Le nom du produit est requis",
+        "sku_required": "Le code produit est requis",
+        "category_required": "La catégorie est requise",
+        "purchase_price_invalid": "Le prix d'achat doit être 0 ou plus",
+        "selling_price_invalid": "Le prix de vente doit être 0 ou plus",
+        "selling_price_less_than_purchase": "Le prix de vente ne peut pas être inférieur au prix d'achat",
+        "stock_quantity_invalid": "La quantité en stock doit être 0 ou plus",
+        "reorder_point_invalid": "Le seuil de réapprovisionnement doit être 0 ou plus"
       }
     },
-    "create": {
-      "steps": {
-        "basic_info": "Informations de base",
-        "pricing": "Tarification",
-        "inventory": "Inventaire",
-        "details": "Détails"
-      }
+    "actions": {
+      "restock": "Réapprovisionner",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "view": "Voir"
+    },
+    "alerts": {
+      "inventory_alerts": "Alertes d'Inventaire",
+      "items_require_attention": "articles nécessitent une attention immédiate",
+      "out_of_stock": "Rupture de stock",
+      "low_stock": "Stock faible : {quantity} restant",
+      "overstock": "Surstock potentiel : {quantity} unités"
+    },
+    "analytics": {
+      "title": "Tableau de Bord Analytique",
+      "total_inventory_value": "Valeur Totale de l'Inventaire",
+      "total_products": "Total des Produits",
+      "low_stock_items": "Articles en Stock Faible",
+      "avg_profit_margin": "Marge Bénéficiaire Moyenne",
+      "top_performers": "Meilleurs Performants",
+      "vs_last_month": "vs mois dernier",
+      "categories": "catégories",
+      "requires_attention": "Nécessite attention",
+      "across_all_products": "Sur tous les produits",
+      "sales": "ventes",
+      "revenue": "Chiffre d'Affaires"
+    },
+    "header": {
+      "title": "Intelligence d'Inventaire",
+      "subtitle": "Gestion de Stock ",
+      "products": "Produits",
+      "alerts": "Alertes",
+      "auto_refresh": "Actualisation Auto",
+      "categories": "Catégories",
+      "add_product": "Ajouter Produit"
     }
   },
   "selling": {
@@ -652,6 +737,52 @@
         "price": "Prix",
         "profit": "Bénéfice"
       }
+    },
+    "actions": {
+      "quick_sell": "Vente Rapide"
+    },
+    "sell_product": {
+      "title": "Vendre un produit",
+      "select_product": "Sélectionner un produit",
+      "select_product_placeholder": "Sélectionner un produit",
+      "quantity": "Quantité",
+      "selling_price": "Prix de vente",
+      "submit": "Vendre le produit",
+      "selling": "Vente en cours...",
+      "expected_profit": "Bénéfice attendu",
+      "success": "{quantity} unité(s) de {product} vendue(s) avec succès !",
+      "error": "Erreur lors de la vente du produit : {error}"
+    },
+    "products": {
+      "title": "Produits disponibles",
+      "count": "{count} produits disponibles",
+      "loading": "Chargement des produits...",
+      "no_products": "Aucun produit disponible",
+      "add_products_message": "Ajoutez des produits à votre inventaire pour commencer à vendre",
+      "add_products": "Ajouter des produits",
+      "stock_count": "{count} en stock",
+      "purchase_price": "Prix d'achat",
+      "selling_price": "Prix de vente",
+      "profit_per_unit": "Bénéfice par unité",
+      "stock_level": "Niveau de stock",
+      "select_to_sell": "Sélectionner pour vendre"
+    },
+    "stats": {
+      "total_profit": "Bénéfice total",
+      "total_sales": "Ventes totales",
+      "average_profit": "Bénéfice moyen par vente",
+      "available_products": "Produits disponibles",
+      "profit": "Bénéfice",
+      "sales": "Ventes"
+    },
+    "view_modes": {
+      "grid": "Grille",
+      "list": "Liste"
+    },
+    "validation": {
+      "select_product": "Veuillez sélectionner un produit à vendre.",
+      "invalid_quantity": "Quantité invalide. Veuillez entrer une valeur positive inférieure ou égale au stock actuel.",
+      "invalid_price": "Le prix de vente doit être supérieur ou égal à 0."
     }
   },
   "finance": {

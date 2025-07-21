@@ -427,12 +427,12 @@
           <div class="hidden md:flex items-center space-x-4 px-4 py-2 bg-white/60 rounded-xl backdrop-blur-sm">
             <div class="text-center">
               <div class="text-lg font-bold text-green-600">{formatCurrency(profitStats.totalProfit)}</div>
-              <div class="text-xs text-gray-500">Profit</div>
+              <div class="text-xs text-gray-500">{$t('selling.stats.profit')}</div>
             </div>
             <div class="w-px h-8 bg-gray-300"></div>
             <div class="text-center">
               <div class="text-lg font-bold text-blue-600">{profitStats.totalSales}</div>
-              <div class="text-xs text-gray-500">Sales</div>
+              <div class="text-xs text-gray-500">{$t('selling.stats.sales')}</div>
             </div>
           </div>
 
@@ -444,7 +444,7 @@
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
-            Quick Sell
+            {$t('selling.actions.quick_sell')}
           </button>
 
           <!-- Cart Button -->
@@ -509,12 +509,12 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
               </svg>
-              <span>List</span>
+              <span>{$t('selling.view_modes.list')}</span>
             {:else}
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
               </svg>
-              <span>Grid</span>
+              <span>{$t('selling.view_modes.grid')}</span>
             {/if}
           </button>
         </div>
@@ -568,7 +568,7 @@
       <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Available Products</p>
+            <p class="text-sm font-medium text-gray-600">{$t('selling.stats.available_products')}</p>
             <p class="text-3xl font-bold text-orange-600 mt-2">{filteredProducts.length}</p>
           </div>
           <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
@@ -588,7 +588,7 @@
             <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
-            Quick Sell
+{$t('selling.actions.quick_sell')}
           </h3>
           <button
             on:click={() => showQuickSell = false}
@@ -607,7 +607,7 @@
               bind:value={selectedProduct}
               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
             >
-              <option value={null}>Select a product</option>
+              <option value={null}>{$t('selling.sell_product.select_product_placeholder')}</option>
               {#each filteredProducts as product}
                 <option value={product}>{product.name} (Stock: {product.stock_quantity})</option>
               {/each}
@@ -647,9 +647,9 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Selling...
+{$t('selling.sell_product.selling')}
               {:else}
-                Sell Now
+{$t('selling.sell_product.submit')}
               {/if}
             </button>
           </div>
@@ -658,7 +658,7 @@
         {#if selectedProduct}
           <div class="mt-6 p-4 bg-gray-50 rounded-xl">
             <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-600">Expected Profit:</span>
+              <span class="text-gray-600">{$t('selling.sell_product.expected_profit')}:</span>
               <span class="font-semibold text-green-600">
                 {formatCurrency((sellingPriceToSell - (selectedProduct.purchase_price || 0)) * quantityToSell)}
               </span>
@@ -672,9 +672,9 @@
     <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
       <div class="p-6 border-b border-gray-100">
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-gray-900">Available Products</h2>
+          <h2 class="text-xl font-semibold text-gray-900">{$t('selling.products.title')}</h2>
           <div class="text-sm text-gray-500">
-            {filteredProducts.length} products available
+            {$t('selling.products.count', { count: filteredProducts.length })}
           </div>
         </div>
       </div>
@@ -685,7 +685,7 @@
             <div class="w-16 h-16 border-4 border-green-200 rounded-full animate-spin"></div>
             <div class="absolute top-0 left-0 w-16 h-16 border-4 border-green-600 rounded-full animate-spin border-t-transparent"></div>
           </div>
-          <p class="text-gray-600 font-medium">Loading products...</p>
+          <p class="text-gray-600 font-medium">{$t('selling.products.loading')}</p>
         </div>
       {:else if filteredProducts.length === 0}
         <div class="text-center py-16">
@@ -694,8 +694,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
             </svg>
           </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No products available</h3>
-          <p class="text-gray-500 mb-6">Add products to your inventory to start selling</p>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">{$t('selling.products.no_products')}</h3>
+          <p class="text-gray-500 mb-6">{$t('selling.products.add_products_message')}</p>
           <a
             href="/inventory"
             class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
@@ -703,7 +703,7 @@
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
             </svg>
-            Add Products
+            {$t('selling.products.add_products')}
           </a>
         </div>
       {:else}
@@ -732,24 +732,24 @@
                   <!-- Stock Status -->
                   <div class="flex items-center space-x-1">
                     <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span class="text-xs text-gray-500">{product.stock_quantity} in stock</span>
+                    <span class="text-xs text-gray-500">{$t('selling.products.stock_count', { count: product.stock_quantity })}</span>
                   </div>
                 </div>
 
                 <!-- Product Details -->
                 <div class="space-y-3 mb-6">
                   <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-600">Purchase Price:</span>
+                    <span class="text-gray-600">{$t('selling.products.purchase_price')}:</span>
                     <span class="font-semibold">{formatCurrency(product.purchase_price)}</span>
                   </div>
                   
                   <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-600">Selling Price:</span>
+                    <span class="text-gray-600">{$t('selling.products.selling_price')}:</span>
                     <span class="font-semibold text-green-600">{formatCurrency(product.selling_price)}</span>
                   </div>
                   
                   <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-600">Profit per unit:</span>
+                    <span class="text-gray-600">{$t('selling.products.profit_per_unit')}:</span>
                     <span class="font-semibold text-blue-600">
                       {formatCurrency(product.selling_price - product.purchase_price)}
                     </span>
@@ -758,7 +758,7 @@
                   <!-- Stock Level Indicator -->
                   <div class="mt-4">
                     <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
-                      <span>Stock Level</span>
+                      <span>{$t('selling.products.stock_level')}</span>
                       <span>{product.stock_quantity} units</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
@@ -772,13 +772,16 @@
 
                 <!-- Action Button -->
                 <button
-                  on:click|stopPropagation={() => selectProduct(product)}
+                  on:click|stopPropagation={() => {
+                    selectProduct(product);
+                    showQuickSell = true;
+                  }}
                   class="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl group-hover:scale-105"
                 >
                   <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                   </svg>
-                  Select to Sell
+                  {$t('selling.products.select_to_sell')}
                 </button>
               </div>
             {/each}
@@ -787,154 +790,73 @@
       {/if}
     </div>
 
-  <!-- Chart Section -->
-  <div class="bg-white p-6 rounded-lg shadow mb-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold text-gray-900">{$t('selling.chart.title')}</h2>
-      <div class="flex gap-4">
-        <select
-          bind:value={chartType}
-          class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="line">{$t('selling.chart.type.line')}</option>
-          <option value="bar">{$t('selling.chart.type.bar')}</option>
-        </select>
-        <div class="relative">
-          <select
-            bind:value={exportFormat}
-            class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="csv">{$t('selling.chart.export.csv')}</option>
-            <option value="excel">{$t('selling.chart.export.excel')}</option>
-          </select>
-        </div>
-      </div>
-                  </div>
-    <div class="h-96">
-      <canvas bind:this={chartCanvas}></canvas>
-                  </div>
-                </div>
-
-  <!-- Sell Product Form -->
-  <div class="bg-white p-6 rounded-lg shadow mb-6">
-    <h2 class="text-xl font-semibold text-gray-900 mb-4">{$t('selling.sell_product.title')}</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">{$t('selling.sell_product.select_product')}</label>
-        <select
-          bind:value={selectedProduct}
-          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value={null}>Select a product</option>
-          {#each filteredProducts as product}
-            <option value={product}>{product.name}</option>
-            {/each}
-        </select>
-      </div>
-            <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">{$t('selling.sell_product.quantity')}</label>
-              <input
-                type="number"
-                bind:value={quantityToSell}
-                min="1"
-          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">{$t('selling.sell_product.selling_price')}</label>
-                <input
-                  type="number"
-                  bind:value={sellingPriceToSell}
-                  min="0"
-          step="0.01"
-          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
-    <div class="mt-4">
-            <button
-              on:click={handleSellProduct}
-        disabled={isSelling}
-        class="w-full md:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+    <!-- Sales Analytics Chart -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+      <div class="p-6 border-b border-gray-100">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-gray-900">{$t('selling.chart.title')}</h2>
+          <div class="flex items-center space-x-3">
+            <select
+              bind:value={chartType}
+              class="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-        {$t('selling.sell_product.submit')}
+              <option value="line">{$t('selling.chart.type.line')}</option>
+              <option value="bar">{$t('selling.chart.type.bar')}</option>
+            </select>
+            <button
+              on:click={exportData}
+              class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium"
+            >
+              <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              {$t('selling.chart.export.csv')}
             </button>
           </div>
         </div>
-
-  <!-- Recent Sales Table -->
-  <div class="bg-white rounded-lg shadow overflow-hidden">
-    <div class="px-6 py-4 border-b">
-      <h2 class="text-xl font-semibold text-gray-900">{$t('selling.recent_sales.title')}</h2>
+      </div>
+      <div class="p-6">
+        <div class="h-96">
+          <canvas bind:this={chartCanvas}></canvas>
+        </div>
+      </div>
     </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.date')}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.product')}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.quantity')}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.price')}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.profit')}</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-          {#if filteredSales.length === 0}
+  </div>
+
+    <!-- Recent Sales Section -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="p-6 border-b border-gray-100">
+        <h2 class="text-xl font-semibold text-gray-900">{$t('selling.recent_sales.title')}</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
             <tr>
-              <td colspan="5" class="px-6 py-4 text-center text-gray-500">{$t('selling.recent_sales.no_sales')}</td>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.date')}</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.product')}</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.quantity')}</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.price')}</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.profit')}</th>
             </tr>
-          {:else}
-            {#each filteredSales as sale}
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {#if filteredSales.length === 0}
               <tr>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{format(parseISO(sale.createdAt), 'PPp')}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.productName}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.quantity}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(sale.sellingPriceAtSale)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(sale.profit)}</td>
+                <td colspan="5" class="px-6 py-4 text-center text-gray-500">{$t('selling.recent_sales.no_sales')}</td>
+              </tr>
+            {:else}
+              {#each filteredSales as sale}
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{format(parseISO(sale.createdAt), 'PPp')}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.productName}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.quantity}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(sale.sellingPriceAtSale)}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold text-green-600">{formatCurrency(sale.profit)}</td>
                 </tr>
               {/each}
-          {/if}
-            </tbody>
-          </table>
-    </div>
-    </div>
-  </div>
-
-  <!-- Recent Sales Section -->
-  <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-    <div class="p-6 border-b border-gray-100">
-      <h2 class="text-xl font-semibold text-gray-900">{$t('selling.recent_sales.title')}</h2>
-    </div>
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.date')}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.product')}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.quantity')}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.price')}</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.profit')}</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          {#if filteredSales.length === 0}
-            <tr>
-              <td colspan="5" class="px-6 py-4 text-center text-gray-500">{$t('selling.recent_sales.no_sales')}</td>
-            </tr>
-          {:else}
-            {#each filteredSales as sale}
-              <tr class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{format(parseISO(sale.createdAt), 'PPp')}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.productName}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.quantity}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(sale.sellingPriceAtSale)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold text-green-600">{formatCurrency(sale.profit)}</td>
-              </tr>
-            {/each}
-          {/if}
-        </tbody>
-      </table>
+            {/if}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-
-</div>
