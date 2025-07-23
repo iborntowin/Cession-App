@@ -287,6 +287,13 @@
             </button>
           {/if}
           
+          <a href={`/cessions/${data.id}/edit`} class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"/>
+            </svg>
+            {$t('common.actions.edit')}
+          </a>
+
           <button
             on:click={previewDocument}
             class="flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium text-sm"
@@ -397,7 +404,7 @@
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.months_remaining')}</p>
-              <p class="font-medium text-gray-900 mt-1">{cession.monthsRemaining} {$t('common.months')}</p>
+              <p class="font-medium text-gray-900 mt-1">{$t('common.count_months', {count: cession.monthsRemaining})}</p>
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
@@ -409,7 +416,7 @@
       </div>
       <!-- Payment Section -->
       <div class="mt-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6" transition:fly={{ y: 20, delay: 150, duration: 300, easing: cubicOut }}>
-        <h2 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">Payment Information</h2>
+        <h2 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">Historique des Paiements</h2>
         <PaymentSection
           cessionId={cession.id}
           remainingBalance={cession.remainingBalance}

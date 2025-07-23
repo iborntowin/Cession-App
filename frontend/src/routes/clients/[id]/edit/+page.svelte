@@ -215,7 +215,7 @@
   <title>{$t('clients.edit.title')} | {$t('common.app_name')}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 space-y-6">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
   <!-- Modern Header with Glassmorphism -->
   <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
     <div class="max-w-7xl mx-auto px-6 py-4">
@@ -289,7 +289,7 @@
                 id="workplace"
                 value={selectedWorkplaceId}
                 on:change={handleWorkplaceChange}
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md"
               >
                 <option value="">{$t('clients.edit.select_workplace')}</option>
                 {#each workplaces as workplace}
@@ -305,7 +305,7 @@
                 value={formData.jobId}
                 on:change={handleJobChange}
                 disabled={!selectedWorkplaceId}
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md disabled:bg-gray-100 disabled:text-gray-500"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md disabled:bg-gray-100 disabled:text-gray-500"
               >
                 <option value="">{$t('clients.edit.select_job')}</option>
                 {#each filteredJobs as job}
@@ -329,7 +329,7 @@
                     pattern="\d*"
                     inputmode="numeric"
                     maxlength="8"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm {cinError ? 'border-red-500 ring-red-500' : ''}"
+                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm {cinError ? 'border-red-500 ring-red-500' : ''}"
                     placeholder="Enter 8-digit CIN"
                   />
                   <div class="absolute right-3 top-1/2 -translate-y-1/2">
@@ -360,7 +360,7 @@
                     pattern="\d*"
                     inputmode="numeric"
                     maxlength="10"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm {workerNumberError ? 'border-red-500 ring-red-500' : ''}"
+                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm {workerNumberError ? 'border-red-500 ring-red-500' : ''}"
                     placeholder="Enter 10-digit worker number"
                   />
                   <div class="absolute right-3 top-1/2 -translate-y-1/2">
@@ -386,23 +386,23 @@
                 type="text"
                 id="address"
                 bind:value={formData.address}
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
                 readonly={selectedWorkplaceId !== null}
               />
             </div>
           </div>
 
-          <div class="flex justify-end space-x-3">
+          <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
             <button
               type="button"
-              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              class="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium text-sm shadow-sm"
               on:click={() => goto(`/clients/${client.id}`)}
             >
               {$t('clients.edit.cancel')}
             </button>
             <button
               type="submit"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              class="flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium text-sm"
               disabled={isSaving}
             >
               {#if isSaving}
@@ -412,22 +412,36 @@
                 {$t('clients.edit.save_changes')}
               {/if}
             </button>
-            <button
-              type="button"
-              class="inline-flex items-center px-4 py-2 border border-red-600 text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              on:click={() => { showDeleteModal = true; deleteConfirmInput = ''; deleteError = ''; }}
-            >
-              {$t('clients.edit.delete')}
-            </button>
           </div>
         </form>
       </div>
+      
+      <!-- Danger Zone -->
+      <div class="mt-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-red-200/50 overflow-hidden">
+        <div class="p-6 border-b border-red-200/50">
+          <h3 class="text-lg font-medium text-red-700">{$t('clients.edit.danger_zone')}</h3>
+          <p class="text-sm text-gray-500 mt-1">{$t('clients.edit.danger_zone_subtitle')}</p>
+        </div>
+        <div class="p-6">
+          <button
+            type="button"
+            class="flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium text-sm"
+            on:click={() => { showDeleteModal = true; deleteConfirmInput = ''; deleteError = ''; }}
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            {$t('clients.edit.delete')}
+          </button>
+        </div>
+      </div>
     </div>
   {/if}
+  </div>
   <Modal show={showDeleteModal} on:close={() => showDeleteModal = false} variant="danger" title={$t('clients.edit.delete_confirm_title')}>
     <div class="p-2">
       <div class="mb-2 p-3 rounded bg-red-50 border border-red-200">
-        <p class="text-sm text-red-700 font-semibold mb-1">{$t('clients.edit.delete_confirm_message', { name: client.fullName })}</p>
+        <p class="text-sm text-red-700 font-semibold mb-1">{`Cette action supprimera définitivement le client ${client.fullName} et toutes ses cessions associées. Cette action est irréversible.`}</p>
         <p class="text-sm text-gray-700">{$t('clients.edit.delete_confirm_instruction')}</p>
       </div>
       <input
@@ -455,3 +469,4 @@
     </div>
   </Modal>
 </div>
+

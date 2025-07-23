@@ -127,10 +127,12 @@
     });
 
     // Scroll to top of client list after filtering
-    setTimeout(() => {
-      const list = document.getElementById('client-list');
-      if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 10);
+    if (browser) {
+      setTimeout(() => {
+        const list = document.getElementById('client-list');
+        if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 10);
+    }
   }
 
   function toggleSearch() {

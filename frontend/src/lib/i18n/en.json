@@ -337,7 +337,9 @@
       "delete_cancel_button": "Cancel",
       "delete_name_mismatch": "The entered name does not match. Please type the client's full name to confirm.",
       "delete_success": "Client and all their cessions deleted successfully.",
-      "delete_error": "Error deleting client."
+      "delete_error": "Error deleting client.",
+      "danger_zone": "Danger Zone",
+      "danger_zone_subtitle": "Actions in this zone are irreversible."
     }
   },
   "cessions": {
