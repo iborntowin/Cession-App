@@ -1,12 +1,14 @@
 <script lang="ts">
   import { clientsApi, jobsApi, workplacesApi, cessionsApi } from '$lib/api';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { showAlert, loading } from '$lib/stores';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
   import { fade, fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { t, currentLanguage } from '$lib/i18n';
+  import { browser } from '$app/environment';
 
   let clients = [];
   let filteredClients = [];
@@ -39,6 +41,9 @@
       loadCessions()
     ]);
     computeClientExtras();
+    
+    // Ensure browser-only code runs after component is mounted
+    await tick();
   });
 
   async function loadClients() {
@@ -195,7 +200,17 @@
       return;
     }
     closeClientDetails();
-    goto(`/clients/${clientId}`);
+    try {
+      goto(`/clients/${clientId}`);
+    } catch (error) {
+      console.error('Error navigating to client details:', error);
+      showAlert('Failed to navigate to client details', 'error');
+      
+      // Fallback navigation if the goto fails
+      if (browser) {
+        window.location.href = `/clients/${clientId}`;
+      }
+    }
   }
 
   function createCession(clientId) {
@@ -209,6 +224,11 @@
     } catch (error) {
       console.error('Error navigating to cession creation:', error);
       showAlert('Failed to navigate to cession creation', 'error');
+      
+      // Fallback navigation if the goto fails
+      if (browser) {
+        window.location.href = `/cessions/new?clientId=${clientId}`;
+      }
     }
   }
 
@@ -262,8 +282,8 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4" class:space-x-reverse={isRTL}>
           <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-            <div class="w-10 h-10 bg-primary-700 rounded-xl flex items-center justify-center shadow-lg">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
               </svg>
             </div>
@@ -278,14 +298,14 @@
         
         <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
           <!-- Quick Stats -->
-          <div class="hidden md:flex items-center space-x-4 px-4 py-2 bg-white/60 rounded-xl backdrop-blur-sm" class:space-x-reverse={isRTL}>
+          <div class="hidden md:flex items-center space-x-4 px-4 py-2 bg-white/80 rounded-xl backdrop-blur-sm shadow-sm" class:space-x-reverse={isRTL}>
             <div class="text-center">
-              <div class="text-lg font-bold text-primary-600">{clients.length}</div>
+              <div class="text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">{clients.length}</div>
               <div class="text-xs text-gray-500">Total</div>
             </div>
             <div class="w-px h-8 bg-gray-300"></div>
             <div class="text-center">
-              <div class="text-lg font-bold text-primary-600">{filteredClients.length}</div>
+              <div class="text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">{filteredClients.length}</div>
               <div class="text-xs text-gray-500">Filtered</div>
             </div>
           </div>
@@ -293,7 +313,7 @@
           <!-- Add Client Button -->
           <a
             href="/clients/new"
-            class="flex items-center px-4 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+            class="flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -308,7 +328,7 @@
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-6 py-8">
     <!-- Enhanced Search and Filters -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-8">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         <!-- Search Bar -->
         <div class="flex-1 max-w-md">
@@ -321,7 +341,7 @@
               bind:value={searchQuery}
               on:input={applyFilters}
               placeholder={$t('clients.search.name_placeholder')}
-              class="w-full {isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+              class="w-full {isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
             />
           </div>
         </div>
@@ -331,7 +351,7 @@
           <!-- Advanced Search Toggle -->
           <button
             on:click={toggleSearch}
-            class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2 {isSearchVisible ? 'bg-primary-50 border-primary-200 text-primary-700' : ''}" class:space-x-reverse={isRTL}
+            class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2 shadow-sm {isSearchVisible ? 'bg-purple-50 border-purple-200 text-purple-700' : ''}" class:space-x-reverse={isRTL}
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
@@ -342,7 +362,7 @@
           <!-- View Mode Toggle -->
           <button
             on:click={toggleViewMode}
-            class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2" class:space-x-reverse={isRTL}
+            class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2 shadow-sm" class:space-x-reverse={isRTL}
           >
             {#if viewMode === 'grid'}
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,9 +382,9 @@
 
     <!-- Advanced Search Panel -->
     {#if isSearchVisible}
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8" transition:fly={{ y: -20, duration: 300 }}>
+      <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-8" transition:fly={{ y: -20, duration: 300 }}>
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Advanced Search</h3>
+          <h3 class="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Advanced Search</h3>
           <button
             on:click={toggleSearch}
             class="text-gray-400 hover:text-gray-600 transition-colors"
@@ -391,7 +411,7 @@
                 bind:value={searchQuery}
                 on:input={applyFilters}
                 placeholder={$t('clients.search.name_placeholder')}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
               />
             </div>
           </div>
@@ -411,7 +431,7 @@
                 bind:value={searchCIN}
                 on:input={applyFilters}
                 placeholder={$t('clients.search.cin_placeholder')}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
               />
             </div>
           </div>
@@ -431,7 +451,7 @@
                 bind:value={searchWorkerNumber}
                 on:input={applyFilters}
                 placeholder={$t('clients.search.worker_number_placeholder')}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
               />
             </div>
           </div>
@@ -451,7 +471,7 @@
                 bind:value={searchClientNumber}
                 on:input={applyFilters}
                 placeholder={$t('clients.search.client_number_placeholder')}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
               />
             </div>
           </div>
@@ -471,7 +491,7 @@
               searchClientNumber = '';
               applyFilters();
             }}
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors shadow-sm"
           >
             Clear All Filters
           </button>
@@ -480,11 +500,11 @@
     {/if}
 
     <!-- Client Grid/List Section -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
       <!-- Header with Client Count -->
       <div class="p-6 border-b border-gray-100">
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-gray-900">Clients</h2>
+          <h2 class="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Clients</h2>
           <div class="text-sm text-gray-500">
             {formatClientCount(filteredClients.length)}
           </div>
@@ -511,7 +531,7 @@
         <p class="text-gray-500 mb-6">Get started by adding your first client</p>
         <a
           href="/clients/new"
-          class="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+          class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -528,7 +548,7 @@
         {:else if filteredClients.length === 1}
           <div class="flex flex-col items-center justify-center min-h-[40vh]">
             <div 
-              class="group bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:border-primary-200 transition-all duration-300"
+              class="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 hover:shadow-xl hover:border-purple-200 transition-all duration-300"
               transition:fly={{ y: 20, delay: 0, duration: 300 }}
               dir={isRTL ? 'rtl' : 'ltr'}
             >
@@ -537,11 +557,11 @@
                 class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
                 <div class="flex items-center"
                   class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                  <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                  <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
                     {filteredClients[0].fullName ? filteredClients[0].fullName.charAt(0).toUpperCase() : 'C'}
                   </div>
                   <div class="ml-3 mr-0" class:ml-0={isRTL} class:mr-3={isRTL}>
-                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
                       {#if isRTL}
                         <bdi dir="rtl">{filteredClients[0].fullName}</bdi>
                       {:else}
@@ -584,7 +604,7 @@
                 {#if cessionsByClient[filteredClients[0].id?.toString()]}
                   <div class="flex items-center text-sm"
                     class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                    <div class="px-2 py-1 bg-primary-100 text-primary-700 rounded-lg font-medium">
+                    <div class="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg font-medium">
                       {cessionsByClient[filteredClients[0].id.toString()].length} Cessions
                     </div>
                   </div>
@@ -593,25 +613,25 @@
 
               <!-- Action Buttons -->
               <div class="flex mt-2" class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                <button
-                  on:click={() => showClientDetails(filteredClients[0])}
-                  class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm"
+                <a
+                  href={`/clients/${filteredClients[0].id}`}
+                  class="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md text-center"
                 >
-                  <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 inline mr-1 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                   </svg>
                   View
-                </button>
-                <button
-                  on:click={() => createCession(filteredClients[0].id)}
-                  class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all duration-200 font-medium text-sm shadow-lg hover:shadow-xl"
+                </a>
+                <a
+                  href={`/cessions/new?clientId=${filteredClients[0].id}`}
+                  class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium text-sm shadow-lg hover:shadow-xl text-center"
                 >
                   <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                   </svg>
                   Cession
-                </button>
+                </a>
               </div>
             </div>
           </div>
@@ -619,7 +639,7 @@
           <div class={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
             {#each filteredClients as client, i (client.id)}
               <div 
-                class="group bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:border-primary-200 transition-all duration-300"
+                class="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 hover:shadow-xl hover:border-purple-200 transition-all duration-300"
                 transition:fly={{ y: 20, delay: i * 50, duration: 300 }}
                 dir={isRTL ? 'rtl' : 'ltr'}
               >
@@ -628,7 +648,7 @@
                   class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
                   <div class="flex items-center"
                     class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                    <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                    <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
                       {client.fullName ? client.fullName.charAt(0).toUpperCase() : 'C'}
                     </div>
                     <div class="ml-3 mr-0" class:ml-0={isRTL} class:mr-3={isRTL}>
@@ -684,25 +704,25 @@
 
                 <!-- Action Buttons -->
                 <div class="flex mt-2" class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                  <button
-                    on:click={() => showClientDetails(client)}
-                    class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm"
+                  <a
+                    href={`/clients/${client.id}`}
+                    class="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md text-center"
                   >
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 inline mr-1 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                     </svg>
                     View
-                  </button>
-                  <button
-                    on:click={() => createCession(client.id)}
-                    class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-all duration-200 font-medium text-sm shadow-lg hover:shadow-xl"
+                  </a>
+                  <a
+                    href={`/cessions/new?clientId=${client.id}`}
+                    class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium text-sm shadow-lg hover:shadow-xl text-center"
                   >
                     <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
                     Cession
-                  </button>
+                  </a>
                 </div>
               </div>
             {/each}

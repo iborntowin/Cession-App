@@ -1,12 +1,14 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { clientsApi, workplacesApi, jobsApi } from '$lib/api';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { showToast } from '$lib/toast';
   import { browser } from '$app/environment';
   import { get } from 'svelte/store';
   import { goto } from '$app/navigation';
   import { showAlert, loading } from '$lib/stores';
+  import { fade, fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
   import { t } from '$lib/i18n';
@@ -77,6 +79,9 @@
       }
 
       isLoading = false;
+      
+      // Ensure browser-only code runs after component is mounted
+      await tick();
     } catch (error) {
       console.error('Error loading data:', error);
       showAlert($t('clients.edit.load_error'), 'error');
@@ -165,7 +170,15 @@
     try {
       await clientsApi.update(client.id, formData);
       showAlert($t('clients.edit.success'), 'success');
-      goto(`/clients/${client.id}`);
+      try {
+        goto(`/clients/${client.id}`);
+      } catch (error) {
+        console.error('Error navigating to client details:', error);
+        // Fallback navigation if the goto fails
+        if (browser) {
+          window.location.href = `/clients/${client.id}`;
+        }
+      }
     } catch (error) {
       let backendMessage = error?.message || '';
       if (backendMessage && backendMessage.toLowerCase().includes('cin')) {
@@ -202,30 +215,55 @@
   <title>{$t('clients.edit.title')} | {$t('common.app_name')}</title>
 </svelte:head>
 
-<div class="space-y-6">
-  <PageHeader 
-    title={$t('clients.edit.title')} 
-    subtitle={$t('clients.edit.subtitle')}
-    actions={[
-      {
-        label: $t('clients.edit.back_to_client'),
-        href: `/clients/${client?.id}`,
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-        </svg>`
-      }
-    ]}
-  />
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 space-y-6">
+  <!-- Modern Header with Glassmorphism -->
+  <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {$t('clients.edit.title')}
+              </h1>
+              <p class="text-sm text-gray-500 font-medium">{$t('clients.edit.subtitle')}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <a
+            href={`/clients/${client?.id}`}
+            class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+            {$t('clients.edit.back_to_client')}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <div class="max-w-7xl mx-auto px-6 py-8">
   {#if isLoading}
     <div class="flex justify-center py-12">
-      <Spinner isLoading={true} size="lg" />
+      <div class="relative">
+        <div class="w-16 h-16 border-4 border-purple-200 rounded-full animate-spin"></div>
+        <div class="absolute top-0 left-0 w-16 h-16 border-4 border-purple-600 rounded-full animate-spin border-t-transparent"></div>
+      </div>
     </div>
   {:else}
-    <div class="max-w-2xl mx-auto">
-      <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+    <div class="max-w-2xl mx-auto" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
+      <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
         <div class="p-6 border-b border-gray-200">
-          <h3 class="text-lg font-medium text-gray-900">{$t('clients.edit.client_info')}</h3>
+          <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{$t('clients.edit.client_info')}</h3>
         </div>
         <form on:submit|preventDefault={handleSubmit} class="p-6 space-y-6">
           <div class="space-y-4">
@@ -237,7 +275,7 @@
                 type="text"
                 id="fullName"
                 bind:value={formData.fullName}
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {fullNameError ? 'border-red-500 ring-red-500' : ''}"
+                class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm {fullNameError ? 'border-red-500 ring-red-500' : ''}"
                 required
               />
               {#if fullNameError}

@@ -148,3 +148,25 @@ backend/.idea/
 
 # Exclude test stackdump files
 bash.exe.stackdump
+exemple/cessions/+page.svelte
+exemple/cessions/\[id]/+page.js
+exemple/cessions/\[id]/+page.svelte
+exemple/cessions/\[id]/document/+page.svelte
+exemple/cessions/new/+page.svelte
+exemple/clients/+page.svelte
+exemple/clients/\[id]/+page.js
+exemple/clients/\[id]/+page.svelte
+exemple/clients/\[id]/cessions/+page.svelte
+exemple/clients/\[id]/cessions/\[cessionId]/+page.js
+exemple/clients/\[id]/cessions/\[cessionId]/+page.svelte
+exemple/clients/\[id]/cessions/\[cessionId]/edit/+page.svelte
+exemple/clients/\[id]/cessions/new/+page.js
+exemple/clients/\[id]/cessions/new/+page.svelte
+exemple/clients/\[id]/edit/+page.js
+exemple/clients/\[id]/edit/+page.svelte
+exemple/clients/new/+page.js
+exemple/clients/new/+page.svelte
+exemple/inventory/+page.svelte
+exemple/inventory/CategoryModal.svelte
+exemple/inventory/EditProductModal.svelte
+exemple/settings/+page.svelte

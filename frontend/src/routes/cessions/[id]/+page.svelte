@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { showAlert, loading } from '$lib/stores';
@@ -11,6 +11,9 @@
   import { format, addMonths } from 'date-fns';
   import { ar } from 'date-fns/locale';
   import { t } from '$lib/i18n';
+  import { fade, fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
+  import { browser } from '$app/environment';
 
   // Check if we came from salary cessions page
   $: fromSalaryCessions = $page.url.searchParams.get('from') === 'salary-cessions';
@@ -27,6 +30,9 @@
       return;
     }
     await loadCession();
+    
+    // Ensure browser-only code runs after component is mounted
+    await tick();
   });
   
   async function loadCession() {
@@ -72,13 +78,17 @@
   function getStatusClass(status) {
     switch(status) {
       case 'ACTIVE':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'COMPLETED':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'FINISHED':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'PENDING':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   }
   
@@ -232,146 +242,181 @@
   <title>{$t('cessions.details.title')} | {$t('common.app_title')}</title>
 </svelte:head>
 
-<!-- Back Navigation -->
-{#if fromSalaryCessions}
-  <div class="mb-6">
-    <button
-      on:click={() => goto('/salary-cessions')}
-      class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-      </svg>
-      {$t('common.actions.back_to_salary_cessions') || 'Back to Salary Cessions'}
-    </button>
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+  <!-- Modern Header with Glassmorphism -->
+  <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                {$t('cessions.details.title')}
+              </h1>
+              <p class="text-sm text-gray-500 font-medium">View and manage cession details</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <!-- Back Navigation -->
+          {#if fromSalaryCessions}
+            <a
+              href="/salary-cessions"
+              class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+              </svg>
+              {$t('common.actions.back_to_salary_cessions') || 'Back to Salary Cessions'}
+            </a>
+          {:else}
+            <button
+              on:click={() => window.history.back()}
+              class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+              </svg>
+              {$t('cessions.details.actions.back')}
+            </button>
+          {/if}
+          
+          <button
+            on:click={previewDocument}
+            class="flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium text-sm"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            {$t('cessions.details.actions.preview_document')}
+          </button>
+          
+          <button
+            on:click={downloadDocument}
+            class="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium text-sm"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            {$t('cessions.details.actions.download_document')}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
-{:else}
-  <div class="mb-6">
-    <button
-      on:click={() => window.history.back()}
-      class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-      </svg>
-      {$t('cessions.details.actions.back')}
-    </button>
-  </div>
-{/if}
-
-<div class="flex justify-end space-x-4 mb-6">
-  <button
-    on:click={previewDocument}
-    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-  >
-    {$t('cessions.details.actions.preview_document')}
-  </button>
-  <button
-    on:click={downloadDocument}
-    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-  >
-    {$t('cessions.details.actions.download_document')}
-  </button>
-</div>
   
-  {#if isLoading}
-    <div class="flex justify-center py-12">
-      <Spinner isLoading={true} size="lg" />
-    </div>
-  {:else if cession}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Cession Information -->
-      <div class="bg-white shadow-sm rounded-lg p-6">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">{$t('cessions.details.cession_info')}</h2>
-        <div class="space-y-4">
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.client')}</p>
-            <div class="flex items-center space-x-2">
-              <p class="font-medium">{cession.clientName}</p>
-              <a 
-                href={`/clients/${cession.clientId}`}
-                class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-                </svg>
-                {$t('cessions.details.view_profile')}
-              </a>
-            </div>
-          </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.bank_agency')}</p>
-            <p class="font-medium">{cession.bankOrAgency}</p>
-          </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.total_loan')}</p>
-            <p class="font-medium">{formatCurrency(cession.totalLoanAmount)}</p>
-          </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.monthly_payment')}</p>
-            <p class="font-medium">{formatCurrency(cession.monthlyPayment)}</p>
-          </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.start_date')}</p>
-            <p class="font-medium">{formatDate(cession.startDate)}</p>
-          </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.end_date')}</p>
-            <p class="font-medium">{formatDate(cession.endDate)}</p>
-          </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('common.status')}</p>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {getStatusClass(cession.status)}">
-              {getStatusTranslation(cession.status)}
-            </span>
-          </div>
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    {#if isLoading}
+      <div class="flex justify-center py-16">
+        <div class="relative">
+          <div class="w-16 h-16 border-4 border-purple-200 rounded-full animate-spin"></div>
+          <div class="absolute top-0 left-0 w-16 h-16 border-4 border-purple-600 rounded-full animate-spin border-t-transparent"></div>
         </div>
       </div>
-      
-      <!-- Progress Information -->
-      <div class="bg-white shadow-sm rounded-lg p-6">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">{$t('cessions.details.progress_info')}</h2>
-        <div class="space-y-4">
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.current_progress')}</p>
-            <div class="mt-2">
-              <div class="w-full bg-gray-200 rounded-full h-2.5">
-                <div class="bg-primary-600 h-2.5 rounded-full" style="width: {cession.currentProgress}%"></div>
+    {:else if cession}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
+        <!-- Cession Information -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h2 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">{$t('cessions.details.cession_info')}</h2>
+          <div class="space-y-4">
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.client')}</p>
+              <div class="flex items-center space-x-2 mt-1">
+                <p class="font-medium text-gray-900">{cession.clientName}</p>
+                <a 
+                  href={`/clients/${cession.clientId}`}
+                  class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded-lg text-purple-700 bg-purple-100 hover:bg-purple-200 transition-all duration-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                  </svg>
+                  {$t('cessions.details.view_profile')}
+                </a>
               </div>
-              <p class="text-sm text-gray-600 mt-1">{formatProgress(cession.currentProgress)}</p>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.bank_agency')}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession.bankOrAgency}</p>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.total_loan')}</p>
+              <p class="font-medium text-gray-900 mt-1">{formatCurrency(cession.totalLoanAmount)}</p>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.monthly_payment')}</p>
+              <p class="font-medium text-gray-900 mt-1">{formatCurrency(cession.monthlyPayment)}</p>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.start_date')}</p>
+              <p class="font-medium text-gray-900 mt-1">{formatDate(cession.startDate)}</p>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.end_date')}</p>
+              <p class="font-medium text-gray-900 mt-1">{formatDate(cession.endDate)}</p>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('common.status')}</p>
+              <span class="inline-flex items-center px-3 py-1 mt-1 rounded-full text-xs font-medium shadow-sm border border-{cession.status.toLowerCase()}-200 {getStatusClass(cession.status)}">
+                {getStatusTranslation(cession.status)}
+              </span>
             </div>
           </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.remaining_balance')}</p>
-            <p class="font-medium">{formatCurrency(cession.remainingBalance)}</p>
-          </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.months_remaining')}</p>
-            <p class="font-medium">{cession.monthsRemaining} {$t('common.months')}</p>
-          </div>
-          
-          <div>
-            <p class="text-sm text-gray-500">{$t('cessions.details.expected_payoff')}</p>
-            <p class="font-medium">{formatDate(cession.expectedPayoffDate)}</p>
+        </div>
+        
+        <!-- Progress Information -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
+          <h2 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">{$t('cessions.details.progress_info')}</h2>
+          <div class="space-y-4">
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.current_progress')}</p>
+              <div class="mt-2">
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                  <div class="bg-gradient-to-r from-purple-600 to-indigo-600 h-3 rounded-full" style="width: {cession.currentProgress}%"></div>
+                </div>
+                <p class="text-sm text-gray-700 mt-2 font-medium">{formatProgress(cession.currentProgress)}</p>
+              </div>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.remaining_balance')}</p>
+              <p class="font-medium text-gray-900 mt-1">{formatCurrency(cession.remainingBalance)}</p>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.months_remaining')}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession.monthsRemaining} {$t('common.months')}</p>
+            </div>
+            
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
+              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.expected_payoff')}</p>
+              <p class="font-medium text-gray-900 mt-1">{formatDate(cession.expectedPayoffDate)}</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <!-- Payment Section -->
-    <div class="mt-6">
-      <PaymentSection
-        cessionId={cession.id}
-        remainingBalance={cession.remainingBalance}
-        totalLoanAmount={cession.totalLoanAmount}
-        monthlyPayment={cession.monthlyPayment}
-      />
-    </div>
-  {/if}
+      <!-- Payment Section -->
+      <div class="mt-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6" transition:fly={{ y: 20, delay: 150, duration: 300, easing: cubicOut }}>
+        <h2 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">Payment Information</h2>
+        <PaymentSection
+          cessionId={cession.id}
+          remainingBalance={cession.remainingBalance}
+          totalLoanAmount={cession.totalLoanAmount}
+          monthlyPayment={cession.monthlyPayment}
+        />
+      </div>
+    {/if}
+  </div>
+</div>
