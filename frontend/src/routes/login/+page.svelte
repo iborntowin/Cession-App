@@ -6,7 +6,7 @@
   import { fade, fly, scale, slide } from 'svelte/transition';
   import Spinner from '$lib/components/Spinner.svelte';
   import HealthStatus from '$lib/components/HealthStatus.svelte';
-  
+
   let email = '';
   let password = '';
   let isLoading = false;
@@ -24,6 +24,9 @@
   let formVisible = false;
   let backgroundLoaded = false;
 
+  // Loading bar state
+  let loadingBarProgress = 0;
+
   // Handle health status updates
   function handleHealthUpdate(event) {
     const { status, backendReachable: backend, databaseConnected: db, errorMessage } = event.detail;
@@ -31,16 +34,27 @@
     backendReachable = backend;
     databaseConnected = db;
     healthError = errorMessage;
-    
+
     // Enable login only when backend is reachable and database is connected
     canLogin = backend && db && status === 'healthy';
-    
+
+    // Update loading bar based on health status
+    if (status === 'healthy') {
+      loadingBarProgress = 100;
+    } else if (status === 'starting') {
+      loadingBarProgress = 30;
+    } else if (status === 'checking') {
+      loadingBarProgress = 10;
+    } else {
+      loadingBarProgress = 0;
+    }
+
     // If backend becomes available and we were waiting, try login again
     if (canLogin && isLoading && email && password) {
       handleLogin();
     }
   }
-  
+
   onMount(() => {
     console.log('Login Page - onMount - Current token:', $token);
     // If user is already logged in, redirect to dashboard
@@ -48,30 +62,30 @@
       console.log('Login Page - onMount - User already logged in, redirecting to home');
       goto('/');
     }
-    
+
     // Trigger form animation after mount
     setTimeout(() => {
       formVisible = true;
       backgroundLoaded = true;
     }, 100);
   });
-  
+
   async function handleLogin() {
     console.log('Login Page - Starting login process');
     error = '';
     isLoading = true;
-    
+
     if (!email || !password) {
       error = 'Please enter both email and password';
       isLoading = false;
       return;
     }
-    
+
     try {
       console.log('Login Page - Calling authApi.login');
       const result = await authApi.login(email, password);
       console.log('Login Page - Login result:', result);
-      
+
       if (result.success && result.data && result.data.token) {
         console.log('Login Page - Login successful, setting user data');
         // Set both token and user data
@@ -145,7 +159,7 @@
     <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl animate-pulse"></div>
     <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
     <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 4s;"></div>
-    
+
     <!-- Grid Pattern -->
     <div class="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
   </div>
@@ -160,7 +174,7 @@
           <div class="mx-auto w-20 h-20 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-500/25 mb-8">
             <span class="text-4xl">🚀</span>
           </div>
-          
+
           <!-- Welcome Text -->
           <h1 class="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
             Welcome Back
@@ -171,7 +185,7 @@
         </div>
       {/if}
 
-      <!-- Health Status Card -->
+      <!-- Health Status Card with Loading Bar -->
       {#if formVisible}
         <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20" in:slide={{ duration: 400, delay: 400 }}>
           <div class="flex items-center justify-between">
@@ -184,7 +198,7 @@
                 <p class="text-xs text-gray-600 capitalize">{healthStatus}</p>
               </div>
             </div>
-            
+
             <!-- Status Indicators -->
             <div class="flex items-center space-x-2">
               <div class="flex items-center space-x-1">
@@ -197,7 +211,34 @@
               </div>
             </div>
           </div>
-          
+
+          <!-- Creative Loading Bar -->
+          <div class="mt-4">
+            <div class="relative w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div 
+                class="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 rounded-full transition-all duration-500 ease-out"
+                style="width: {loadingBarProgress}%"
+              >
+                <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                <div class="absolute right-0 top-0 h-full w-2 bg-white/40 animate-pulse"></div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center mt-2">
+              <span class="text-xs text-gray-500">
+                {#if healthStatus === 'healthy'}
+                  All systems operational
+                {:else if healthStatus === 'starting'}
+                  Backend starting...
+                {:else if healthStatus === 'checking'}
+                  Checking services...
+                {:else}
+                  System issues detected
+                {/if}
+              </span>
+              <span class="text-xs font-medium text-emerald-600">{loadingBarProgress}%</span>
+            </div>
+          </div>
+
           <!-- Health Status Component -->
           <div class="mt-3">
             <HealthStatus 
@@ -391,14 +432,14 @@
             </div>
             <p class="text-xs font-medium text-gray-700">Analytics</p>
           </div>
-          
+
           <div class="bg-white/40 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 hover:bg-white/60 transition-all duration-300 group">
             <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300">
               <span class="text-white text-sm">💰</span>
             </div>
             <p class="text-xs font-medium text-gray-700">Finance</p>
           </div>
-          
+
           <div class="bg-white/40 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 hover:bg-white/60 transition-all duration-300 group">
             <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300">
               <span class="text-white text-sm">📈</span>
@@ -478,5 +519,22 @@
   /* Enhanced shadows */
   .shadow-emerald-500\/25 {
     box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.25), 0 2px 4px -1px rgba(16, 185, 129, 0.06);
+  }
+
+  /* Loading bar shimmer effect */
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .bg-gradient-to-r::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2s infinite;
   }
 </style>
