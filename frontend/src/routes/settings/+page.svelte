@@ -102,87 +102,210 @@
         </div>
       {/if}
 
-    <!-- Settings Content -->
-    <div class="space-y-6">
-      <!-- Language Settings Card -->
-      <div class="card">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="p-2 bg-primary-100 rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-            </svg>
-          </div>
-          <div>
-            <h2 class="text-xl font-semibold text-gray-900">{$t('common.settings.language_settings.title')}</h2>
-            <p class="text-sm text-gray-600">{$t('common.settings.language_settings.description')}</p>
-          </div>
-        </div>
-
-        <div class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {#each languages as lang}
-              <label class="relative cursor-pointer">
-                <input
-                  type="radio"
-                  name="language"
-                  value={lang.code}
-                  bind:group={selectedLanguage}
-                  on:change={handleLanguageChange}
-                  class="sr-only"
-                />
-                <div class="border-2 rounded-lg p-4 transition-all duration-200 hover:shadow-md {
-                  selectedLanguage === lang.code 
-                    ? 'border-primary-500 bg-primary-50 shadow-md' 
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }">
-                  <div class="flex items-center gap-3">
-                    <span class="text-2xl">{getFlagEmoji(lang.code)}</span>
-                    <div class="flex-1">
-                      <div class="font-medium text-gray-900">{lang.name}</div>
-                      <div class="text-sm text-gray-500">{$t(`common.language.${lang.code}`)}</div>
-                    </div>
-                    {#if selectedLanguage === lang.code}
-                      <div class="text-primary-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                        </svg>
-                      </div>
-                    {/if}
-                  </div>
-                  {#if lang.isRTL}
-                    <div class="mt-2 text-xs text-gray-500 flex items-center gap-1">
-                      
-                    </div>
-                  {/if}
+      <!-- Settings Content -->
+      {#if pageVisible}
+        <div class="space-y-8">
+          <!-- Language Settings Card -->
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden" in:scale={{ duration: 500, delay: 400, start: 0.95 }}>
+            <!-- Header Section -->
+            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 px-8 py-6 border-b border-gray-200/50">
+              <div class="flex items-center space-x-4">
+                <!-- Language Icon -->
+                <div class="w-12 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
                 </div>
-              </label>
-            {/each}
-          </div>
-
-          <!-- Current Selection Info -->
-          {#if currentLanguage}
-            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-              <div class="flex items-center gap-2 text-sm text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{$t('common.settings.language_settings.current_selection')}: <strong>{currentLanguage.name}</strong></span>
-                {#if currentLanguage.isRTL}
-                  <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">RTL</span>
-                {/if}
+                <div>
+                  <h2 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                    {$t('common.settings.language_settings.title')}
+                  </h2>
+                  <p class="text-gray-600 text-sm">{$t('common.settings.language_settings.description')}</p>
+                </div>
               </div>
             </div>
-          {/if}
-        </div>
-      </div>
 
-      <!-- Mobile Data Export & Sync -->
-      <ExportStatusCard />
+            <!-- Language Options -->
+            <div class="p-8">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {#each languages as lang, index}
+                  <label class="relative cursor-pointer group" in:fly={{ y: 20, duration: 400, delay: 600 + (index * 100) }}>
+                    <input
+                      type="radio"
+                      name="language"
+                      value={lang.code}
+                      bind:group={selectedLanguage}
+                      on:change={handleLanguageChange}
+                      class="sr-only"
+                    />
+                    <div class="relative bg-white/70 backdrop-blur-sm border-2 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:scale-105 group-hover:bg-white {
+                      selectedLanguage === lang.code 
+                        ? 'border-emerald-500 bg-emerald-50/80 shadow-lg ring-2 ring-emerald-500/20' 
+                        : 'border-gray-200 hover:border-emerald-300'
+                    }">
+                      <div class="flex items-center space-x-4">
+                        <div class="text-3xl">{getFlagEmoji(lang.code)}</div>
+                        <div class="flex-1">
+                          <div class="font-bold text-gray-900 text-lg">{lang.name}</div>
+                          <div class="text-sm text-gray-600">{$t(`common.language.${lang.code}`)}</div>
+                          {#if lang.isRTL}
+                            <div class="mt-2">
+                              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                RTL Support
+                              </span>
+                            </div>
+                          {/if}
+                        </div>
+                        {#if selectedLanguage === lang.code}
+                          <div class="text-emerald-600">
+                            <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                              <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                              </svg>
+                            </div>
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
+                  </label>
+                {/each}
+              </div>
+
+              <!-- Current Selection Info -->
+              {#if currentLanguage}
+                <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50" in:slide={{ duration: 400, delay: 1000 }}>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-gray-900">
+                        {$t('common.settings.language_settings.current_selection')}: <span class="font-bold text-blue-700">{currentLanguage.name}</span>
+                      </p>
+                      <div class="flex items-center space-x-2 mt-1">
+                        <span class="text-xs text-gray-600">Active Language</span>
+                        {#if currentLanguage.isRTL}
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            RTL Layout
+                          </span>
+                        {/if}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+            </div>
+          </div>
+
+          <!-- Mobile Data Export & Sync Card -->
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden" in:scale={{ duration: 500, delay: 600, start: 0.95 }}>
+            <ExportStatusCard />
+          </div>
+        </div>
+      {/if}
+
+      <!-- Features Preview -->
+      {#if pageVisible}
+        <div class="grid grid-cols-3 gap-4 mt-12" in:fly={{ y: 30, duration: 600, delay: 1200 }}>
+          <div class="bg-white/40 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 hover:bg-white/60 transition-all duration-300 group">
+            <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300">
+              <span class="text-white text-sm">🌍</span>
+            </div>
+            <p class="text-xs font-medium text-gray-700">Multi-Language</p>
+          </div>
+
+          <div class="bg-white/40 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 hover:bg-white/60 transition-all duration-300 group">
+            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300">
+              <span class="text-white text-sm">📱</span>
+            </div>
+            <p class="text-xs font-medium text-gray-700">Mobile Sync</p>
+          </div>
+
+          <div class="bg-white/40 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 hover:bg-white/60 transition-all duration-300 group">
+            <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300">
+              <span class="text-white text-sm">⚙️</span>
+            </div>
+            <p class="text-xs font-medium text-gray-700">Preferences</p>
+          </div>
+        </div>
+      {/if}
     </div>
   </div>
 </div>
 
 <style>
+  /* Glass morphism enhancements */
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  /* Custom focus styles */
+  input:focus,
+  button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+
+  /* Gradient text effect */
+  .bg-clip-text {
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  /* Smooth transitions */
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  /* Loading animation */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Floating background elements */
+  .animate-pulse {
+    animation: pulse-slow 6s ease-in-out infinite;
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+  }
+
+  /* Enhanced shadows */
+  .shadow-emerald-500\/25 {
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.25), 0 2px 4px -1px rgba(16, 185, 129, 0.06);
+  }
+
+  .shadow-blue-500\/25 {
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.25), 0 2px 4px -1px rgba(59, 130, 246, 0.06);
+  }
+
+  /* Hover effects */
+  .group:hover .group-hover\:scale-110 {
+    transform: scale(1.1);
+  }
+
+  /* Custom animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
   /* Custom styles for better RTL support */
   :global([dir="rtl"]) .card {
     text-align: right;
@@ -195,5 +318,28 @@
   :global([dir="rtl"]) .gap-3 > * + * {
     margin-right: 0.75rem;
     margin-left: 0;
+  }
+
+  /* Enhanced button hover effects */
+  button:hover {
+    transform: translateY(-1px);
+  }
+
+  button:active {
+    transform: translateY(0);
+  }
+
+  /* Improved card hover effects */
+  .hover\:shadow-lg:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Loading state improvements */
+  .disabled\:opacity-50:disabled {
+    opacity: 0.5;
+  }
+
+  .disabled\:cursor-not-allowed:disabled {
+    cursor: not-allowed;
   }
 </style>

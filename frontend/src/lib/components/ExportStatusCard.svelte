@@ -152,154 +152,309 @@
         </script>
 
 
-<div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-  <div class="flex items-center justify-between mb-4">
-    <h3 class="text-lg font-semibold text-gray-800">
-      📱 Mobile Data Export & Sync
-    </h3>
-    <div class="flex items-center space-x-2">
+<!-- Header Section -->
+<div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-8 py-6 border-b border-gray-200/50">
+  <div class="flex justify-between items-center">
+    <div class="flex items-center space-x-4">
+      <!-- Mobile Icon -->
+      <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          Mobile Data Export & Sync
+        </h2>
+        <p class="text-gray-600 text-sm">Synchronize data with mobile applications</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3">
       {#if loading}
-        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+        <div class="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
       {/if}
       <button
         on:click={fetchExportStatus}
         disabled={loading || manualExportLoading}
-        class="text-gray-500 hover:text-gray-700 disabled:opacity-50"
+        class="w-10 h-10 bg-white/80 hover:bg-white rounded-xl flex items-center justify-center text-gray-500 hover:text-gray-700 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50"
         title="Refresh status"
       >
-        🔄
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
       </button>
     </div>
   </div>
+</div>
+
+<!-- Main Content -->
+<div class="p-8">
 
   {#if error}
-    <div class="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <span class="text-red-400">⚠️</span>
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+          <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
         </div>
-        <div class="ml-3">
-          <p class="text-sm text-red-700">
-            Error: {error}
-          </p>
-        </div>
+        <p class="text-sm text-red-700 font-medium">
+          Error: {error}
+        </p>
       </div>
     </div>
   {/if}
 
-  <div class="space-y-4">
-    <!-- Export Status -->
-    <div class="flex items-center justify-between">
-      <span class="text-sm font-medium text-gray-600">Export Status:</span>
+  <!-- Status Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- Export Status Card -->
+    <div class="bg-white/50 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50">
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-semibold text-gray-900">Export Status</h3>
+          <p class="text-sm text-gray-600">Current sync state</p>
+        </div>
+      </div>
       <div class="flex items-center space-x-2">
         {#if exportStatus}
-          <span class="text-sm {statusColor}">{statusIcon} {exportStatus.status}</span>
+          <div class="flex items-center space-x-2">
+            <span class="text-lg">{statusIcon}</span>
+            <span class="font-medium {statusColor}">{exportStatus.status}</span>
+          </div>
         {:else}
-          <span class="text-sm text-gray-500">❓ No exports yet</span>
+          <div class="flex items-center space-x-2">
+            <span class="text-lg">❓</span>
+            <span class="font-medium text-gray-500">No exports yet</span>
+          </div>
         {/if}
       </div>
     </div>
 
-    <!-- Last Sync Time -->
-    <div class="flex items-center justify-between">
-      <span class="text-sm font-medium text-gray-600">Last Sync:</span>
-      <span class="text-sm text-gray-700">{lastSyncText}</span>
-    </div>
-
-    <!-- Record Counts -->
-    {#if exportStatus}
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-medium text-gray-600">Records Exported:</span>
-        <span class="text-sm text-gray-700">
-          {exportStatus.recordCount || 0} clients, {exportStatus.cessionCount || 0} cessions
-        </span>
-      </div>
-
-      <!-- File Size -->
-      {#if exportStatus.fileSizeBytes}
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-gray-600">File Size:</span>
-          <span class="text-sm text-gray-700">
-            {(exportStatus.fileSizeBytes / 1024).toFixed(1)} KB
-          </span>
+    <!-- Last Sync Card -->
+    <div class="bg-white/50 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50">
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
         </div>
-      {/if}
+        <div>
+          <h3 class="font-semibold text-gray-900">Last Sync</h3>
+          <p class="text-sm text-gray-600">Most recent update</p>
+        </div>
+      </div>
+      <p class="font-medium text-gray-900">{lastSyncText}</p>
+    </div>
+  </div>
+
+  <!-- Detailed Information -->
+  {#if exportStatus}
+    <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 mb-6">
+      <h3 class="font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <span>Export Details</span>
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Records Count -->
+        <div class="bg-white/80 rounded-lg p-4">
+          <div class="text-2xl font-bold text-emerald-600">{exportStatus.recordCount || 0}</div>
+          <div class="text-sm text-gray-600">Clients Exported</div>
+        </div>
+        
+        <div class="bg-white/80 rounded-lg p-4">
+          <div class="text-2xl font-bold text-blue-600">{exportStatus.cessionCount || 0}</div>
+          <div class="text-sm text-gray-600">Cessions Exported</div>
+        </div>
+
+        <!-- File Size -->
+        {#if exportStatus.fileSizeBytes}
+          <div class="bg-white/80 rounded-lg p-4">
+            <div class="text-2xl font-bold text-purple-600">{(exportStatus.fileSizeBytes / 1024).toFixed(1)} KB</div>
+            <div class="text-sm text-gray-600">File Size</div>
+          </div>
+        {/if}
+      </div>
 
       <!-- Supabase URL -->
       {#if exportStatus.supabaseUrl}
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-gray-600">Public URL:</span>
-          <button
-            on:click={openSupabaseUrl}
-            class="text-sm text-blue-600 hover:text-blue-800 underline"
-            title="Open exported data file"
-          >
-            📄 View Export File
-          </button>
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </div>
+              <div>
+                <p class="font-medium text-blue-900">Export File Available</p>
+                <p class="text-sm text-blue-700">Click to view exported data</p>
+              </div>
+            </div>
+            <button
+              on:click={openSupabaseUrl}
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+              title="Open exported data file"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+              <span>View File</span>
+            </button>
+          </div>
         </div>
       {/if}
 
       <!-- Error Message -->
       {#if exportStatus.status === 'FAILED' && exportStatus.errorMessage}
-        <div class="bg-red-50 border border-red-200 rounded-md p-3">
-          <p class="text-sm text-red-700">
-            <strong>Error:</strong> {exportStatus.errorMessage}
-          </p>
+        <div class="mt-6 bg-red-50 border border-red-200 rounded-xl p-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+              <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <div>
+              <p class="font-medium text-red-900">Export Failed</p>
+              <p class="text-sm text-red-700">{exportStatus.errorMessage}</p>
+            </div>
+          </div>
         </div>
       {/if}
-    {/if}
-
-    <!-- Action Buttons -->
-    <div class="flex space-x-3 pt-4 border-t border-gray-200">
-      <button
-        on:click={triggerManualExport}
-        disabled={manualExportLoading || loading}
-        class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center space-x-2"
-      >
-        {#if manualExportLoading}
-          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          <span>Syncing...</span>
-        {:else}
-          <span>🔄</span>
-          <span>Sync Now</span>
-        {/if}
-      </button>
-
-      <button
-        on:click={fetchExportStatus}
-        disabled={loading || manualExportLoading}
-        class="bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors duration-200"
-      >
-        Refresh
-      </button>
     </div>
+  {/if}
 
-    <!-- Info Text -->
-    <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
-      <p class="text-xs text-blue-700">
-        💡 <strong>Info:</strong> This exports client and cession data to Supabase Storage for mobile app access. 
-        Data is automatically exported after any database changes, or you can manually sync using the button above.
-      </p>
+  <!-- Action Buttons -->
+  <div class="flex space-x-4 mb-6">
+    <button
+      on:click={triggerManualExport}
+      disabled={manualExportLoading || loading}
+      class="flex-1 group relative flex justify-center items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium border border-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {#if manualExportLoading}
+        <div class="flex items-center space-x-3">
+          <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          <span>Syncing...</span>
+        </div>
+      {:else}
+        <div class="flex items-center space-x-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span>Sync Now</span>
+        </div>
+      {/if}
+    </button>
+
+    <button
+      on:click={fetchExportStatus}
+      disabled={loading || manualExportLoading}
+      class="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      Refresh
+    </button>
+  </div>
+
+  <!-- Info Section -->
+  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200/50">
+    <div class="flex items-start space-x-3">
+      <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mt-0.5">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div>
+        <h4 class="font-semibold text-blue-900 mb-2">How Mobile Sync Works</h4>
+        <p class="text-sm text-blue-700 leading-relaxed">
+          This feature exports your client and cession data to Supabase Storage, making it accessible to mobile applications. 
+          Data is automatically synchronized whenever changes occur in the database, or you can trigger a manual sync using the button above.
+        </p>
+        <div class="mt-3 flex items-center space-x-4 text-xs text-blue-600">
+          <div class="flex items-center space-x-1">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <span>Auto-sync enabled</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>Cloud storage</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <span>Mobile ready</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <style>
+  /* Glass morphism enhancements */
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  /* Custom focus styles */
+  button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+
+  /* Smooth transitions */
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  /* Loading animation */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Enhanced shadows */
+  .shadow-blue-500\/25 {
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.25), 0 2px 4px -1px rgba(59, 130, 246, 0.06);
+  }
+
+  /* Enhanced button hover effects */
+  button:hover {
+    transform: translateY(-1px);
+  }
+
+  button:active {
+    transform: translateY(0);
+  }
+
   /* Custom styles for better visual feedback */
   button:disabled {
     cursor: not-allowed;
   }
-  
-  .animate-spin {
-    animation: spin 1s linear infinite;
+
+  /* Improved card hover effects */
+  .hover\:shadow-md:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
-  
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+
+  /* Loading state improvements */
+  .disabled\:opacity-50:disabled {
+    opacity: 0.5;
+  }
+
+  .disabled\:cursor-not-allowed:disabled {
+    cursor: not-allowed;
   }
 </style>
