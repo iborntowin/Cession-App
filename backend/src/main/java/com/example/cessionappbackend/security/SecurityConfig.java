@@ -106,9 +106,25 @@ public class SecurityConfig {
                 // Allow unauthenticated access to auth endpoints and health
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api/health/db").permitAll()
-                .requestMatchers("/api/v1/cessions/search").hasRole("ADMIN")
-                .requestMatchers("/api/v1/payments/**").hasRole("ADMIN")
-                .requestMatchers("/api/v1/products/**").hasRole("ADMIN")
+                
+                // Admin-only endpoints
+                .requestMatchers("/api/v1/auth/users").hasRole("ADMIN")
+                .requestMatchers("/api/v1/auth/user/**").hasRole("ADMIN")
+                
+                // Core business endpoints - accessible by both USER and ADMIN
+                .requestMatchers("/api/v1/clients/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/cessions/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/payments/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/products/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/expenses/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/income/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/jobs/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/workplaces/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/documents/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/financial-summary/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/api/v1/export/**").hasAnyRole("USER", "ADMIN")
+                
+                // Any other authenticated request
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         

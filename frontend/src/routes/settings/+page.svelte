@@ -4,10 +4,12 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import ExportStatusCard from '$lib/components/ExportStatusCard.svelte';
+  import { fade, fly, scale, slide } from 'svelte/transition';
 
   let selectedLanguage = 'en';
   let languages = language.getLanguages();
   let currentLanguage;
+  let pageVisible = false;
 
   // Subscribe to language changes
   const unsubscribe = language.subscribe(lang => {
@@ -27,6 +29,11 @@
       document.documentElement.dir = currentLanguage.isRTL ? 'rtl' : 'ltr';
       document.documentElement.lang = currentLanguage.code;
     }
+    
+    // Trigger page animation
+    setTimeout(() => {
+      pageVisible = true;
+    }, 100);
     
     return () => {
       unsubscribe();
@@ -58,19 +65,42 @@
   <title>{$t('common.navigation.settings')} - Cession Management</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-6">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Header -->
-    <div class="mb-8">
-      <div class="flex items-center gap-3 mb-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        <h1 class="text-3xl font-bold text-gray-900">{$t('common.settings.title')}</h1>
-      </div>
-      <p class="text-gray-600">{$t('common.settings.description')}</p>
-    </div>
+<!-- Enhanced Settings Page with Glassmorphism -->
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+  <!-- Animated Background Elements -->
+  <div class="absolute inset-0 overflow-hidden">
+    <!-- Floating Orbs -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 4s;"></div>
+
+    <!-- Grid Pattern -->
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="relative z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      {#if pageVisible}
+        <div class="text-center mb-12" in:fly={{ y: -30, duration: 600, delay: 200 }}>
+          <!-- Logo/Icon -->
+          <div class="mx-auto w-20 h-20 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-500/25 mb-8">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+
+          <!-- Welcome Text -->
+          <h1 class="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
+            {$t('common.settings.title')}
+          </h1>
+          <p class="text-gray-600 font-medium text-lg">
+            {$t('common.settings.description')}
+          </p>
+        </div>
+      {/if}
 
     <!-- Settings Content -->
     <div class="space-y-6">

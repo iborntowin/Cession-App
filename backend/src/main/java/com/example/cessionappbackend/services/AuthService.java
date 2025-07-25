@@ -59,7 +59,19 @@ public class AuthService {
         user.setEmail(signupRequest.getEmail());
         user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
         user.setFullNameFromParts(signupRequest.getFirstName(), signupRequest.getLastName());
-        user.setRole("ADMIN");
+        
+        // Assign role based on whether this is the first user or not
+        long userCount = userRepository.count();
+        if (userCount == 0) {
+            // First user gets ADMIN role
+            user.setRole("ADMIN");
+            logger.info("First user registered, assigning ADMIN role to: {}", signupRequest.getEmail());
+        } else {
+            // Subsequent users get USER role by default
+            user.setRole("USER");
+            logger.info("Regular user registered, assigning USER role to: {}", signupRequest.getEmail());
+        }
+        
         user.setActive(true);
 
         return userRepository.save(user);
@@ -81,7 +93,19 @@ public class AuthService {
         user.setEmail(signupRequest.getEmail());
         user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
         user.setFullNameFromParts(signupRequest.getFirstName(), signupRequest.getLastName());
-        user.setRole("ADMIN");
+        
+        // Assign role based on whether this is the first user or not
+        long userCount = userRepository.count();
+        if (userCount == 0) {
+            // First user gets ADMIN role
+            user.setRole("ADMIN");
+            logger.info("First user signup, assigning ADMIN role to: {}", signupRequest.getEmail());
+        } else {
+            // Subsequent users get USER role by default
+            user.setRole("USER");
+            logger.info("Regular user signup, assigning USER role to: {}", signupRequest.getEmail());
+        }
+        
         user.setActive(true);
         user.setLastLogin(LocalDateTime.now());
 
