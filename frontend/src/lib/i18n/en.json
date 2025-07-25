@@ -183,6 +183,11 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Overview of your business",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon", 
+      "evening": "Good evening"
+    },
     "header": {
       "clients": "Clients",
       "active": "Active"
@@ -192,7 +197,10 @@
       "portfolio": "Portfolio"
     },
     "actions": {
-      "title": "Quick Actions"
+      "title": "Quick Actions",
+      "new_client": "New Client",
+      "new_cession": "New Cession", 
+      "manage_inventory": "Manage Inventory"
     },
     "smart_insights": "Business Intelligence",
     "total_cessions": "Total Cessions",
@@ -222,7 +230,8 @@
       "active": "Active",
       "total": "Total",
       "total_profit": "Total Profit",
-      "total_expenses": "Total Expenses"
+      "total_expenses": "Total Expenses",
+      "monthly_revenue": "Monthly Revenue"
     },
     "actions": {
       "new_client": "New Client",
@@ -904,15 +913,15 @@
     "analytics": {
       "total_sales": "Total Sales",
       "total_expenses": "Total Expenses",
+      "transactions": "Transactions",
       "net_profit": "Net Profit",
+      "this_month": "This Month",
       "profit_margin": "Profit Margin",
-      "vs_last_month": "vs last month",
-      "transactions": "transactions",
-      "this_month": "this month",
-      "efficiency": "efficiency",
+      "efficiency": "Efficiency",
       "top_categories": "Top Categories",
-      "category": "category",
-      "spent": "spent",
+      "category": "Category",
+      "spent": "Spent",
+      "vs_last_month": "vs last month",
       "no_data": "No data available"
     },
     "sales": {

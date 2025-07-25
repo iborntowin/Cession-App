@@ -188,6 +188,11 @@
   "dashboard": {
     "title": "Tableau de bord",
     "subtitle": "Aperçu de votre entreprise",
+    "greeting": {
+      "morning": "Bonjour",
+      "afternoon": "Bon après-midi",
+      "evening": "Bonsoir"
+    },
     "header": {
       "clients": "Clients",
       "active": "Actif"
@@ -197,7 +202,10 @@
       "portfolio": "Portefeuille"
     },
     "actions": {
-      "title": "Actions Rapides"
+      "title": "Actions Rapides",
+      "new_client": "Nouveau Client",
+      "new_cession": "Nouvelle Cession",
+      "manage_inventory": "Gérer l'Inventaire"
     },
     "smart_insights": "Intelligence d'Affaires",
     "total_cessions": "Total Cessions",
@@ -235,7 +243,8 @@
       "finished_products": "Produits Terminés",
       "finished_sales": "Ventes Terminées",
       "finished_expenses": "Dépenses Terminées",
-      "total_expenses": "Total Dépenses"
+      "total_expenses": "Total Dépenses",
+      "monthly_revenue": "Revenus Mensuels"
     },
     "actions": {
       "workplaces": "Lieux de travail",
@@ -872,17 +881,17 @@
       "generate_report": "Générer Rapport"
     },
     "analytics": {
-      "total_sales": "Total des Ventes",
-      "total_expenses": "Total des Dépenses",
-      "net_profit": "Bénéfice Net",
-      "profit_margin": "Marge Bénéficiaire",
-      "vs_last_month": "vs mois dernier",
-      "transactions": "transactions",
-      "this_month": "ce mois",
-      "efficiency": "efficacité",
-      "top_categories": "Top Catégories",
-      "category": "catégorie",
-      "spent": "dépensé",
+      "total_sales": "Ventes totales",
+      "total_expenses": "Dépenses totales",
+      "transactions": "Transactions",
+      "net_profit": "Bénéfice net",
+      "this_month": "Ce mois",
+      "profit_margin": "Marge bénéficiaire",
+      "efficiency": "Efficacité",
+      "top_categories": "Catégories principales",
+      "category": "Catégorie",
+      "spent": "Dépensé",
+      "vs_last_month": "par rapport au mois dernier",
       "no_data": "Aucune donnée disponible"
     },
     "error": {
