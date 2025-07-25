@@ -930,6 +930,20 @@
       "download_data": "تحميل البيانات المالية",
       "generate_report": "إنشاء التقرير"
     },
+    "analytics": {
+      "total_sales": "إجمالي المبيعات",
+      "total_expenses": "إجمالي المصروفات",
+      "net_profit": "صافي الربح",
+      "profit_margin": "هامش الربح",
+      "vs_last_month": "مقارنة بالشهر الماضي",
+      "transactions": "معاملات",
+      "this_month": "هذا الشهر",
+      "efficiency": "كفاءة",
+      "top_categories": "أهم الفئات",
+      "category": "فئة",
+      "spent": "مُنفق",
+      "no_data": "لا توجد بيانات متاحة"
+    },
     "error": {
       "title": "خطأ",
       "load_data": "فشل في تحميل البيانات المالية",
@@ -974,6 +988,23 @@
     "buttons": {
       "add_expense": "إضافة مصروف",
       "export_data": "تصدير البيانات"
+    },
+    "expenses": {
+      "title": "المصروفات",
+      "add": "إضافة مصروف"
+    },
+    "categories": {
+      "water": "المياه",
+      "electricity": "الكهرباء",
+      "transport": "النقل",
+      "rent": "الإيجار",
+      "supplies": "المستلزمات",
+      "maintenance": "الصيانة",
+      "salaries": "الرواتب",
+      "insurance": "التأمين",
+      "taxes": "الضرائب",
+      "marketing": "التسويق",
+      "other": "أخرى"
     },
     "title": "التتبع المالي",
     "subtitle": "مراقبة نفقاتك ومبيعاتك",

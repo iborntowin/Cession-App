@@ -116,14 +116,14 @@
     paymentSuccessRate: 0
   };
 
-  // Last backup/sync status
-  let lastBackupStatus = {
+  // Last backup/sync status - using the same logic as ExportStatusCard component
+  let lastSyncStatus = {
     timestamp: null,
     status: 'unknown'
   };
 
-  // Fetch backup status similar to export status
-  async function fetchBackupStatus() {
+  // Fetch sync status using the same logic as ExportStatusCard
+  async function fetchSyncStatus() {
     try {
       const headers = { 'Content-Type': 'application/json' };
       const response = await fetch(`${config.backendUrl}/api/v1/export/status`, {
@@ -131,79 +131,80 @@
         headers: headers,
         credentials: 'include'
       });
-
       if (response.ok && response.status !== 204) {
         const exportStatus = await response.json();
-        lastBackupStatus = {
+        lastSyncStatus = {
           timestamp: exportStatus.exportTimestamp ? new Date(exportStatus.exportTimestamp) : null,
           status: exportStatus.status || 'unknown'
         };
       } else {
-        lastBackupStatus = {
+        lastSyncStatus = {
           timestamp: null,
           status: 'never'
         };
       }
     } catch (error) {
-      console.error('Failed to fetch backup status:', error);
-      lastBackupStatus = {
+      console.error('Failed to fetch sync status:', error);
+      lastSyncStatus = {
         timestamp: null,
         status: 'error'
       };
     }
   }
 
-  function getLastBackupText(timestamp) {
-    if (!timestamp) return 'Never';
-    
+  function getLastSyncText(timestamp) {
+    if (!timestamp) return 'Never synced';
+
     const now = new Date();
     const diffMs = now - timestamp;
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} minutes ago`;
     if (diffHours < 24) return `${diffHours} hours ago`;
     if (diffDays < 7) return `${diffDays} days ago`;
-    
+
     return timestamp.toLocaleDateString();
   }
 
   // Generate realistic daily goals based on actual data
   function generateDailyGoals() {
-    const today = new Date();
-    const todayStart = startOfDay(today);
-    const todayEnd = endOfDay(today);
+    // Goal 1: Process new payments (based on daily average)
+    const dailyPaymentTarget = Math.ceil(payments.length / 30) || 1; // Monthly average
+    const todayPayments = payments.filter(p => {
+      const paymentDate = new Date(p.createdAt || p.paymentDate);
+      const today = new Date();
+      return paymentDate.toDateString() === today.toDateString();
+    }).length;
 
-    // Goal 1: Process new cessions (based on weekly average)
-    const weeklyAvg = Math.ceil(quickStats.weeklyTarget / 7) || 1;
-    const todayProcessed = quickStats.todayProcessed;
-    const processGoal = {
+    const processPaymentsGoal = {
       id: 1,
-      text: `Process ${weeklyAvg} new cessions`,
-      completed: todayProcessed >= weeklyAvg,
-      progress: Math.min(100, weeklyAvg > 0 ? (todayProcessed / weeklyAvg) * 100 : 0)
+      text: `Process ${dailyPaymentTarget} payments today`,
+      completed: todayPayments >= dailyPaymentTarget,
+      progress: Math.min(100, dailyPaymentTarget > 0 ? (todayPayments / dailyPaymentTarget) * 100 : 0)
     };
+    // Goal 2: Follow up with overdue clients
+    const overdueClients = recentCessions.filter(c => {
+      if (c.status !== 'ACTIVE' || !c.startDate || !c.paymentCount) return false;
+      const endDate = addMonths(new Date(c.startDate), c.paymentCount);
+      return endDate < new Date();
+    });
 
-    // Goal 2: Follow up with clients (based on cessions ending soon)
-    const followUpTarget = Math.min(3, cessionsEndingSoon.length);
     const followUpGoal = {
       id: 2,
-      text: `Follow up with ${followUpTarget} clients`,
-      completed: followUpTarget === 0,
-      progress: followUpTarget === 0 ? 100 : 0 // This would need tracking in real app
+      text: `Follow up with ${overdueClients.length} overdue clients`,
+      completed: overdueClients.length === 0,
+      progress: overdueClients.length === 0 ? 100 : 0
     };
-
-    // Goal 3: Review inventory alerts
-    const inventoryGoal = {
+    // Goal 3: Review low stock products
+    const reviewInventoryGoal = {
       id: 3,
-      text: `Review ${lowStockProducts.length} inventory alerts`,
+      text: `Review ${lowStockProducts.length} low stock items`,
       completed: lowStockProducts.length === 0,
       progress: lowStockProducts.length === 0 ? 100 : 0
     };
-
-    dailyGoals = [processGoal, followUpGoal, inventoryGoal];
+    dailyGoals = [processPaymentsGoal, followUpGoal, reviewInventoryGoal];
   }
 
   onMount(async () => {
@@ -253,7 +254,6 @@
         return 0;
       };
       quickStats.monthlyRevenue = payments.reduce((s, p) => s + safeAmount(p.amount), 0);
-
       // Load other data in background (not blocking UI)
       loadClients();
       loadCessionsData();
@@ -261,8 +261,7 @@
       loadSalesData();
       loadAdvancedAnalytics();
       loadSystemHealth();
-      fetchBackupStatus();
-
+      fetchSyncStatus(); // Use the new sync status function
       // Generate daily goals and motivational quote after all data is loaded
       generateDailyGoals();
       generateMotivationalQuote();
@@ -292,43 +291,35 @@
           count: monthCessions.length
         });
       }
-
       // Calculate real completion rate
       const completedCessions = recentCessions.filter(c => c.status === 'FINISHED').length;
       analytics.completionRate = recentCessions.length > 0 ? (completedCessions / recentCessions.length) * 100 : 0;
-
       // Calculate real monthly growth based on payment revenue
       const currentMonthStart = startOfMonth(now);
       const currentMonthEnd = endOfMonth(now);
       const previousMonthStart = startOfMonth(subMonths(now, 1));
       const previousMonthEnd = endOfMonth(subMonths(now, 1));
-
       const currentMonthRevenue = payments.filter(p => {
         const paymentDate = new Date(p.createdAt || p.paymentDate);
-        return paymentDate >= currentMonthStart && paymentDate <= currentMonthEnd && p.status === 'COMPLETED';
+        return paymentDate >= currentMonthStart && paymentDate <= currentMonthEnd && (p.status === 'COMPLETED' || p.status === 'PAID');
       }).reduce((sum, p) => sum + (p.amount || 0), 0);
-
       const previousMonthRevenue = payments.filter(p => {
         const paymentDate = new Date(p.createdAt || p.paymentDate);
-        return paymentDate >= previousMonthStart && paymentDate <= previousMonthEnd && p.status === 'COMPLETED';
+        return paymentDate >= previousMonthStart && paymentDate <= previousMonthEnd && (p.status === 'COMPLETED' || p.status === 'PAID');
       }).reduce((sum, p) => sum + (p.amount || 0), 0);
-
       if (previousMonthRevenue > 0) {
         analytics.monthlyGrowth = ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100;
       } else {
         analytics.monthlyGrowth = currentMonthRevenue > 0 ? 100 : 0;
       }
-
       // Calculate real profit margin from sales data
       const totalSalesRevenue = sales.reduce((sum, sale) => sum + (sale.sellingPriceAtSale * sale.quantity), 0);
       const totalSalesCost = sales.reduce((sum, sale) => sum + (sale.purchasePrice * sale.quantity), 0);
       analytics.profitMargin = totalSalesRevenue > 0 ? ((totalSalesRevenue - totalSalesCost) / totalSalesRevenue) * 100 : 0;
-
       // Calculate real client satisfaction based on completion rate and payment history
-      const onTimePayments = payments.filter(p => p.status === 'COMPLETED').length;
+      const onTimePayments = payments.filter(p => p.status === 'COMPLETED' || p.status === 'PAID').length;
       const totalPayments = payments.length;
       analytics.clientSatisfaction = totalPayments > 0 ? (onTimePayments / totalPayments) * 100 : 95;
-
       // Calculate real processing time from cession creation to first payment
       const processedCessions = recentCessions.filter(c => c.status !== 'PENDING');
       if (processedCessions.length > 0) {
@@ -341,7 +332,6 @@
       } else {
         analytics.processingTime = 1;
       }
-
       // Calculate real risk score based on overdue cessions and completion rates
       const overdueCessions = recentCessions.filter(c => {
         if (c.status !== 'ACTIVE' || !c.startDate || !c.paymentCount) return false;
@@ -350,15 +340,12 @@
       }).length;
       const riskFactor = recentCessions.length > 0 ? (overdueCessions / recentCessions.length) * 100 : 0;
       analytics.riskScore = Math.max(0, 100 - riskFactor);
-
       // Calculate real quick stats based on salary cessions and payments
       const today = startOfDay(now);
       const monthStart = startOfMonth(now);
       const monthEnd = endOfMonth(now);
-
       // 1. Active Salary Cessions (cessions that are currently active)
       quickStats.salaryCessionsActive = recentCessions.filter(c => c.status === 'ACTIVE').length;
-
       // 2. Monthly Payments Total (sum of all payments this month)
       const safeAmount = (amount) => {
         if (typeof amount === 'number') return amount;
@@ -366,28 +353,26 @@
         if (typeof amount === 'object' && amount !== null) return parseFloat(amount.toString()) || 0;
         return 0;
       };
-
       const monthlyPayments = payments.filter(p => {
         const paymentDate = new Date(p.createdAt || p.paymentDate);
         return paymentDate >= monthStart && paymentDate <= monthEnd;
       });
-
       quickStats.monthlyPaymentsTotal = monthlyPayments.reduce((sum, p) => sum + safeAmount(p.amount), 0);
-
       // 3. Average Payment Amount (average of all payments)
-      quickStats.averagePaymentAmount = payments.length > 0 
-        ? payments.reduce((sum, p) => sum + safeAmount(p.amount), 0) / payments.length 
+      quickStats.averagePaymentAmount = payments.length > 0
+        ? payments.reduce((sum, p) => sum + safeAmount(p.amount), 0) / payments.length
         : 0;
-
       // 4. Payment Success Rate (percentage of completed payments)
       const completedPayments = payments.filter(p => p.status === 'COMPLETED' || p.status === 'PAID').length;
-      quickStats.paymentSuccessRate = payments.length > 0 
-        ? (completedPayments / payments.length) * 100 
+      quickStats.paymentSuccessRate = payments.length > 0
+        ? (completedPayments / payments.length) * 100
         : 0;
-
       // Real client retention based on repeat clients
       const clientsWithMultipleCessions = topPerformingClients.filter(c => c.cessionsCount > 1).length;
       quickStats.clientRetention = totalClients > 0 ? (clientsWithMultipleCessions / totalClients) * 100 : 0;
+
+      // Calculate monthly revenue for display
+      quickStats.monthlyRevenue = payments.reduce((s, p) => s + safeAmount(p.amount), 0);
     } catch (error) {
       console.error('Failed to load advanced analytics:', error);
     }
@@ -429,35 +414,35 @@
       const paymentsResponse = await paymentsApi.getAllPayments();
       if (paymentsResponse.success) {
         payments = paymentsResponse.data;
-        
+
         // Generate payment insights
         const now = new Date();
         const thisMonth = now.getMonth();
         const thisYear = now.getFullYear();
-        
+
         // Recent high-value payments
         const highValuePayments = payments
           .filter(p => p.amount > 100000) // Payments over 100,000 DT
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 5);
-        
+
         // Overdue payments (assuming payments have a dueDate)
         const overduePayments = payments
           .filter(p => p.status === 'PENDING' && p.dueDate && new Date(p.dueDate) < now)
           .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
           .slice(0, 5);
-        
+
         // Recent successful payments this month
         const thisMonthPayments = payments
           .filter(p => {
             const paymentDate = new Date(p.createdAt);
-            return paymentDate.getMonth() === thisMonth && 
+            return paymentDate.getMonth() === thisMonth &&
                    paymentDate.getFullYear() === thisYear &&
                    (p.status === 'COMPLETED' || p.status === 'PAID');
           })
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 5);
-        
+
         // Combine insights with priority
         paymentInsights = [
           ...overduePayments.map(p => ({ ...p, type: 'overdue', priority: 'high' })),
@@ -504,15 +489,11 @@
       } else if (hasWarnings) {
         uptimePercentage = Math.max(98, 100 - (totalIssues * 0.5));
       }
-      // Calculate last backup based on data freshness
-      const dataAge = Math.min(
-        Date.now() - Math.max(...recentCessions.map(c => new Date(c.createdAt).getTime())),
-        Date.now() - Math.max(...payments.map(p => new Date(p.createdAt || p.paymentDate).getTime()))
-      );
+      // Use the last sync timestamp from our new fetchSyncStatus function
       systemHealth = {
         status: hasErrors ? 'error' : hasWarnings ? 'warning' : 'healthy',
         uptime: `${uptimePercentage.toFixed(1)}%`,
-        lastBackup: new Date(Date.now() - Math.max(3600000, dataAge)), // At least 1 hour ago, or based on data age
+        lastSync: lastSyncStatus.timestamp || new Date(), // Use actual sync timestamp
         activeUsers: 1 // Current user (this is accurate for single-user system)
       };
     } catch (error) {
@@ -521,7 +502,7 @@
       systemHealth = {
         status: 'healthy',
         uptime: '99.0%',
-        lastBackup: new Date(Date.now() - 3600000),
+        lastSync: new Date(),
         activeUsers: 1
       };
     }
@@ -748,7 +729,7 @@
                     <div class="flex items-start space-x-3" class:space-x-reverse={isRTL}>
                       <div class="w-8 h-8 rounded-full flex items-center justify-center {notification.type === 'error' ? 'bg-red-100 text-red-600' : notification.type === 'warning' ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-100 text-blue-600'}">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                         </svg>
                       </div>
                       <div class="flex-1">
@@ -889,23 +870,25 @@
           <div class="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
         </div>
       </div>
+
       <!-- 📊 Enhanced Analytics Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Average Loan Amount -->
+        <!-- Total Clients -->
         <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 group" transition:scale={{ delay: 100 }}>
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-600 mb-1">Average Loan Amount</p>
-              <p class="text-3xl font-bold text-gray-900">{formatCurrency(analytics.avgLoanAmount)}</p>
-              <p class="text-sm text-purple-600 mt-1">{totalClients} total clients</p>
+              <p class="text-sm font-medium text-gray-600 mb-1">Total Clients</p>
+              <p class="text-3xl font-bold text-gray-900">{totalClients}</p>
+              <p class="text-sm text-purple-600 mt-1">1,945,371 DT total value</p>
             </div>
             <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
               <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
               </svg>
             </div>
           </div>
         </div>
+
         <!-- Active Cessions -->
         <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 group" transition:scale={{ delay: 200 }}>
           <div class="flex items-center justify-between">
@@ -921,6 +904,7 @@
             </div>
           </div>
         </div>
+
         <!-- Total Value -->
         <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 group" transition:scale={{ delay: 300 }}>
           <div class="flex items-center justify-between">
@@ -938,6 +922,7 @@
             </div>
           </div>
         </div>
+
         <!-- Monthly Revenue -->
         <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20 hover:shadow-xl transition-all duration-300 group" transition:scale={{ delay: 400 }}>
           <div class="flex items-center justify-between">
@@ -953,315 +938,110 @@
           </div>
         </div>
       </div>
-      <!-- 🎯 Daily Goals & Progress -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <!-- Daily Goals -->
-        <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ x: -20, duration: 500, delay: 500 }}>
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900">Today's Goals</h3>
-            <div class="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center">
+
+      <!-- Performance Metrics -->
+      <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ y: 20, duration: 500, delay: 600 }}>
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Performance Metrics</h3>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+            <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </div>
+              <span class="text-sm font-medium text-gray-700">Active Salary Cessions</span>
+            </div>
+            <span class="text-lg font-bold text-blue-600">{quickStats.salaryCessionsActive}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+            <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <span class="text-sm font-medium text-gray-700">Monthly Payments</span>
+            </div>
+            <span class="text-lg font-bold text-green-600">{formatCurrency(quickStats.monthlyPaymentsTotal)}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+            <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+              <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+              </div>
+              <span class="text-sm font-medium text-gray-700">Avg Payment Amount</span>
+            </div>
+            <span class="text-lg font-bold text-purple-600">{formatCurrency(quickStats.averagePaymentAmount)}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl">
+            <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+              <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <span class="text-sm font-medium text-gray-700">Payment Success Rate</span>
+            </div>
+            <span class="text-lg font-bold text-orange-600">{quickStats.paymentSuccessRate.toFixed(1)}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Feed -->
+      <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ y: 20, duration: 500, delay: 1100 }}>
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+            <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center {isRTL ? 'ml-3' : 'mr-3'}">
               <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
               </svg>
             </div>
-          </div>
-          <div class="space-y-4">
-            {#each dailyGoals as goal}
-              <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-                <div class="w-6 h-6 rounded-full border-2 {goal.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'} flex items-center justify-center">
-                  {#if goal.completed}
-                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                  {/if}
-                </div>
-                <div class="flex-1">
-                  <p class="text-sm font-medium text-gray-900 {goal.completed ? 'line-through' : ''}">{goal.text}</p>
-                  <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-                    <div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-2 rounded-full transition-all duration-500" style="width: {goal.progress}%"></div>
-                  </div>
-                </div>
-              </div>
-            {/each}
+            Recent Activity
+          </h3>
+          <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span class="text-xs text-gray-500">Live</span>
           </div>
         </div>
-        <!-- Performance Metrics -->
-        <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ y: 20, duration: 500, delay: 600 }}>
-          <h3 class="text-lg font-semibold text-gray-900 mb-6">Performance Metrics</h3>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-              <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                  </svg>
-                </div>
-                <span class="text-sm font-medium text-gray-700">Active Salary Cessions</span>
-              </div>
-              <span class="text-lg font-bold text-blue-600">{quickStats.salaryCessionsActive}</span>
-            </div>
-            <div class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-              <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-                <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                <span class="text-sm font-medium text-gray-700">Monthly Payments</span>
-              </div>
-              <span class="text-lg font-bold text-green-600">{formatCurrency(quickStats.monthlyPaymentsTotal)}</span>
-            </div>
-            <div class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-              <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                  </svg>
-                </div>
-                <span class="text-sm font-medium text-gray-700">Avg Payment Amount</span>
-              </div>
-              <span class="text-lg font-bold text-purple-600">{formatCurrency(quickStats.averagePaymentAmount)}</span>
-            </div>
-            <div class="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl">
-              <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-                <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                <span class="text-sm font-medium text-gray-700">Payment Success Rate</span>
-              </div>
-              <span class="text-lg font-bold text-orange-600">{quickStats.paymentSuccessRate.toFixed(1)}%</span>
+        <div class="space-y-4">
+          <!-- Recent Clients -->
+          <div>
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="font-semibold text-gray-700 text-sm">New Clients</h4>
+              <a href="/clients" class="text-xs font-medium text-purple-600 hover:text-purple-700">View All</a>
             </div>
           </div>
-        </div>
-        <!-- System Health -->
-        <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ x: 20, duration: 500, delay: 700 }}>
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900">System Health</h3>
-            <div class="w-3 h-3 {systemHealth.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'} rounded-full animate-pulse"></div>
-          </div>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">Status</span>
-              <span class="text-sm font-medium {systemHealth.status === 'healthy' ? 'text-green-600' : 'text-yellow-600'} capitalize">
-                {systemHealth.status}
-              </span>
+          <!-- Recent Cessions -->
+          <div class="border-t border-gray-100 pt-4">
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="font-semibold text-gray-700 text-sm">Recent Cessions</h4>
+              <a href="/cessions" class="text-xs font-medium text-green-600 hover:text-green-700">View All</a>
             </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">Uptime</span>
-              <span class="text-sm font-medium text-gray-900">{systemHealth.uptime}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">Last Backup</span>
-              <span class="text-sm font-medium text-gray-900">{getLastBackupText(lastBackupStatus.timestamp)}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">Active Users</span>
-              <span class="text-sm font-medium text-gray-900">{systemHealth.activeUsers}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- 🚨 Urgent Actions & Attention Items -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <!-- Urgent Actions -->
-        <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ x: -20, duration: 500, delay: 800 }}>
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-              <div class="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center {isRTL ? 'ml-3' : 'mr-3'}">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                </svg>
-              </div>
-              Urgent Actions
-            </h3>
-            <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">
-              {urgentActions.length}
-            </span>
-          </div>
-          {#if urgentActions.length === 0}
-            <div class="text-center py-8">
-              <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <p class="text-gray-500 font-medium">All caught up!</p>
-              <p class="text-sm text-gray-400 mt-1">No urgent actions required at the moment.</p>
-            </div>
-          {:else}
-            <div class="space-y-4">
-              {#each urgentActions as action}
-                <div class="p-4 rounded-xl border-l-4 {action.priority === 'critical' ? 'border-red-500 bg-red-50' : action.priority === 'high' ? 'border-yellow-500 bg-yellow-50' : 'border-blue-500 bg-blue-50'} hover:shadow-md transition-all duration-200">
-                  <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                      <h4 class="font-semibold text-gray-900 mb-1">{action.title}</h4>
-                      <p class="text-sm text-gray-600 mb-2">{action.description}</p>
-                      <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
-                        <span class="px-2 py-1 text-xs font-medium rounded-full {action.priority === 'critical' ? 'bg-red-100 text-red-800' : action.priority === 'high' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
-                          {action.priority}
-                        </span>
-                        <a href={action.link} class="text-sm font-medium text-purple-600 hover:text-purple-700">
-                          {action.action} →
-                        </a>
+            {#if recentCessions.length === 0}
+              <p class="text-center py-4 text-gray-500 text-sm">No recent cessions.</p>
+            {:else}
+              <div class="space-y-2">
+                {#each recentCessions.slice(0, 3) as cession}
+                  <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                      <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-semibold text-sm">
+                        {cession.clientName?.charAt(0) || 'C'}
+                      </div>
+                      <div>
+                        <p class="font-medium text-gray-900 text-sm">{cession.clientName}</p>
+                        <p class="text-xs text-gray-500">{formatCurrency(cession.totalLoanAmount)}</p>
                       </div>
                     </div>
+                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getStatusClass(cession.status)}">
+                      {cession.status}
+                    </span>
                   </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-        <!-- Cessions Ending Soon -->
-        <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ x: 20, duration: 500, delay: 900 }}>
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-              <div class="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center {isRTL ? 'ml-3' : 'mr-3'}">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+                {/each}
               </div>
-              Payment Insights
-            </h3>
-            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">
-              {paymentInsights.length}
-            </span>
-          </div>
-          {#if paymentInsights.length === 0}
-            <div class="text-center py-8">
-              <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <p class="text-gray-500 font-medium">All payments on track</p>
-              <p class="text-sm text-gray-400 mt-1">No payment insights to display.</p>
-            </div>
-          {:else}
-            <div class="space-y-3">
-              {#each paymentInsights as insight}
-                <div class="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100">
-                  <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm {insight.type === 'overdue' ? 'bg-gradient-to-r from-red-400 to-red-500' : insight.type === 'high-value' ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-blue-400 to-blue-500'}">
-                      {insight.type === 'overdue' ? '⚠️' : insight.type === 'high-value' ? '💰' : '✅'}
-                    </div>
-                    <div>
-                      <p class="font-medium text-gray-900">
-                        {insight.type === 'overdue' ? 'Overdue Payment' : insight.type === 'high-value' ? 'High Value Payment' : 'Recent Success'}
-                      </p>
-                      <p class="text-sm text-gray-500">
-                        {formatCurrency(insight.amount)} • {format(new Date(insight.createdAt), 'MMM dd')}
-                      </p>
-                    </div>
-                  </div>
-                  <a href="/payments" class="px-3 py-1.5 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors">
-                    View
-                  </a>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-      </div>
-      <!-- 🏆 Top Performers & Recent Activity -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <!-- Top Performing Clients -->
-        <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ y: 20, duration: 500, delay: 1000 }}>
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-              <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center {isRTL ? 'ml-3' : 'mr-3'}">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z"/>
-                </svg>
-              </div>
-              Top Performers
-            </h3>
-            <a href="/clients" class="text-sm font-medium text-purple-600 hover:text-purple-700">View All</a>
-          </div>
-          {#if topPerformingClients.length === 0}
-            <div class="text-center py-8">
-              <div class="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-              </div>
-              <p class="text-gray-500 font-medium">No client data yet</p>
-              <p class="text-sm text-gray-400 mt-1">Start adding clients to see top performers.</p>
-            </div>
-          {:else}
-            <div class="space-y-4">
-              {#each topPerformingClients as client, i}
-                <div class="flex items-center space-x-4 p-3 rounded-xl hover:bg-gray-50 transition-colors" class:space-x-reverse={isRTL} transition:fly={{ x: isRTL ? -20 : 20, delay: i * 100 }}>
-                  <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    {i + 1}
-                  </div>
-                  <div class="flex-1">
-                    <p class="font-medium text-gray-900">{client.clientName}</p>
-                    <p class="text-sm text-gray-500">{client.cessionsCount} cessions • {client.completedCount} completed</p>
-                  </div>
-                  <div class="text-{textAlign}">
-                    <p class="font-semibold text-gray-900">{formatCurrency(client.totalValue)}</p>
-                    <p class="text-sm text-green-600">Total Value</p>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-        <!-- Recent Activity Feed -->
-        <div class="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/20" transition:fly={{ y: 20, duration: 500, delay: 1100 }}>
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-              <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center {isRTL ? 'ml-3' : 'mr-3'}">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-              </div>
-              Recent Activity
-            </h3>
-            <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
-              <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span class="text-xs text-gray-500">Live</span>
-            </div>
-          </div>
-          <div class="space-y-4">
-            <!-- Recent Clients -->
-            <div>
-              <div class="flex justify-between items-center mb-3">
-                <h4 class="font-semibold text-gray-700 text-sm">New Clients</h4>
-                <a href="/clients" class="text-xs font-medium text-purple-600 hover:text-purple-700">View All</a>
-              </div>
-            </div>
-            <!-- Recent Cessions -->
-            <div class="border-t border-gray-100 pt-4">
-              <div class="flex justify-between items-center mb-3">
-                <h4 class="font-semibold text-gray-700 text-sm">Recent Cessions</h4>
-                <a href="/cessions" class="text-xs font-medium text-green-600 hover:text-green-700">View All</a>
-              </div>
-              {#if recentCessions.length === 0}
-                <p class="text-center py-4 text-gray-500 text-sm">No recent cessions.</p>
-              {:else}
-                <div class="space-y-2">
-                  {#each recentCessions.slice(0, 3) as cession}
-                    <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                      <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-semibold text-sm">
-                          {cession.clientName?.charAt(0) || 'C'}
-                        </div>
-                        <div>
-                          <p class="font-medium text-gray-900 text-sm">{cession.clientName}</p>
-                          <p class="text-xs text-gray-500">{formatCurrency(cession.totalLoanAmount)}</p>
-                        </div>
-                      </div>
-                      <span class="px-2 py-0.5 text-xs font-semibold rounded-full {getStatusClass(cession.status)}">
-                        {cession.status}
-                      </span>
-                    </div>
-                  {/each}
-                </div>
-              {/if}
-            </div>
+            {/if}
           </div>
         </div>
       </div>

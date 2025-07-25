@@ -901,6 +901,20 @@
       "download": "Download Report",
       "print": "Print Report"
     },
+    "analytics": {
+      "total_sales": "Total Sales",
+      "total_expenses": "Total Expenses",
+      "net_profit": "Net Profit",
+      "profit_margin": "Profit Margin",
+      "vs_last_month": "vs last month",
+      "transactions": "transactions",
+      "this_month": "this month",
+      "efficiency": "efficiency",
+      "top_categories": "Top Categories",
+      "category": "category",
+      "spent": "spent",
+      "no_data": "No data available"
+    },
     "sales": {
       "title": "Sales",
       "total": "sales",
@@ -932,6 +946,23 @@
     "buttons": {
       "add_expense": "Add Expense",
       "export_data": "Export Data"
+    },
+    "expenses": {
+      "title": "Expenses",
+      "add": "Add Expense"
+    },
+    "categories": {
+      "water": "Water",
+      "electricity": "Electricity",
+      "transport": "Transport",
+      "rent": "Rent",
+      "supplies": "Supplies",
+      "maintenance": "Maintenance",
+      "salaries": "Salaries",
+      "insurance": "Insurance",
+      "taxes": "Taxes",
+      "marketing": "Marketing",
+      "other": "Other"
     },
     "month_selector": "Select Month",
     "recent_sales": "Recent Sales",

@@ -871,6 +871,20 @@
       "download_data": "Télécharger données financières",
       "generate_report": "Générer Rapport"
     },
+    "analytics": {
+      "total_sales": "Total des Ventes",
+      "total_expenses": "Total des Dépenses",
+      "net_profit": "Bénéfice Net",
+      "profit_margin": "Marge Bénéficiaire",
+      "vs_last_month": "vs mois dernier",
+      "transactions": "transactions",
+      "this_month": "ce mois",
+      "efficiency": "efficacité",
+      "top_categories": "Top Catégories",
+      "category": "catégorie",
+      "spent": "dépensé",
+      "no_data": "Aucune donnée disponible"
+    },
     "error": {
       "title": "Erreur",
       "load_data": "Échec du chargement des données financières",
@@ -915,6 +929,23 @@
     "buttons": {
       "add_expense": "Ajouter Dépense",
       "export_data": "Exporter Données"
+    },
+    "expenses": {
+      "title": "Dépenses",
+      "add": "Ajouter Dépense"
+    },
+    "categories": {
+      "water": "Eau",
+      "electricity": "Électricité",
+      "transport": "Transport",
+      "rent": "Loyer",
+      "supplies": "Fournitures",
+      "maintenance": "Maintenance",
+      "salaries": "Salaires",
+      "insurance": "Assurance",
+      "taxes": "Taxes",
+      "marketing": "Marketing",
+      "other": "Autre"
     },
     "month_selector": "Sélectionner un mois",
     "recent_sales": "Ventes récentes",
