@@ -11,9 +11,14 @@
   import { format, addMonths } from 'date-fns';
   import { ar } from 'date-fns/locale';
   import { t } from '$lib/i18n';
-  import { fade, fly } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
+  import { fade, fly, scale, slide } from 'svelte/transition';
+  import { cubicOut, elasticOut } from 'svelte/easing';
   import { browser } from '$app/environment';
+
+  // Inline editing state
+  let isEditingStartDate = false;
+  let editStartDate = '';
+  let isSaving = false;
 
   // Check if we came from salary cessions page
   $: fromSalaryCessions = $page.url.searchParams.get('from') === 'salary-cessions';
@@ -204,36 +209,51 @@
     }
   }
   
-  async function downloadDocument() {
-    if (!cession) return;
-    
-    const pdfData = {
-      workerNumber: cession.clientNumber,
-      fullName: cession.clientName,
-      cin: cession.clientCin,
-      address: cession.clientAddress,
-      workplace: cession.clientWorkplace,
-      jobTitle: cession.clientJob,
-      bankAccountNumber: cession.bankOrAgency,
-      itemDescription: cession.itemDescription,
-      amountInWords: numberToArabicWords(cession.totalLoanAmount),
-      totalAmountNumeric: formatCurrency(cession.totalLoanAmount),
-      monthlyPayment: formatCurrency(cession.monthlyPayment),
-      firstDeductionMonthArabic: format(parseDate(cession.startDate), 'MMMM yyyy', { locale: ar }),
-      supplierName: cession.supplierName,
-      supplierTaxId: cession.supplierTaxId,
-      supplierAddress: cession.supplierAddress,
-      supplierBankAccount: cession.supplierBankAccount,
-      courtName: cession.courtName,
-      bookNumber: cession.bookNumber,
-      pageNumber: cession.pageNumber,
-      date: format(parseDate(cession.createdAt), 'dd/MM/yyyy')
-    };
-    
+
+
+  // Inline editing functions
+  function startEditingStartDate() {
+    isEditingStartDate = true;
+    editStartDate = cession.startDate ? format(new Date(cession.startDate), 'yyyy-MM-dd') : '';
+  }
+
+  function cancelEditStartDate() {
+    isEditingStartDate = false;
+    editStartDate = '';
+  }
+
+  async function saveStartDate() {
+    if (!editStartDate.trim()) {
+      showAlert('Date de début est requise', 'error');
+      return;
+    }
+
+    isSaving = true;
     try {
-      await downloadPDF(pdfData);
+      const updatedCession = await cessionsApi.update(cession.id, {
+        ...cession,
+        startDate: editStartDate
+      });
+      
+      cession = updatedCession;
+      isEditingStartDate = false;
+      editStartDate = '';
+      showAlert('Date de début mise à jour avec succès', 'success');
     } catch (error) {
-      showAlert($t('cessions.errors.download_failed'), 'error');
+      showAlert(error.message || 'Erreur lors de la mise à jour', 'error');
+    } finally {
+      isSaving = false;
+    }
+  }
+
+  // Handle keyboard shortcuts
+  function handleKeydown(event, action) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      action();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      if (action === saveStartDate) cancelEditStartDate();
     }
   }
 </script>
@@ -287,12 +307,13 @@
             </button>
           {/if}
           
-          <a href={`/cessions/${data.id}/edit`} class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md">
+          <!-- Quick Edit Info Badge -->
+          <div class="flex items-center px-3 py-2 bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 rounded-xl text-sm font-medium">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"/>
             </svg>
-            {$t('common.actions.edit')}
-          </a>
+            Édition rapide activée
+          </div>
 
           <button
             on:click={previewDocument}
@@ -305,15 +326,7 @@
             {$t('cessions.details.actions.preview_document')}
           </button>
           
-          <button
-            on:click={downloadDocument}
-            class="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium text-sm"
-          >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-            </svg>
-            {$t('cessions.details.actions.download_document')}
-          </button>
+
         </div>
       </div>
     </div>
@@ -364,9 +377,76 @@
               <p class="font-medium text-gray-900 mt-1">{formatCurrency(cession.monthlyPayment)}</p>
             </div>
             
-            <div class="bg-white/60 p-4 rounded-xl shadow-sm">
-              <p class="text-sm font-medium text-purple-600">{$t('cessions.details.start_date')}</p>
-              <p class="font-medium text-gray-900 mt-1">{formatDate(cession.startDate)}</p>
+            <!-- Editable Start Date -->
+            <div class="bg-white/60 p-4 rounded-xl shadow-sm group hover:bg-white/80 transition-all duration-200">
+              <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-purple-600">{$t('cessions.details.start_date')}</p>
+                {#if !isEditingStartDate}
+                  <button
+                    on:click={startEditingStartDate}
+                    class="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-purple-100 text-purple-600 transition-all duration-200"
+                    title="Modifier la date de début"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"/>
+                    </svg>
+                  </button>
+                {/if}
+              </div>
+              
+              {#if isEditingStartDate}
+                <div class="mt-3" transition:slide={{ duration: 300, easing: cubicOut }}>
+                  <div class="flex items-center space-x-2">
+                    <input
+                      type="date"
+                      bind:value={editStartDate}
+                      on:keydown={(e) => handleKeydown(e, saveStartDate)}
+                      class="flex-1 px-3 py-2 bg-white/90 backdrop-blur-sm border-2 border-purple-200 rounded-lg focus:border-purple-500 focus:outline-none transition-all duration-200 text-gray-900 font-medium"
+                      autofocus
+                    />
+                    <div class="flex items-center space-x-1">
+                      <button
+                        on:click={saveStartDate}
+                        disabled={isSaving}
+                        class="p-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                        title="Confirmer"
+                      >
+                        {#if isSaving}
+                          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        {:else}
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                          </svg>
+                        {/if}
+                      </button>
+                      <button
+                        on:click={cancelEditStartDate}
+                        disabled={isSaving}
+                        class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                        title="Annuler"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-500 mt-2">Appuyez sur Entrée pour confirmer, Échap pour annuler</p>
+                </div>
+              {:else}
+                <div class="flex items-center justify-between mt-1">
+                  <p class="font-medium text-gray-900">{formatDate(cession.startDate)}</p>
+                  <div class="flex items-center space-x-1 text-xs text-gray-500">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"/>
+                    </svg>
+                    <span>Modifiable</span>
+                  </div>
+                </div>
+              {/if}
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">

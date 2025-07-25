@@ -183,6 +183,34 @@
   "dashboard": {
     "title": "لوحة التحكم",
     "subtitle": "نظرة عامة على عملك",
+    "header": {
+      "clients": "العملاء",
+      "active": "نشط"
+    },
+    "analytics": {
+      "total_value": "القيمة الإجمالية",
+      "portfolio": "المحفظة"
+    },
+    "actions": {
+      "title": "إجراءات سريعة"
+    },
+    "smart_insights": "ذكاء الأعمال",
+    "total_cessions": "إجمالي الإحالات",
+    "total_clients": "إجمالي العملاء",
+    "total_revenue": "إجمالي الإيرادات",
+    "pending_payments": "المدفوعات المعلقة",
+    "top_clients": "أفضل العملاء",
+    "recent_activity": "النشاط الأخير",
+    "payment_trends": "اتجاهات الدفع",
+    "quick_actions": "إجراءات سريعة",
+    "cessions": "إحالات",
+    "no_clients_data": "لا توجد بيانات عملاء متاحة",
+    "no_recent_activity": "لا يوجد نشاط حديث",
+    "no_trends_data": "لا توجد بيانات اتجاهات متاحة",
+    "new_cession": "إحالة جديدة",
+    "new_client": "عميل جديد",
+    "view_payments": "عرض المدفوعات",
+    "financial_overview": "نظرة عامة مالية",
     "stats": {
       "total_clients": "إجمالي العملاء",
       "total_cessions": "إجمالي الإحالات",
@@ -190,6 +218,9 @@
       "total_sales": "إجمالي المبيعات",
       "active_cessions": "الإحالات النشطة",
       "finished_cessions": "الإحالات المنتهية",
+      "completed": "مكتمل",
+      "active": "نشط",
+      "total": "المجموع",
       "total_profit": "إجمالي الربح",
       "total_expenses": "إجمالي المصروفات"
     },
@@ -868,6 +899,83 @@
   },
   "finance": {
     "title": "التتبع المالي",
+    "subtitle": "راقب مصروفاتك ومبيعاتك",
+    "dashboard": {
+      "title": "لوحة التحكم المالية",
+      "subtitle": "تتبع أداءك المالي"
+    },
+    "months": {
+      "january": "يناير",
+      "february": "فبراير", 
+      "march": "مارس",
+      "april": "أبريل",
+      "may": "مايو",
+      "june": "يونيو",
+      "july": "يوليو",
+      "august": "أغسطس",
+      "september": "سبتمبر",
+      "october": "أكتوبر",
+      "november": "نوفمبر",
+      "december": "ديسمبر"
+    },
+    "search": {
+      "placeholder": "البحث في المعاملات والفئات والمبالغ..."
+    },
+    "actions": {
+      "filters": "المرشحات",
+      "quick_actions": "إجراءات سريعة",
+      "track_expense": "تتبع مصروف جديد",
+      "record_income": "تسجيل دخل جديد",
+      "export_report": "تصدير التقرير",
+      "download_data": "تحميل البيانات المالية",
+      "generate_report": "إنشاء التقرير"
+    },
+    "error": {
+      "title": "خطأ",
+      "load_data": "فشل في تحميل البيانات المالية",
+      "load_summary": "فشل في تحميل الملخص الشهري"
+    },
+    "loading": {
+      "title": "تحميل البيانات المالية",
+      "description": "يرجى الانتظار بينما نجمع أحدث المعلومات"
+    },
+    "charts": {
+      "coming_soon": "قريباً",
+      "advanced_analytics": "التحليلات المتقدمة قريباً",
+      "add_expenses_first": "أضف بعض المصروفات لرؤية الرسم البياني",
+      "expense_distribution": "توزيع المصروفات",
+      "title": "المصروفات حسب الفئة",
+      "no_data": "لا توجد بيانات متاحة",
+      "expenses_by_category": "المصروفات حسب الفئة",
+      "sales_trend": "اتجاه المبيعات",
+      "income_by_category": "الدخل حسب الفئة",
+      "profit_trend": "اتجاه الربح",
+      "download": "تحميل التقرير",
+      "print": "طباعة التقرير"
+    },
+    "sales": {
+      "total": "مبيعات",
+      "no_data": "لا توجد بيانات مبيعات متاحة"
+    },
+    "export": {
+      "title": "تصدير البيانات",
+      "description": "اختر تنسيق التصدير المفضل لديك",
+      "options": {
+        "pdf": "تقرير PDF",
+        "excel": "جدول Excel", 
+        "csv": "ملف CSV"
+      },
+      "generate": "إنشاء التصدير"
+    },
+    "income": {
+      "add": "إضافة دخل",
+      "form_placeholder": "نموذج الدخل سيكون متاحاً قريباً"
+    },
+    "buttons": {
+      "add_expense": "إضافة مصروف",
+      "export_data": "تصدير البيانات"
+    },
+    "title": "التتبع المالي",
     "subtitle": "مراقبة نفقاتك ومبيعاتك",
     "month_selector": "اختر الشهر",
     "recent_sales": "المبيعات الأخيرة",
@@ -878,7 +986,8 @@
       "total_profit": "إجمالي الربح",
       "total_expenses": "إجمالي النفقات",
       "net_income": "صافي الدخل",
-      "net_profit": "صافي الربح"
+      "net_profit": "صافي الربح",
+      "net_worth": "صافي الثروة"
     },
     "expenses": {
       "title": "النفقات",
@@ -955,7 +1064,8 @@
     "views": {
       "dashboard": "لوحة التحكم",
       "analytics": "التحليلات",
-      "reports": "التقارير"
+      "reports": "التقارير",
+      "insights": "الرؤى"
     },
     "actions": {
       "quick_actions": "إجراءات سريعة",
@@ -970,6 +1080,20 @@
     },
     "analytics": {
       "vs_last_month": "مقارنة بالشهر الماضي",
+      "title": "التحليلات المالية",
+      "subtitle": "رؤى متقدمة ومقاييس الأداء",
+      "revenue_trends": "اتجاهات الإيرادات",
+      "expense_analysis": "تحليل المصروفات",
+      "profit_margins": "هوامش الربح",
+      "growth_metrics": "مقاييس النمو",
+      "performance_indicators": "مؤشرات الأداء الرئيسية",
+      "monthly_comparison": "المقارنة الشهرية",
+      "category_breakdown": "التوزيع حسب الفئة",
+      "trend_analysis": "تحليل الاتجاهات",
+      "forecasting": "توقع الإيرادات",
+      "efficiency_metrics": "مقاييس الكفاءة",
+      "cost_analysis": "تحليل التكاليف",
+      "roi_analysis": "تحليل العائد على الاستثمار",
       "coming_soon": "قريباً",
       "description": "ستتوفر التحليلات المتقدمة والرؤى التنبؤية قريباً لمساعدتك في اتخاذ قرارات مالية أفضل."
     },

@@ -1,9 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { showAlert, loading } from '$lib/stores';
-  import PageHeader from '$lib/components/PageHeader.svelte';
-  import Spinner from '$lib/components/Spinner.svelte';
-  import DataTable from '$lib/components/DataTable.svelte';
+  import { fly, fade } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { workplacesApi, jobsApi } from '$lib/api';
 
   let workplaces = [];
@@ -26,18 +25,12 @@
     try {
       const response = await workplacesApi.getAll();
       if (response && Array.isArray(response)) {
-        workplaces = response;
-        // Ensure each workplace has a jobs array
-        workplaces = workplaces.map(workplace => ({
+        workplaces = response.map(workplace => ({
           ...workplace,
           jobs: workplace.jobs || []
         }));
-      } else {
-        console.error('Invalid response format:', response);
-        showAlert('Failed to load workplaces: Invalid response format', 'error');
       }
     } catch (error) {
-      console.error('Error loading workplaces:', error);
       showAlert(error.message || 'Failed to load workplaces', 'error');
     } finally {
       $loading = false;
@@ -45,12 +38,10 @@
   }
 
   function toggleWorkplaceExpansion(workplaceId) {
-    if (expandedWorkplaces.has(workplaceId)) {
-      expandedWorkplaces.delete(workplaceId);
-    } else {
-      expandedWorkplaces.add(workplaceId);
-    }
-    expandedWorkplaces = expandedWorkplaces; // Trigger reactivity
+    expandedWorkplaces.has(workplaceId) 
+      ? expandedWorkplaces.delete(workplaceId)
+      : expandedWorkplaces.add(workplaceId);
+    expandedWorkplaces = expandedWorkplaces;
   }
 
   function startEditingWorkplace(workplace) {
@@ -80,8 +71,6 @@
         newWorkplaceName = '';
         isAddingWorkplace = false;
         showAlert('Workplace added successfully', 'success');
-      } else {
-        throw new Error(result.error);
       }
     } catch (error) {
       showAlert(error.message || 'Failed to add workplace', 'error');
@@ -100,17 +89,11 @@
     try {
       const result = await workplacesApi.update(selectedWorkplace.id, { name: newWorkplaceName });
       if (result.success) {
-        const index = workplaces.findIndex(w => w.id === selectedWorkplace.id);
-        if (index !== -1) {
-          workplaces[index] = { ...workplaces[index], name: newWorkplaceName };
-          workplaces = [...workplaces];
-        }
-        newWorkplaceName = '';
-        isEditingWorkplace = false;
-        selectedWorkplace = null;
+        workplaces = workplaces.map(w => 
+          w.id === selectedWorkplace.id ? { ...w, name: newWorkplaceName } : w
+        );
+        cancelEdit();
         showAlert('Workplace updated successfully', 'success');
-      } else {
-        throw new Error(result.error);
       }
     } catch (error) {
       showAlert(error.message || 'Failed to update workplace', 'error');
@@ -120,11 +103,7 @@
   }
 
   async function handleAddJob() {
-    if (!selectedWorkplace) {
-      showAlert('Please select a workplace first', 'error');
-      return;
-    }
-    if (!newJobName.trim()) {
+    if (!selectedWorkplace || !newJobName.trim()) {
       showAlert('Job name cannot be empty', 'error');
       return;
     }
@@ -137,16 +116,14 @@
       });
       
       if (result.success) {
-        const index = workplaces.findIndex(w => w.id === selectedWorkplace.id);
-        if (index !== -1) {
-          workplaces[index].jobs = [...(workplaces[index].jobs || []), result.data];
-          workplaces = [...workplaces];
-        }
+        workplaces = workplaces.map(w => 
+          w.id === selectedWorkplace.id 
+            ? { ...w, jobs: [...w.jobs, result.data] } 
+            : w
+        );
         newJobName = '';
         isAddingJob = false;
         showAlert('Job added successfully', 'success');
-      } else {
-        throw new Error(result.error);
       }
     } catch (error) {
       showAlert(error.message || 'Failed to add job', 'error');
@@ -165,20 +142,18 @@
     try {
       const result = await jobsApi.update(selectedJob.id, { name: newJobName });
       if (result.success) {
-        const workplaceIndex = workplaces.findIndex(w => w.id === selectedWorkplace.id);
-        if (workplaceIndex !== -1) {
-          const jobIndex = workplaces[workplaceIndex].jobs.findIndex(j => j.id === selectedJob.id);
-          if (jobIndex !== -1) {
-            workplaces[workplaceIndex].jobs[jobIndex] = { ...workplaces[workplaceIndex].jobs[jobIndex], name: newJobName };
-            workplaces = [...workplaces];
-          }
-        }
-        newJobName = '';
-        isEditingJob = false;
-        selectedJob = null;
+        workplaces = workplaces.map(w => 
+          w.id === selectedWorkplace.id
+            ? { 
+                ...w, 
+                jobs: w.jobs.map(j => 
+                  j.id === selectedJob.id ? { ...j, name: newJobName } : j
+                )
+              }
+            : w
+        );
+        cancelEdit();
         showAlert('Job updated successfully', 'success');
-      } else {
-        throw new Error(result.error);
       }
     } catch (error) {
       showAlert(error.message || 'Failed to update job', 'error');
@@ -188,9 +163,7 @@
   }
 
   async function handleDeleteWorkplace(workplace) {
-    if (!confirm('Are you sure you want to delete this workplace? This will also delete all associated jobs.')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to delete this workplace and all its jobs?')) return;
 
     $loading = true;
     try {
@@ -198,8 +171,6 @@
       if (result.success) {
         workplaces = workplaces.filter(w => w.id !== workplace.id);
         showAlert('Workplace deleted successfully', 'success');
-      } else {
-        throw new Error(result.error);
       }
     } catch (error) {
       showAlert(error.message || 'Failed to delete workplace', 'error');
@@ -209,22 +180,18 @@
   }
 
   async function handleDeleteJob(workplace, job) {
-    if (!confirm('Are you sure you want to delete this job?')) {
-      return;
-    }
+    if (!confirm('Are you sure you want to delete this job?')) return;
 
     $loading = true;
     try {
       const result = await jobsApi.delete(job.id);
       if (result.success) {
-        const index = workplaces.findIndex(w => w.id === workplace.id);
-        if (index !== -1) {
-          workplaces[index].jobs = workplaces[index].jobs.filter(j => j.id !== job.id);
-          workplaces = [...workplaces];
-        }
+        workplaces = workplaces.map(w => 
+          w.id === workplace.id
+            ? { ...w, jobs: w.jobs.filter(j => j.id !== job.id) }
+            : w
+        );
         showAlert('Job deleted successfully', 'success');
-      } else {
-        throw new Error(result.error);
       }
     } catch (error) {
       showAlert(error.message || 'Failed to delete job', 'error');
@@ -234,8 +201,10 @@
   }
 
   function cancelEdit() {
+    isAddingWorkplace = false;
     isEditingWorkplace = false;
     isEditingJob = false;
+    isAddingJob = false;
     selectedWorkplace = null;
     selectedJob = null;
     newWorkplaceName = '';
@@ -247,135 +216,164 @@
   <title>Workplaces & Jobs | Cession Management</title>
 </svelte:head>
 
-<div class="space-y-6">
-  <PageHeader 
-    title="Workplaces & Jobs" 
-    subtitle="Manage workplaces and their associated jobs"
-  />
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+  <!-- Glassmorphism Header -->
+  <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                Workplaces & Jobs
+              </h1>
+              <p class="text-sm text-gray-500 font-medium">Manage workplaces and their associated jobs</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- Add/Edit Workplace Form -->
-  <div class="bg-white shadow-sm rounded-lg p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-medium text-gray-900">Workplaces</h2>
-      <button
-        on:click={() => {
-          if (isAddingWorkplace) {
-            cancelEdit();
-          } else {
-            isAddingWorkplace = true;
-            isEditingWorkplace = false;
-          }
-        }}
-        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-      >
-        {#if isAddingWorkplace}
-          Cancel
-        {:else}
-          Add Workplace
-        {/if}
-      </button>
+  <div class="max-w-7xl mx-auto mt-8 space-y-6">
+    <!-- Add/Edit Workplace Card -->
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
+      <div class="p-6 border-b border-gray-200/50 flex justify-between items-center">
+        <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          {isAddingWorkplace ? 'Add New Workplace' : isEditingWorkplace ? 'Edit Workplace' : 'Workplaces'}
+        </h3>
+        <button
+          on:click={() => isAddingWorkplace ? cancelEdit() : (isAddingWorkplace = true)}
+          class="flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+        >
+          {#if isAddingWorkplace || isEditingWorkplace}
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Cancel
+          {:else}
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Add Workplace
+          {/if}
+        </button>
+      </div>
+
+      {#if isAddingWorkplace || isEditingWorkplace}
+        <div class="p-6">
+          <form on:submit|preventDefault={isEditingWorkplace ? handleUpdateWorkplace : handleAddWorkplace} class="space-y-4">
+            <div>
+              <label for="workplaceName" class="block text-sm font-medium text-purple-600 mb-2">Workplace Name</label>
+              <input
+                type="text"
+                id="workplaceName"
+                bind:value={newWorkplaceName}
+                class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                placeholder="Enter workplace name"
+                required
+              />
+            </div>
+            <div class="flex justify-end space-x-3">
+              <button
+                type="button"
+                on:click={cancelEdit}
+                class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+              >
+                {isEditingWorkplace ? 'Update Workplace' : 'Add Workplace'}
+              </button>
+            </div>
+          </form>
+        </div>
+      {/if}
     </div>
 
-    {#if isAddingWorkplace || isEditingWorkplace}
-      <div class="mt-4">
-        <form on:submit|preventDefault={isEditingWorkplace ? handleUpdateWorkplace : handleAddWorkplace} class="space-y-4">
-          <div>
-            <label for="workplaceName" class="block text-sm font-medium text-gray-700">Workplace Name</label>
-            <input
-              type="text"
-              id="workplaceName"
-              bind:value={newWorkplaceName}
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-              placeholder="Enter workplace name"
-              required
-            />
-          </div>
-          <div class="flex justify-end space-x-3">
-            <button
-              type="button"
-              on:click={cancelEdit}
-              class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              {isEditingWorkplace ? 'Update Workplace' : 'Add Workplace'}
-            </button>
-          </div>
-        </form>
-      </div>
-    {/if}
-
     <!-- Workplaces List -->
-    <div class="mt-6 space-y-4">
-      {#each workplaces as workplace}
-        <div class="border rounded-lg overflow-hidden">
+    <div class="space-y-4">
+{#each workplaces as workplace, index (workplace.id)}
+  <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden" transition:fly={{ y: 20, duration: 300, delay: 50 * index, easing: cubicOut }}>
           <!-- Workplace Header -->
-          <div class="bg-gray-50 px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-              <button
-                on:click={() => toggleWorkplaceExpansion(workplace.id)}
-                class="text-gray-500 hover:text-gray-700"
-              >
-                <svg
-                  class={`h-5 w-5 transform transition-transform ${expandedWorkplaces.has(workplace.id) ? 'rotate-90' : ''}`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                    clip-rule="evenodd"
-                  />
+          <div class="p-6 border-b border-gray-200/50 flex justify-between items-center cursor-pointer" on:click={() => toggleWorkplaceExpansion(workplace.id)}>
+            <div class="flex items-center space-x-4">
+              <div class={`transform transition-transform ${expandedWorkplaces.has(workplace.id) ? 'rotate-90' : ''}`}>
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
-              </button>
-              <h3 class="text-lg font-medium text-gray-900">{workplace.name}</h3>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {workplace.jobs?.length || 0} Jobs
-              </span>
+              </div>
+              <div>
+                <h3 class="text-lg font-medium text-gray-900">{workplace.name}</h3>
+                <p class="text-sm text-gray-500">{workplace.jobs.length} {workplace.jobs.length === 1 ? 'job' : 'jobs'}</p>
+              </div>
             </div>
             <div class="flex items-center space-x-2">
               <button
-                on:click={() => startEditingWorkplace(workplace)}
-                class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                on:click|stopPropagation={() => startEditingWorkplace(workplace)}
+                class="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors"
+                title="Edit Workplace"
               >
-                Edit
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
               </button>
               <button
-                on:click={() => {
-                  selectedWorkplace = workplace;
-                  isAddingJob = !isAddingJob;
-                }}
-                class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                on:click|stopPropagation={() => handleDeleteWorkplace(workplace)}
+                class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete Workplace"
               >
-                Add Job
-              </button>
-              <button
-                on:click={() => handleDeleteWorkplace(workplace)}
-                class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                Delete
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
               </button>
             </div>
           </div>
 
-          <!-- Jobs Section -->
           {#if expandedWorkplaces.has(workplace.id)}
-            <div class="px-4 py-3 bg-white">
+            <div class="p-6 space-y-4">
+              <!-- Add Job Section -->
+              <div class="flex justify-between items-center">
+                <h4 class="text-md font-medium text-gray-700">Jobs</h4>
+                <button
+                  on:click={() => {
+                    selectedWorkplace = workplace;
+                    isAddingJob = !isAddingJob;
+                  }}
+                  class="flex items-center px-3 py-1.5 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:from-green-600 hover:to-teal-600 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
+                >
+                  {#if isAddingJob && selectedWorkplace?.id === workplace.id}
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Cancel
+                  {:else}
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Add Job
+                  {/if}
+                </button>
+              </div>
+
               {#if isAddingJob && selectedWorkplace?.id === workplace.id}
-                <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div class="bg-gray-50 p-4 rounded-xl">
                   <form on:submit|preventDefault={handleAddJob} class="space-y-4">
                     <div>
-                      <label for="jobName" class="block text-sm font-medium text-gray-700">Job Name</label>
+                      <label for="jobName" class="block text-sm font-medium text-purple-600 mb-2">Job Name</label>
                       <input
                         type="text"
                         id="jobName"
                         bind:value={newJobName}
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                        class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
                         placeholder="Enter job name"
                         required
                       />
@@ -383,17 +381,14 @@
                     <div class="flex justify-end space-x-3">
                       <button
                         type="button"
-                        on:click={() => {
-                          isAddingJob = false;
-                          newJobName = '';
-                        }}
-                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        on:click={() => isAddingJob = false}
+                        class="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        class="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
                       >
                         Add Job
                       </button>
@@ -403,15 +398,15 @@
               {/if}
 
               {#if isEditingJob && selectedWorkplace?.id === workplace.id}
-                <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                <div class="bg-gray-50 p-4 rounded-xl">
                   <form on:submit|preventDefault={handleUpdateJob} class="space-y-4">
                     <div>
-                      <label for="editJobName" class="block text-sm font-medium text-gray-700">Job Name</label>
+                      <label for="editJobName" class="block text-sm font-medium text-purple-600 mb-2">Job Name</label>
                       <input
                         type="text"
                         id="editJobName"
                         bind:value={newJobName}
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                        class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
                         placeholder="Enter job name"
                         required
                       />
@@ -420,13 +415,13 @@
                       <button
                         type="button"
                         on:click={cancelEdit}
-                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        class="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                        class="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
                       >
                         Update Job
                       </button>
@@ -435,26 +430,29 @@
                 </div>
               {/if}
 
-              {#if workplace.jobs && workplace.jobs.length > 0}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {#each workplace.jobs as job}
-                    <div class="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
-                      <span class="text-sm font-medium text-gray-900">{job.name}</span>
-                      <div class="flex items-center space-x-2">
+              <!-- Jobs List -->
+              {#if workplace.jobs.length > 0}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {#each workplace.jobs as job (job.id)}
+                    <div class="bg-gray-50/50 hover:bg-gray-100/50 rounded-xl p-4 flex justify-between items-center transition-colors">
+                      <span class="font-medium text-gray-900">{job.name}</span>
+                      <div class="flex space-x-2">
                         <button
                           on:click={() => startEditingJob(workplace, job)}
-                          class="text-primary-600 hover:text-primary-900"
+                          class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Job"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                           </svg>
                         </button>
                         <button
                           on:click={() => handleDeleteJob(workplace, job)}
-                          class="text-red-600 hover:text-red-900"
+                          class="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Job"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                           </svg>
                         </button>
                       </div>
@@ -462,12 +460,40 @@
                   {/each}
                 </div>
               {:else}
-                <p class="text-sm text-gray-500 text-center py-4">No jobs added yet</p>
+                <div class="text-center py-6 bg-gray-50/50 rounded-xl">
+                  <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <p class="mt-2 text-sm text-gray-500">No jobs added yet</p>
+                  <button
+                    on:click={() => {
+                      selectedWorkplace = workplace;
+                      isAddingJob = true;
+                    }}
+                    class="mt-3 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
+                  >
+                    Add First Job
+                  </button>
+                </div>
               {/if}
             </div>
           {/if}
         </div>
+      {:else}
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-8 text-center">
+          <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">No workplaces yet</h3>
+          <p class="mt-2 text-gray-500">Get started by adding your first workplace</p>
+          <button
+            on:click={() => isAddingWorkplace = true}
+            class="mt-4 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+          >
+            Add Workplace
+          </button>
+        </div>
       {/each}
     </div>
   </div>
-</div> 
+</div>

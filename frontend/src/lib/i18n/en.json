@@ -183,6 +183,34 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Overview of your business",
+    "header": {
+      "clients": "Clients",
+      "active": "Active"
+    },
+    "analytics": {
+      "total_value": "Total Value",
+      "portfolio": "Portfolio"
+    },
+    "actions": {
+      "title": "Quick Actions"
+    },
+    "smart_insights": "Business Intelligence",
+    "total_cessions": "Total Cessions",
+    "total_clients": "Total Clients",
+    "total_revenue": "Total Revenue",
+    "pending_payments": "Pending Payments",
+    "top_clients": "Top Clients",
+    "recent_activity": "Recent Activity",
+    "payment_trends": "Payment Trends",
+    "quick_actions": "Quick Actions",
+    "cessions": "cessions",
+    "no_clients_data": "No client data available",
+    "no_recent_activity": "No recent activity",
+    "no_trends_data": "No trend data available",
+    "new_cession": "New Cession",
+    "new_client": "New Client",
+    "view_payments": "View Payments",
+    "financial_overview": "Financial Overview",
     "stats": {
       "total_clients": "Total Clients",
       "total_cessions": "Total Cessions",
@@ -190,6 +218,9 @@
       "total_sales": "Total Sales",
       "active_cessions": "Active Cessions",
       "finished_cessions": "Completed Cessions",
+      "completed": "Completed",
+      "active": "Active",
+      "total": "Total",
       "total_profit": "Total Profit",
       "total_expenses": "Total Expenses"
     },
@@ -817,30 +848,63 @@
   "finance": {
     "title": "Financial Tracking",
     "subtitle": "Monitor your expenses and sales",
-    "month_selector": "Select Month",
-    "recent_sales": "Recent Sales",
-    "recent_expenses": "Recent Expenses",
-    "month_picker": "Select Month",
-    "stats": {
-      "total_sales": "Total Sales",
-      "total_profit": "Total Profit",
-      "total_expenses": "Total Expenses",
-      "net_income": "Net Income",
-      "net_profit": "Net Profit"
+    "dashboard": {
+      "title": "Finance Dashboard",
+      "subtitle": "Track your financial performance"
     },
-    "expenses": {
-      "title": "Expenses",
-      "add": "Add Expense",
-      "no_expenses": "No expenses found",
-      "columns": {
-        "date": "Date",
-        "category": "Category",
-        "description": "Description",
-        "amount": "Amount"
-      }
+    "months": {
+      "january": "January",
+      "february": "February", 
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    },
+    "search": {
+      "placeholder": "Search transactions, categories, or amounts..."
+    },
+    "actions": {
+      "filters": "Filters",
+      "quick_actions": "Quick Actions",
+      "track_expense": "Track new expense",
+      "record_income": "Record new income",
+      "export_report": "Export Report",
+      "download_data": "Download financial data",
+      "generate_report": "Generate Report"
+    },
+    "error": {
+      "title": "Error",
+      "load_data": "Failed to load financial data",
+      "load_summary": "Failed to load monthly summary"
+    },
+    "loading": {
+      "title": "Loading Financial Data",
+      "description": "Please wait while we gather the latest information"
+    },
+    "charts": {
+      "coming_soon": "Coming Soon",
+      "advanced_analytics": "Advanced analytics coming soon",
+      "add_expenses_first": "Add some expenses to see the chart",
+      "expense_distribution": "Expense Distribution",
+      "title": "Expenses by Category",
+      "no_data": "No data available",
+      "expenses_by_category": "Expenses by Category",
+      "sales_trend": "Sales Trend",
+      "income_by_category": "Income by Category",
+      "profit_trend": "Profit Trend",
+      "download": "Download Report",
+      "print": "Print Report"
     },
     "sales": {
       "title": "Sales",
+      "total": "sales",
+      "no_data": "No sales data available",
       "no_sales": "No sales found",
       "trend": "Sales Trend",
       "columns": {
@@ -851,6 +915,49 @@
         "profit": "Profit"
       }
     },
+    "export": {
+      "title": "Export Data",
+      "description": "Choose your preferred export format",
+      "options": {
+        "pdf": "PDF Report",
+        "excel": "Excel Spreadsheet", 
+        "csv": "CSV File"
+      },
+      "generate": "Generate Export"
+    },
+    "income": {
+      "add": "Add Income",
+      "form_placeholder": "Income form will be available soon"
+    },
+    "buttons": {
+      "add_expense": "Add Expense",
+      "export_data": "Export Data"
+    },
+    "month_selector": "Select Month",
+    "recent_sales": "Recent Sales",
+    "recent_expenses": "Recent Expenses",
+    "month_picker": "Select Month",
+    "stats": {
+      "total_sales": "Total Sales",
+      "total_profit": "Total Profit",
+      "total_expenses": "Total Expenses",
+      "net_income": "Net Income",
+      "net_profit": "Net Profit",
+      "net_worth": "Net Worth"
+    },
+    "expenses": {
+      "title": "Expenses",
+      "add": "Add Expense",
+      "no_expenses": "No expenses found",
+      "no_data": "No expense data available",
+      "columns": {
+        "date": "Date",
+        "category": "Category",
+        "description": "Description",
+        "amount": "Amount"
+      }
+    },
+
     "charts": {
       "title": "Expenses by Category",
       "no_data": "No data available",
@@ -903,7 +1010,8 @@
     "views": {
       "dashboard": "Dashboard",
       "analytics": "Analytics",
-      "reports": "Reports"
+      "reports": "Reports",
+      "insights": "Insights"
     },
     "actions": {
       "quick_actions": "Quick Actions",
@@ -918,10 +1026,46 @@
     },
     "analytics": {
       "vs_last_month": "vs last month",
+      "title": "Financial Analytics",
+      "subtitle": "Advanced insights and performance metrics",
+      "revenue_trends": "Revenue Trends",
+      "expense_analysis": "Expense Analysis",
+      "profit_margins": "Profit Margins",
+      "growth_metrics": "Growth Metrics",
+      "performance_indicators": "Key Performance Indicators",
+      "monthly_comparison": "Monthly Comparison",
+      "category_breakdown": "Category Breakdown",
+      "trend_analysis": "Trend Analysis",
+      "forecasting": "Revenue Forecasting",
+      "efficiency_metrics": "Efficiency Metrics",
+      "cost_analysis": "Cost Analysis",
+      "roi_analysis": "ROI Analysis",
       "coming_soon": "Coming Soon",
       "description": "Advanced analytics and predictive insights will be available soon to help you make better financial decisions."
     },
     "reports": {
+      "title": "Financial Reports",
+      "subtitle": "Comprehensive reporting and data export",
+      "monthly_report": "Monthly Report",
+      "quarterly_report": "Quarterly Report",
+      "annual_report": "Annual Report",
+      "profit_loss": "Profit & Loss Statement",
+      "cash_flow": "Cash Flow Statement",
+      "expense_report": "Expense Report",
+      "sales_report": "Sales Report",
+      "tax_report": "Tax Report",
+      "custom_report": "Custom Report",
+      "export_options": "Export Options",
+      "generate_report": "Generate Report",
+      "download_pdf": "Download PDF",
+      "download_excel": "Download Excel",
+      "download_csv": "Download CSV",
+      "email_report": "Email Report",
+      "schedule_report": "Schedule Report",
+      "report_settings": "Report Settings",
+      "date_range": "Date Range",
+      "include_charts": "Include Charts",
+      "include_details": "Include Details",
       "coming_soon": "Coming Soon",
       "description": "Detailed reports and export options will be available soon to help you track your financial performance."
     },
@@ -929,6 +1073,30 @@
       "format": "Export Format",
       "include_charts": "Include Charts",
       "include_details": "Include Transaction Details"
+    },
+    "insights": {
+      "title": "Financial Insights",
+      "subtitle": "AI-powered recommendations and predictions",
+      "recommendations": "Smart Recommendations",
+      "predictions": "Financial Predictions",
+      "alerts": "Financial Alerts",
+      "opportunities": "Growth Opportunities",
+      "risks": "Risk Analysis",
+      "optimization": "Cost Optimization",
+      "budget_insights": "Budget Insights",
+      "spending_patterns": "Spending Patterns",
+      "revenue_opportunities": "Revenue Opportunities",
+      "cost_savings": "Cost Savings Potential",
+      "market_trends": "Market Trends",
+      "seasonal_analysis": "Seasonal Analysis",
+      "predictive_analytics": "Predictive Analytics",
+      "financial_health": "Financial Health Score",
+      "cash_flow_forecast": "Cash Flow Forecast",
+      "expense_optimization": "Expense Optimization",
+      "revenue_growth": "Revenue Growth Potential",
+      "risk_assessment": "Risk Assessment",
+      "investment_suggestions": "Investment Suggestions",
+      "tax_optimization": "Tax Optimization Tips"
     },
     "expense": {
       "add_title": "Add New Expense",

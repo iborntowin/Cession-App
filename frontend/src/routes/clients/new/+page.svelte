@@ -8,6 +8,8 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
   import { t } from '$lib/i18n';
+  import { fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
 
   let isSaving = false;
   let workplaces = [];
@@ -236,7 +238,7 @@
   // Get color for the background track of the CIN bar - ALWAYS GRAY
   function getCinBarTrackColor() {
     return 'bg-gray-200';
-        }
+  }
 
   // Update the progress bar color logic for CIN and Worker Number:
   function getCinBarFillColor() {
@@ -351,8 +353,6 @@
     }
   }
 
-
-
   // Update the progress bar color logic for CIN and Worker Number:
   function getWorkerNumberBarFillColor() {
     if (workerNumberStatus === 'duplicate') return 'bg-red-500';
@@ -385,8 +385,6 @@
         return 'Enter your 10-digit Worker Number';
     }
   }
-
-
 
   async function handleSubmit() {
     isSaving = true;
@@ -445,8 +443,6 @@
         workplaceId: formData.workplaceId
       };
 
-
-
       // Create the client
       const result = await clientsApi.create(clientData);
       
@@ -470,49 +466,73 @@
   <title>New Client | Cession Management</title>
 </svelte:head>
 
-<div class="space-y-6">
-  <PageHeader 
-    title="New Client" 
-    subtitle="Create a new client profile"
-    actions={[
-      {
-        label: 'Back to Clients',
-        href: '/clients',
-        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>`
-      }
-    ]}
-  />
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+  <!-- Modern Header with Glassmorphism -->
+  <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                New Client
+              </h1>
+              <p class="text-sm text-gray-500 font-medium">Create a new client profile</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <a
+            href="/clients"
+            class="flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+            Back to Clients
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <div class="max-w-2xl mx-auto">
-    <div class="bg-white shadow-sm rounded-lg overflow-hidden">
-      <div class="p-6 border-b border-gray-200">
-        <h3 class="text-lg font-medium text-gray-900">Client Information</h3>
+  <div class="max-w-4xl mx-auto mt-8">
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
+      <div class="p-6 border-b border-gray-200/50">
+        <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          Client Information
+        </h3>
       </div>
 
       <form on:submit|preventDefault={handleSubmit} class="p-6 space-y-6">
         <!-- Full Name -->
-        <div class="space-y-4">
-          <div>
-            <label for="fullName" class="block text-sm font-medium text-gray-700">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              id="fullName"
-              bind:value={formData.fullName}
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-              required
-            />
-          </div>
-          </div>
+        <div>
+          <label for="fullName" class="block text-sm font-medium text-purple-600 mb-2">
+            Full Name *
+          </label>
+          <input
+            type="text"
+            id="fullName"
+            bind:value={formData.fullName}
+            class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
+            required
+          />
+        </div>
 
-        <!-- CIN Input -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- CIN and Worker Number -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- CIN Input -->
           <div>
-            <label for="cin" class="block text-sm font-medium text-gray-700">
+            <label for="cin" class="block text-sm font-medium text-purple-600 mb-2">
               CIN (8-digit Number) *
             </label>
-            <div class="mt-1 relative">
+            <div class="relative">
               <input
                 type="text"
                 id="cin"
@@ -522,16 +542,17 @@
                 pattern="\d*"
                 inputmode="numeric"
                 maxlength="8"
-                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                class="w-full pl-4 pr-12 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
                 placeholder="Enter 8-digit CIN"
               />
-              <div class="absolute right-3 top-1/2 -translate-y-1/2">
+              <div class="absolute right-4 top-1/2 -translate-y-1/2">
                 <span class={`text-sm font-medium ${getCinTextColor()}`}>
                   {cinLength}/8
                 </span>
               </div>
             </div>
-            <!-- CIN progress bar: -->
+            <!-- CIN progress bar -->
+            <!-- CIN Progress Bar (in the CIN input section) -->
             <div class="mt-2 h-2 w-full rounded-full bg-gray-200 relative overflow-hidden">
               <div
                 class="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
@@ -543,28 +564,29 @@
                 style="width: {(cinLength / 8) * 100}%"
               ></div>
             </div>
-            <div class={`mt-1 text-sm ${getCinTextColor()}`}>
+            <div class={`mt-2 text-sm ${getCinTextColor()}`}>
               <p>{cinStatusMessage}</p>
               {#if cinStatus === 'duplicate'}
                 <button
                   type="button"
                   on:click={() => viewDuplicateClient('cin')}
-                  class="mt-2 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  class="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                   </svg>
-                  {$t('cessions.details.view_profile')}
+                  View Profile
                 </button>
               {/if}
             </div>
           </div>
+
           <!-- Worker Number Input -->
           <div>
-            <label for="workerNumber" class="block text-sm font-medium text-gray-700">
+            <label for="workerNumber" class="block text-sm font-medium text-purple-600 mb-2">
               Worker Number (10-digit Number) *
             </label>
-            <div class="mt-1 relative">
+            <div class="relative">
               <input
                 type="text"
                 id="workerNumber"
@@ -574,16 +596,17 @@
                 pattern="\d*"
                 inputmode="numeric"
                 maxlength="10"
-                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                class="w-full pl-4 pr-12 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
                 placeholder="Enter 10-digit worker number"
               />
-              <div class="absolute right-3 top-1/2 -translate-y-1/2">
+              <div class="absolute right-4 top-1/2 -translate-y-1/2">
                 <span class={`text-sm font-medium ${getWorkerNumberTextColor()}`}>
                   {workerNumberLength}/10
                 </span>
               </div>
             </div>
-            <!-- Worker Number progress bar: -->
+            <!-- Worker Number progress bar -->
+            <!-- Worker Number Progress Bar (in the Worker Number input section) -->
             <div class="mt-2 h-2 w-full rounded-full bg-gray-200 relative overflow-hidden">
               <div
                 class="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
@@ -595,28 +618,29 @@
                 style="width: {(workerNumberLength / 10) * 100}%"
               ></div>
             </div>
-            <div class={`mt-1 text-sm ${getWorkerNumberTextColor()}`}>
+            <div class={`mt-2 text-sm ${getWorkerNumberTextColor()}`}>
               <p>{workerNumberStatusMessage}</p>
               {#if workerNumberStatus === 'duplicate'}
                 <button
                   type="button"
                   on:click={() => viewDuplicateClient('workerNumber')}
-                  class="mt-2 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  class="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                   </svg>
-                  {$t('cessions.details.view_profile')}
+                  View Profile
                 </button>
               {/if}
             </div>
           </div>
         </div>
 
-        <!-- Workplace Selection -->
-        <div class="space-y-4">
+        <!-- Workplace and Job Selection -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Workplace Selection -->
           <div>
-            <label for="workplace" class="block text-sm font-medium text-gray-700">
+            <label for="workplace" class="block text-sm font-medium text-purple-600 mb-2">
               Workplace *
             </label>
             <select
@@ -624,7 +648,7 @@
               value={selectedWorkplaceId}
               on:change={handleWorkplaceChange}
               required
-              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+              class="w-full pl-4 pr-10 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
             >
               <option value="">Select a workplace</option>
               {#each workplaces as workplace}
@@ -632,12 +656,10 @@
               {/each}
             </select>
           </div>
-        </div>
 
-        <!-- Job Selection -->
-        <div class="space-y-4">
+          <!-- Job Selection -->
           <div>
-            <label for="job" class="block text-sm font-medium text-gray-700">
+            <label for="job" class="block text-sm font-medium text-purple-600 mb-2">
               Job *
             </label>
             <select
@@ -646,7 +668,7 @@
               on:change={handleJobChange}
               disabled={!selectedWorkplaceId}
               required
-              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md disabled:bg-gray-100 disabled:text-gray-500"
+              class="w-full pl-4 pr-10 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm disabled:bg-gray-100 disabled:text-gray-500"
             >
               <option value="">Select a job</option>
               {#each filteredJobs as job}
@@ -657,32 +679,64 @@
         </div>
 
         <!-- Address -->
-        <div class="space-y-4">
-          <div>
-            <label for="address" class="block text-sm font-medium text-gray-700">
-              Address *
-            </label>
+        <div>
+          <label for="address" class="block text-sm font-medium text-purple-600 mb-2">
+            Address *
+          </label>
+          <input
+            type="text"
+            id="address"
+            bind:value={formData.address}
+            required
+            class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
+            readonly={selectedWorkplaceId !== null}
+          />
+        </div>
+
+        <!-- Phone Number Input -->
+        <div>
+          <label for="phoneNumber" class="block text-sm font-medium text-purple-600 mb-2">
+            Phone Number (8-digit Number)
+          </label>
+          <div class="relative">
             <input
               type="text"
-              id="address"
-              bind:value={formData.address}
-              required
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-              readonly={selectedWorkplaceId !== null}
+              id="phoneNumber"
+              value={phoneNumberInput}
+              on:input={handlePhoneNumberInput}
+              pattern="\d*"
+              inputmode="numeric"
+              maxlength="8"
+              class="w-full pl-4 pr-12 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
+              placeholder="Enter 8-digit phone number"
             />
+            <div class="absolute right-4 top-1/2 -translate-y-1/2">
+              <span class={`text-sm font-medium ${getPhoneNumberTextColor()}`}>
+                {phoneNumberLength}/8
+              </span>
+            </div>
           </div>
+          <div class="mt-2 h-2 w-full rounded-full bg-gray-200 relative overflow-hidden">
+            <div
+              class={`absolute left-0 top-0 h-full ${getPhoneNumberBarFillColor()} transition-all duration-300 ease-out`}
+              style={`width: ${(phoneNumberLength / 8) * 100}%`}
+            ></div>
+          </div>
+          <p class={`mt-2 text-sm ${getPhoneNumberTextColor()}`}>
+            {getPhoneNumberStatusMessage()}
+          </p>
         </div>
 
         <!-- File Uploads -->
-        <div class="space-y-6">
+        <div class="space-y-6 pt-4">
           <div class="flex items-center justify-between">
-            <label class="block text-sm font-medium text-gray-700">
+            <label class="block text-sm font-medium text-purple-600">
               Required Documents
             </label>
             <button
               type="button"
               on:click={() => showDocuments = !showDocuments}
-              class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              class="inline-flex items-center px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md"
             >
               {#if showDocuments}
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -701,13 +755,13 @@
           {#if showDocuments}
             <!-- ID Card Upload -->
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-purple-600 mb-2">
                 National ID Card
               </label>
               <input
                 type="file"
                 accept="image/*,application/pdf"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
               />
               {#if idCardFile}
                 <p class="mt-2 text-sm text-gray-500">
@@ -718,13 +772,13 @@
 
             <!-- Job Card Upload -->
             <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-purple-600 mb-2">
                 Job Card (Optional)
               </label>
               <input
                 type="file"
                 accept="image/*,application/pdf"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
               />
               {#if jobCardFile}
                 <p class="mt-2 text-sm text-gray-500">
@@ -733,53 +787,19 @@
               {/if}
             </div>
 
-            <!-- Phone Number Input -->
-            <div class="mb-4">
-              <label for="phoneNumber" class="block text-sm font-medium text-gray-700">
-                Phone Number (8-digit Number)
-              </label>
-              <div class="mt-1 relative">
-                <input
-                  type="text"
-                  id="phoneNumber"
-                  value={phoneNumberInput}
-                  on:input={handlePhoneNumberInput}
-                  pattern="\d*"
-                  inputmode="numeric"
-                  maxlength="8"
-                  class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                  placeholder="Enter 8-digit phone number"
-                />
-                <div class="absolute right-3 top-1/2 -translate-y-1/2">
-                  <span class={`text-sm font-medium ${getPhoneNumberTextColor()}`}>
-                    {phoneNumberLength}/8
-                  </span>
-                </div>
-              </div>
-              <div class="mt-2 h-2 w-full rounded-full bg-gray-200 relative overflow-hidden">
-                <div
-                  class={`absolute left-0 top-0 h-full ${getPhoneNumberBarFillColor()} transition-all duration-300 ease-out`}
-                  style={`width: ${(phoneNumberLength / 8) * 100}%`}
-                ></div>
-              </div>
-              <p class={`mt-1 text-sm ${getPhoneNumberTextColor()}`}>
-                {getPhoneNumberStatusMessage()}
-              </p>
-            </div>
-
             <!-- Other Documents -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
+              <label class="block text-sm font-medium text-purple-600 mb-2">
                 Additional Documents
               </label>
               <input
                 type="file"
                 accept="image/*,application/pdf"
-                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
               />
-              <ul class="mt-2 space-y-1">
+              <ul class="mt-2 space-y-2">
                 {#each otherDocuments as doc, i}
-                  <li class="flex justify-between items-center text-sm text-gray-500">
+                  <li class="flex justify-between items-center text-sm text-gray-700 bg-gray-50 p-2 rounded-lg">
                     <span>{doc.name}</span>
                     <button
                       type="button"
@@ -796,15 +816,22 @@
         </div>
 
         <!-- Submit Button -->
-        <div class="pt-5">
+        <div class="pt-6">
           <button
             type="submit"
             disabled={isSaving || cinStatus !== 'valid' || workerNumberStatus !== 'valid' || !formData.fullName}
-            class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full flex justify-center items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {#if isSaving}
-              <Spinner size="sm" /> Saving...
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
             {:else}
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+              </svg>
               Save Client
             {/if}
           </button>

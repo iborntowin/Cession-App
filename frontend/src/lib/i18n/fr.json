@@ -188,6 +188,34 @@
   "dashboard": {
     "title": "Tableau de bord",
     "subtitle": "Aperçu de votre entreprise",
+    "header": {
+      "clients": "Clients",
+      "active": "Actif"
+    },
+    "analytics": {
+      "total_value": "Valeur Totale",
+      "portfolio": "Portefeuille"
+    },
+    "actions": {
+      "title": "Actions Rapides"
+    },
+    "smart_insights": "Intelligence d'Affaires",
+    "total_cessions": "Total Cessions",
+    "total_clients": "Total Clients",
+    "total_revenue": "Chiffre d'Affaires Total",
+    "pending_payments": "Paiements en Attente",
+    "top_clients": "Meilleurs Clients",
+    "recent_activity": "Activité Récente",
+    "payment_trends": "Tendances de Paiement",
+    "quick_actions": "Actions Rapides",
+    "cessions": "cessions",
+    "no_clients_data": "Aucune donnée client disponible",
+    "no_recent_activity": "Aucune activité récente",
+    "no_trends_data": "Aucune donnée de tendance disponible",
+    "new_cession": "Nouvelle Cession",
+    "new_client": "Nouveau Client",
+    "view_payments": "Voir les Paiements",
+    "financial_overview": "Aperçu Financier",
     "stats": {
       "total_clients": "Total Clients",
       "total_cessions": "Total Cessions",
@@ -200,6 +228,9 @@
       "active_sales": "Ventes Actives",
       "active_expenses": "Dépenses Actives",
       "finished_cessions": "Cessions Terminées",
+      "completed": "Terminé",
+      "active": "Actif",
+      "total": "Total",
       "finished_clients": "Clients Terminés",
       "finished_products": "Produits Terminés",
       "finished_sales": "Ventes Terminées",
@@ -810,6 +841,81 @@
   "finance": {
     "title": "Suivi Financier",
     "subtitle": "Surveillez vos dépenses et ventes",
+    "dashboard": {
+      "title": "Tableau de Bord Financier",
+      "subtitle": "Suivez vos performances financières"
+    },
+    "months": {
+      "january": "Janvier",
+      "february": "Février", 
+      "march": "Mars",
+      "april": "Avril",
+      "may": "Mai",
+      "june": "Juin",
+      "july": "Juillet",
+      "august": "Août",
+      "september": "Septembre",
+      "october": "Octobre",
+      "november": "Novembre",
+      "december": "Décembre"
+    },
+    "search": {
+      "placeholder": "Rechercher transactions, catégories ou montants..."
+    },
+    "actions": {
+      "filters": "Filtres",
+      "quick_actions": "Actions Rapides",
+      "track_expense": "Suivre nouvelle dépense",
+      "record_income": "Enregistrer nouveau revenu",
+      "export_report": "Exporter Rapport",
+      "download_data": "Télécharger données financières",
+      "generate_report": "Générer Rapport"
+    },
+    "error": {
+      "title": "Erreur",
+      "load_data": "Échec du chargement des données financières",
+      "load_summary": "Échec du chargement du résumé mensuel"
+    },
+    "loading": {
+      "title": "Chargement des Données Financières",
+      "description": "Veuillez patienter pendant que nous rassemblons les dernières informations"
+    },
+    "charts": {
+      "coming_soon": "Bientôt Disponible",
+      "advanced_analytics": "Analyses avancées bientôt disponibles",
+      "add_expenses_first": "Ajoutez des dépenses pour voir le graphique",
+      "expense_distribution": "Répartition des Dépenses",
+      "title": "Dépenses par catégorie",
+      "no_data": "Aucune donnée disponible",
+      "expenses_by_category": "Dépenses par catégorie",
+      "sales_trend": "Tendance des ventes",
+      "income_by_category": "Revenus par catégorie",
+      "profit_trend": "Tendance du bénéfice",
+      "download": "Télécharger le rapport",
+      "print": "Imprimer le rapport"
+    },
+    "sales": {
+      "total": "ventes",
+      "no_data": "Aucune donnée de vente disponible"
+    },
+    "export": {
+      "title": "Exporter les Données",
+      "description": "Choisissez votre format d'export préféré",
+      "options": {
+        "pdf": "Rapport PDF",
+        "excel": "Feuille Excel", 
+        "csv": "Fichier CSV"
+      },
+      "generate": "Générer l'Export"
+    },
+    "income": {
+      "add": "Ajouter Revenu",
+      "form_placeholder": "Le formulaire de revenu sera bientôt disponible"
+    },
+    "buttons": {
+      "add_expense": "Ajouter Dépense",
+      "export_data": "Exporter Données"
+    },
     "month_selector": "Sélectionner un mois",
     "recent_sales": "Ventes récentes",
     "recent_expenses": "Dépenses récentes",
@@ -819,12 +925,14 @@
       "total_profit": "Bénéfice total",
       "total_expenses": "Dépenses totales",
       "net_income": "Revenu net",
-      "net_profit": "Bénéfice net"
+      "net_profit": "Bénéfice net",
+      "net_worth": "Valeur nette"
     },
     "expenses": {
       "title": "Dépenses",
       "add": "Ajouter une dépense",
       "no_expenses": "Aucune dépense trouvée",
+      "no_data": "Aucune donnée de dépense disponible",
       "columns": {
         "date": "Date",
         "category": "Catégorie",
@@ -896,7 +1004,8 @@
     "views": {
       "dashboard": "Tableau de bord",
       "analytics": "Analyses",
-      "reports": "Rapports"
+      "reports": "Rapports",
+      "insights": "Insights"
     },
     "actions": {
       "quick_actions": "Actions rapides",
@@ -911,12 +1020,72 @@
     },
     "analytics": {
       "vs_last_month": "par rapport au mois dernier",
+      "title": "Analyses Financières",
+      "subtitle": "Insights avancés et métriques de performance",
+      "revenue_trends": "Tendances des Revenus",
+      "expense_analysis": "Analyse des Dépenses",
+      "profit_margins": "Marges Bénéficiaires",
+      "growth_metrics": "Métriques de Croissance",
+      "performance_indicators": "Indicateurs Clés de Performance",
+      "monthly_comparison": "Comparaison Mensuelle",
+      "category_breakdown": "Répartition par Catégorie",
+      "trend_analysis": "Analyse des Tendances",
+      "forecasting": "Prévision des Revenus",
+      "efficiency_metrics": "Métriques d'Efficacité",
+      "cost_analysis": "Analyse des Coûts",
+      "roi_analysis": "Analyse du ROI",
       "coming_soon": "Bientôt disponible",
       "description": "Des analyses avancées et des insights prédictifs seront bientôt disponibles pour vous aider à prendre de meilleures décisions financières."
     },
     "reports": {
+      "title": "Rapports Financiers",
+      "subtitle": "Rapports complets et exportation de données",
+      "monthly_report": "Rapport Mensuel",
+      "quarterly_report": "Rapport Trimestriel",
+      "annual_report": "Rapport Annuel",
+      "profit_loss": "Compte de Résultat",
+      "cash_flow": "Tableau de Flux de Trésorerie",
+      "expense_report": "Rapport de Dépenses",
+      "sales_report": "Rapport de Ventes",
+      "tax_report": "Rapport Fiscal",
+      "custom_report": "Rapport Personnalisé",
+      "export_options": "Options d'Exportation",
+      "generate_report": "Générer le Rapport",
+      "download_pdf": "Télécharger PDF",
+      "download_excel": "Télécharger Excel",
+      "download_csv": "Télécharger CSV",
+      "email_report": "Envoyer par Email",
+      "schedule_report": "Programmer le Rapport",
+      "report_settings": "Paramètres du Rapport",
+      "date_range": "Plage de Dates",
+      "include_charts": "Inclure les Graphiques",
+      "include_details": "Inclure les Détails",
       "coming_soon": "Bientôt disponible",
       "description": "Des rapports détaillés et des options d'exportation seront bientôt disponibles pour vous aider à suivre vos performances financières."
+    },
+    "insights": {
+      "title": "Insights Financiers",
+      "subtitle": "Recommandations et prédictions alimentées par l'IA",
+      "recommendations": "Recommandations Intelligentes",
+      "predictions": "Prédictions Financières",
+      "alerts": "Alertes Financières",
+      "opportunities": "Opportunités de Croissance",
+      "risks": "Analyse des Risques",
+      "optimization": "Optimisation des Coûts",
+      "budget_insights": "Insights Budgétaires",
+      "spending_patterns": "Modèles de Dépenses",
+      "revenue_opportunities": "Opportunités de Revenus",
+      "cost_savings": "Potentiel d'Économies",
+      "market_trends": "Tendances du Marché",
+      "seasonal_analysis": "Analyse Saisonnière",
+      "predictive_analytics": "Analyses Prédictives",
+      "financial_health": "Score de Santé Financière",
+      "cash_flow_forecast": "Prévision de Flux de Trésorerie",
+      "expense_optimization": "Optimisation des Dépenses",
+      "revenue_growth": "Potentiel de Croissance des Revenus",
+      "risk_assessment": "Évaluation des Risques",
+      "investment_suggestions": "Suggestions d'Investissement",
+      "tax_optimization": "Conseils d'Optimisation Fiscale"
     },
     "export": {
       "format": "Format d'exportation",

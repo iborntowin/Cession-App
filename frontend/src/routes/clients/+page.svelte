@@ -126,13 +126,7 @@
       }
     });
 
-    // Scroll to top of client list after filtering
-    if (browser) {
-      setTimeout(() => {
-        const list = document.getElementById('client-list');
-        if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 10);
-    }
+    
   }
 
   function toggleSearch() {
@@ -641,90 +635,54 @@
           <div class={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
             {#each filteredClients as client, i (client.id)}
               <div 
-                class="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 hover:shadow-xl hover:border-purple-200 transition-all duration-300"
-                transition:fly={{ y: 20, delay: i * 50, duration: 300 }}
+                class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
+                transition:scale={{ delay: i * 50, duration: 300 }}
+                on:click={() => showClientDetails(client)}
                 dir={isRTL ? 'rtl' : 'ltr'}
               >
-                <!-- Client Avatar and Header -->
-                <div class="flex items-start justify-between mb-4"
-                  class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                  <div class="flex items-center"
-                    class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                    <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                    <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                       {client.fullName ? client.fullName.charAt(0).toUpperCase() : 'C'}
                     </div>
-                    <div class="ml-3 mr-0" class:ml-0={isRTL} class:mr-3={isRTL}>
-                      <h3 class="text-lg font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
-                        {#if isRTL}
-                          <bdi dir="rtl">{client.fullName}</bdi>
-                        {:else}
-                          <bdi dir="ltr">{client.fullName}</bdi>
-                        {/if}
-                      </h3>
-                      <p class="text-sm text-gray-500 font-medium" dir="ltr">{formatClientNumber(client.clientNumber)}</p>
+                    <div>
+                      <h3 class="font-semibold text-gray-900 text-lg">{client.fullName || 'Unknown'}</h3>
+                      <p class="text-sm text-gray-500">ID: {client.cin || 'N/A'}</p>
                     </div>
                   </div>
-                  <!-- Status Indicator -->
-                  <div class="w-3 h-3 rounded-full shadow-sm" class:bg-green-400={hasActiveCessions(client.id)} class:bg-red-400={!hasActiveCessions(client.id)}></div>
-                </div>
-
-                <!-- Client Details -->
-                <div class="space-y-3 mb-6" class:text-right={isRTL} class:text-left={!isRTL}>
-                  <div class="flex items-center text-sm text-gray-600"
-                    class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
-                    </svg>
-                    <span class="font-medium mx-2">ID:</span>
-                    <span dir="ltr">{client.cin || 'N/A'}</span>
-                  </div>
-                  <div class="flex items-center text-sm text-gray-600"
-                    class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                    </svg>
-                    <span class="font-medium mx-2">Worker:</span>
-                    <span dir="ltr">{client.workerNumber || 'N/A'}</span>
-                  </div>
-                  <div class="flex items-center text-sm text-gray-600"
-                    class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                    </svg>
-                    <span class="font-medium mx-2">Workplace:</span>
-                    <span class="truncate"><bdi dir="auto">{client.workplaceName || 'N/A'}</bdi></span>
-                  </div>
-                  {#if cessionsByClient[client.id?.toString()]}
-                    <div class="flex items-center text-sm"
-                      class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                      <div class="px-2 py-1 bg-primary-100 text-primary-700 rounded-lg font-medium">
-                        {cessionsByClient[client.id.toString()].length} Cessions
-                      </div>
-                    </div>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {hasActiveCessions(client.id) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                  {#if hasActiveCessions(client.id)}
+                    <span class="w-2 h-2 bg-green-500 rounded-full mr-1" style="display: inline-block;"></span>
                   {/if}
+                  {hasActiveCessions(client.id) ? 'Active' : 'Inactive'}
+                </span>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="flex mt-2" class:flex-row-reverse={isRTL} class:flex-row={!isRTL}>
-                  <a
-                    href={`/clients/${client.id}`}
-                    class="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium text-sm shadow-sm hover:shadow-md text-center"
-                  >
-                    <svg class="w-4 h-4 inline mr-1 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                    View
-                  </a>
-                  <a
-                    href={`/cessions/new?clientId=${client.id}`}
-                    class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium text-sm shadow-lg hover:shadow-xl text-center"
-                  >
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    Cession
-                  </a>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Worker Number</span>
+                    <span class="font-bold text-lg text-purple-600">{client.workerNumber || 'N/A'}</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">CIN</span>
+                    <span class="font-semibold text-blue-600">{client.cin || 'N/A'}</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Client Number</span>
+                    <span class="text-sm text-gray-900">{formatClientNumber(client.clientNumber)}</span>
+                  </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-purple-700 bg-purple-100 px-3 py-1 rounded-full">
+                      <svg class="w-4 h-4 inline-block mr-1 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <text x="12" y="16" text-anchor="middle" font-size="10" fill="currentColor">#</text>
+                      </svg>
+                      {cessionsByClient[client.id?.toString()] ? cessionsByClient[client.id.toString()].length : 0} Cessions
+                    </span>
+                  </div>
                 </div>
               </div>
             {/each}

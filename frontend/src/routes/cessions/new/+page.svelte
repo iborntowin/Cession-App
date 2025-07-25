@@ -559,149 +559,7 @@
       </div>
     </div>
 
-  <form on:submit|preventDefault={handleSubmit} class="space-y-8">
-    <!-- Client Selection Section -->
-    <div class="bg-white shadow rounded-lg p-6">
-      <h2 class="text-lg font-medium text-gray-900 mb-4">{$t('cessions.create.select_client')}</h2>
-      
-      {#if !cession.clientId}
-        <div class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label for="searchTerm" class="block text-sm font-medium text-gray-700">{$t('cessions.create.search_client')}</label>
-              <div class="mt-1 relative rounded-md shadow-sm">
-                <input
-                  type="text"
-                  id="searchTerm"
-                  bind:value={searchTerm}
-                  on:input={handleSearch}
-                  placeholder={$t('cessions.create.search_client')}
-                  class="block w-full rounded-md border-gray-300 pl-10 pr-10 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-                  </svg>
-                </div>
-                <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  {#if isSearching}
-                    <Spinner />
-                  {:else if searchTerm}
-                    <button
-                      type="button"
-                      on:click={() => { searchTerm = ''; clients = []; }}
-                      class="text-gray-400 hover:text-gray-600"
-                    >
-                      <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                      </svg>
-                    </button>
-                  {/if}
-                </div>
-              </div>
-              <p class="mt-1 text-xs text-gray-500">Search by full name, CIN number, or worker number</p>
-            </div>
-          </div>
-
-          {#if clients.length > 0}
-            <div class="mt-4 space-y-2">
-              {#each clients as client}
-                <button
-                  type="button"
-                  on:click={() => selectClient(client)}
-                  class="w-full text-left p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                >
-                  <div class="flex justify-between items-center">
-                    <div class="flex-1">
-                      <p class="text-sm font-medium text-gray-900">{client.fullName}</p>
-                      <div class="flex space-x-4 mt-1">
-                        <p class="text-xs text-gray-500">CIN: {client.cin}</p>
-                        {#if client.clientNumber}
-                          <p class="text-xs text-gray-500">Worker #: {client.clientNumber}</p>
-                        {/if}
-                        {#if client.jobTitle}
-                          <p class="text-xs text-gray-500">Job: {client.jobTitle}</p>
-                        {/if}
-                      </div>
-                    </div>
-                    <svg class="h-5 w-5 text-gray-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                    </svg>
-                  </div>
-                </button>
-              {/each}
-            </div>
-          {:else if searchTerm.length >= 2 && !isSearching}
-            <div class="text-center py-8">
-              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0118 12a8 8 0 10-8 8 7.962 7.962 0 01-5.291-2z" />
-              </svg>
-              <h3 class="mt-2 text-sm font-medium text-gray-900">No clients found</h3>
-              <p class="mt-1 text-sm text-gray-500">No clients match your search criteria.</p>
-              <p class="mt-1 text-xs text-gray-400">Try searching by full name, CIN, or worker number.</p>
-            </div>
-          {:else if searchTerm.length > 0 && searchTerm.length < 2}
-            <p class="text-sm text-gray-500 text-center py-4">Please enter at least 2 characters to search.</p>
-          {/if}
-        </div>
-      {:else}
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div class="flex items-start">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-              </svg>
-            </div>
-            <div class="ml-3 flex-1">
-              <h3 class="text-sm font-medium text-blue-800">{$t('cessions.create.selected_client')}</h3>
-              <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <div>
-                  <p class="text-xs text-blue-700">{$t('cessions.create.name')}</p>
-                  <p class="text-sm font-medium text-blue-900">{cession.clientName}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-blue-700">{$t('cessions.create.cin')}</p>
-                  <p class="text-sm font-medium text-blue-900">{cession.clientCin}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-blue-700">{$t('cessions.create.client_number')}</p>
-                  <p class="text-sm font-medium text-blue-900">{cession.clientNumber}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-blue-700">{$t('cessions.create.job')}</p>
-                  <p class="text-sm font-medium text-blue-900">{cession.clientJob || 'Not specified'}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-blue-700">{$t('cessions.create.workplace')}</p>
-                  <p class="text-sm font-medium text-blue-900">{cession.clientWorkplace || 'Not specified'}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-blue-700">{$t('cessions.create.address')}</p>
-                  <p class="text-sm font-medium text-blue-900">{cession.clientAddress || 'Not specified'}</p>
-                </div>
-              </div>
-              <div class="mt-4">
-                <button
-                  type="button"
-                  on:click={() => {
-                    cession.clientId = null;
-                    cession.clientName = null;
-                    cession.clientNumber = null;
-                    cession.clientCin = null;
-                    cession.clientJob = null;
-                    cession.clientWorkplace = null;
-                    cession.clientAddress = null;
-                  }}
-                  class="text-sm text-blue-600 hover:text-blue-900"
-                >
-                  
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      {/if}
-    </div>
+  <!-- ...existing code... -->
 
     <!-- 🎯 Multi-Step Form Content -->
     <form on:submit|preventDefault={handleSubmit} class="space-y-8">
@@ -807,7 +665,7 @@
               {/if}
             </div>
           {:else}
-            <!-- Selected Client Preview -->
+            <!-- Selected Client Preview (green section only) -->
             <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-6" transition:scale={{ duration: 300 }}>
               <div class="flex items-start justify-between">
                 <div class="flex items-center space-x-4" class:space-x-reverse={isRTL}>
@@ -837,7 +695,6 @@
                   </svg>
                 </button>
               </div>
-              
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                 <div>
                   <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide">CIN</p>
