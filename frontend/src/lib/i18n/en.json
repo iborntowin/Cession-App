@@ -313,7 +313,6 @@
       "cessions": {
         "title": "Cessions",
         "details": {
-          "view_full_details": "View Full Details"
         },
         "view_all": "View All Cessions",
         "no_cessions": "No cessions found for this client",
@@ -330,7 +329,6 @@
       "worker_number": "Worker Number",
       "workplace": "Workplace",
       "create_cession": "Create Cession",
-      "view_full_details": "View Full Details",
       "status": {
         "active": "Active",
         "inactive": "Inactive"
@@ -389,7 +387,6 @@
       "cancelled": "Cancelled",
       "pending": "Pending"
     },
-    "view_full_details": "View Full Details",
     "title": "Cessions",
     "subtitle": "Manage your cessions",
     "new": "New Cession",
@@ -422,7 +419,8 @@
       "all_status": "All Statuses"
     },
     "results": {
-      "total_value": "Total Value"
+      "total_value": "Total Value",
+      "showing_results": "Showing {count} results"
     },
     "analytics": {
       "total_value": "Total Value",
@@ -479,8 +477,7 @@
         "add_payment_desc": "Add new payments",
         "add_payment_success": "Payment added successfully",
         "add_payment_error": "Failed to add payment",
-        "add_payment_success_desc": "Payment has been added successfully",
-        "view_full_details": "View Full Details"
+        "add_payment_success_desc": "Payment has been added successfully"
       },
       "view_profile": "View Profile"
     },

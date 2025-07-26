@@ -19,7 +19,6 @@
   let cessions = [];
   let filteredCessions = [];
   let selectedCession = null;
-  let searchTimeout;
   let isSearching = false;
   let searchSuggestions = [];
   let showSearchSuggestions = false;
@@ -189,13 +188,16 @@
     ];
   }
 
-  // 🔄 Auto Refresh System
+  // 🔄 Optimized Auto Refresh System
   function startAutoRefresh() {
     if (autoRefresh && !refreshInterval) {
       refreshInterval = setInterval(async () => {
-        await loadCessions();
-        generateInsights();
-      }, 30000); // Refresh every 30 seconds
+        // Only refresh if page is visible and user is active
+        if (document.visibilityState === 'visible') {
+          await loadCessions(true); // Force refresh for auto-refresh
+          generateInsights();
+        }
+      }, 60000); // Increased to 60 seconds
     }
   }
 
@@ -209,50 +211,81 @@
     }
   }
 
-  // 🔍 Smart Search with Suggestions
+  // 🔍 Optimized Smart Search with Debouncing
+  let searchTimeout;
+  let lastSearchQuery = '';
+  
   function handleSmartSearch() {
-    isSearching = true;
+    // Prevent duplicate searches
+    if (searchQuery === lastSearchQuery) return;
+    lastSearchQuery = searchQuery;
     
-    // Reset pagination when searching
-    currentPage = 1;
-    
-    // Generate search suggestions
-    if (searchQuery.length > 0) {
-      const suggestions = [];
-      const query = searchQuery.toLowerCase();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      isSearching = true;
       
-      // Client name suggestions
-      const clientNames = [...new Set(cessions.map(c => c.clientName))].filter(name => 
-        name && name.toLowerCase().includes(query)
-      );
-      suggestions.push(...clientNames.slice(0, 3).map(name => ({ type: 'client', value: name })));
+      // Reset pagination when searching
+      currentPage = 1;
       
-      // Status suggestions
-      const statuses = ['ACTIVE', 'FINISHED', 'CANCELLED', 'PENDING'].filter(status => 
-        status.toLowerCase().includes(query)
-      );
-      suggestions.push(...statuses.slice(0, 2).map(status => ({ type: 'status', value: status })));
+      // Generate search suggestions only if needed
+      if (searchQuery.length > 0 && searchQuery.length < 20) { // Limit suggestion generation
+        const suggestions = [];
+        const query = searchQuery.toLowerCase();
+        
+        // Client name suggestions (limit to prevent performance issues)
+        const clientNames = [...new Set(cessions.slice(0, 100).map(c => c.clientName))].filter(name => 
+          name && name.toLowerCase().includes(query)
+        );
+        suggestions.push(...clientNames.slice(0, 3).map(name => ({ type: 'client', value: name })));
+        
+        // Status suggestions
+        const statuses = ['ACTIVE', 'FINISHED', 'CANCELLED', 'PENDING'].filter(status => 
+          status.toLowerCase().includes(query)
+        );
+        suggestions.push(...statuses.slice(0, 2).map(status => ({ type: 'status', value: status })));
+        
+        searchSuggestions = suggestions.slice(0, 5);
+        showSearchSuggestions = suggestions.length > 0;
+      } else {
+        showSearchSuggestions = false;
+      }
       
-      searchSuggestions = suggestions.slice(0, 5);
-      showSearchSuggestions = suggestions.length > 0;
-    } else {
-      showSearchSuggestions = false;
-    }
-    
-    setTimeout(() => {
       isSearching = false;
       applyAdvancedFilters();
-    }, 300);
+    }, 400); // Increased debounce time
   }
 
-  // 📊 Enhanced Filtering System
+  // 📊 Optimized Filtering System with Memoization
+  let filterCache = new Map();
+  let lastFilterKey = '';
+  
   function applyAdvancedFilters() {
+    // Create cache key based on all filter parameters
+    const filterKey = JSON.stringify({
+      searchQuery,
+      smartFilters,
+      searchFields,
+      sortOptions,
+      currentPage,
+      itemsPerPage,
+      cessionsLength: cessions.length
+    });
+    
+    // Return cached result if unchanged
+    if (filterKey === lastFilterKey && filterCache.has(filterKey)) {
+      const cached = filterCache.get(filterKey);
+      filteredCessions = cached.filteredCessions;
+      paginatedCessions = cached.paginatedCessions;
+      totalPages = cached.totalPages;
+      return;
+    }
+
     let list = [...cessions];
 
-    // Apply smart filters
-    if (smartFilters.highValue) {
-      const avgAmount = analytics.avgLoanAmount;
-      list = list.filter(c => (c.totalLoanAmount || 0) > avgAmount * 1.5);
+    // Apply smart filters (optimized)
+    if (smartFilters.highValue && analytics.avgLoanAmount > 0) {
+      const threshold = analytics.avgLoanAmount * 1.5;
+      list = list.filter(c => (c.totalLoanAmount || 0) > threshold);
     }
     
     if (smartFilters.activeOnly) {
@@ -260,24 +293,23 @@
     }
 
     if (smartFilters.recentlyCreated) {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
       list = list.filter(c => {
-        const startDate = c.startDate ? new Date(c.startDate) : null;
-        return startDate && startDate >= thirtyDaysAgo;
+        const startDate = c.startDate ? new Date(c.startDate).getTime() : 0;
+        return startDate >= thirtyDaysAgo;
       });
-    }  
-  if (smartFilters.nearExpiry) {
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    }
+    
+    if (smartFilters.nearExpiry) {
+      const thirtyDaysFromNow = Date.now() + (30 * 24 * 60 * 60 * 1000);
       list = list.filter(c => {
-        const endDate = c.endDate ? new Date(c.endDate) : null;
-        return endDate && endDate <= thirtyDaysFromNow;
+        const endDate = c.endDate ? new Date(c.endDate).getTime() : 0;
+        return endDate > 0 && endDate <= thirtyDaysFromNow;
       });
     }
 
-    // Apply search query
-    if (searchQuery) {
+    // Apply search query (optimized)
+    if (searchQuery && searchQuery.length > 0) {
       const query = searchQuery.toLowerCase();
       list = list.filter(c => 
         c.clientName?.toLowerCase().includes(query) ||
@@ -287,58 +319,64 @@
       );
     }
 
-    // Apply traditional filters
-    list = list.filter(cession => {
-      const matchesClientId = !searchFields.clientId || cession.clientId === searchFields.clientId;
-      const matchesName = !searchFields.clientName || 
-        cession.clientName?.toLowerCase().includes(searchFields.clientName.toLowerCase());
-      const matchesCin = !searchFields.clientCin || 
-        cession.clientCin?.toString().includes(searchFields.clientCin);
-      const matchesNumber = !searchFields.clientNumber || 
-        cession.clientNumber?.toString().includes(searchFields.clientNumber);
-      const matchesAmount = !searchFields.amount || 
-        cession.totalLoanAmount?.toString().includes(searchFields.amount);
-      const matchesStatus = searchFields.status === 'all' || 
-        cession.status?.toLowerCase() === searchFields.status.toLowerCase();
+    // Apply traditional filters (optimized)
+    if (searchFields.clientId || searchFields.clientName || searchFields.clientCin || 
+        searchFields.clientNumber || searchFields.amount || searchFields.status !== 'all' ||
+        searchFields.dateRange.start || searchFields.dateRange.end) {
+      
+      list = list.filter(cession => {
+        if (searchFields.clientId && cession.clientId !== searchFields.clientId) return false;
+        if (searchFields.clientName && !cession.clientName?.toLowerCase().includes(searchFields.clientName.toLowerCase())) return false;
+        if (searchFields.clientCin && !cession.clientCin?.toString().includes(searchFields.clientCin)) return false;
+        if (searchFields.clientNumber && !cession.clientNumber?.toString().includes(searchFields.clientNumber)) return false;
+        if (searchFields.amount && !cession.totalLoanAmount?.toString().includes(searchFields.amount)) return false;
+        if (searchFields.status !== 'all' && cession.status?.toLowerCase() !== searchFields.status.toLowerCase()) return false;
 
-      const startDate = searchFields.dateRange.start ? new Date(searchFields.dateRange.start) : null;
-      const endDate = searchFields.dateRange.end ? new Date(searchFields.dateRange.end) : null;
-      const cessionDate = cession.startDate ? new Date(cession.startDate) : null;
-      const matchesDateRange = (!startDate || (cessionDate && cessionDate >= startDate)) &&
-                              (!endDate || (cessionDate && cessionDate <= endDate));
+        // Date range check (optimized)
+        if (searchFields.dateRange.start || searchFields.dateRange.end) {
+          const cessionTime = cession.startDate ? new Date(cession.startDate).getTime() : 0;
+          const startTime = searchFields.dateRange.start ? new Date(searchFields.dateRange.start).getTime() : 0;
+          const endTime = searchFields.dateRange.end ? new Date(searchFields.dateRange.end).getTime() : Infinity;
+          
+          if (startTime && cessionTime < startTime) return false;
+          if (endTime !== Infinity && cessionTime > endTime) return false;
+        }
 
-      return matchesClientId && matchesName && matchesCin && matchesNumber && matchesAmount && matchesStatus && matchesDateRange;
-    });
+        return true;
+      });
+    }
 
-    // Apply sorting
-    list.sort((a, b) => {
-      let aValue = a[sortOptions.field];
-      let bValue = b[sortOptions.field];
+    // Apply sorting (optimized)
+    if (sortOptions.field && sortOptions.order) {
+      list.sort((a, b) => {
+        let aValue = a[sortOptions.field];
+        let bValue = b[sortOptions.field];
 
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return sortOptions.order === 'asc' ? 1 : -1;
-      if (bValue == null) return sortOptions.order === 'asc' ? -1 : 1;
+        if (aValue == null && bValue == null) return 0;
+        if (aValue == null) return sortOptions.order === 'asc' ? 1 : -1;
+        if (bValue == null) return sortOptions.order === 'asc' ? -1 : 1;
 
-      if (sortOptions.field === 'startDate' || sortOptions.field === 'endDate') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
-      }
+        if (sortOptions.field === 'startDate' || sortOptions.field === 'endDate') {
+          aValue = new Date(aValue).getTime();
+          bValue = new Date(bValue).getTime();
+        }
 
-      if (typeof aValue === 'number') {
-        return sortOptions.order === 'asc' ? aValue - bValue : bValue - aValue;
-      }
+        if (typeof aValue === 'number') {
+          return sortOptions.order === 'asc' ? aValue - bValue : bValue - aValue;
+        }
 
-      if (typeof aValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
+        if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
 
-      return sortOptions.order === 'asc' 
-        ? aValue > bValue ? 1 : aValue < bValue ? -1 : 0
-        : aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-    });
+        return sortOptions.order === 'asc' 
+          ? aValue > bValue ? 1 : aValue < bValue ? -1 : 0
+          : aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      });
+    }
 
-    // Store all filtered results
+    // Store filtered results
     filteredCessions = list;
     
     // Calculate pagination
@@ -348,14 +386,46 @@
     // Apply pagination
     const start = (currentPage - 1) * itemsPerPage;
     paginatedCessions = filteredCessions.slice(start, start + itemsPerPage);
+
+    // Cache the results (limit cache size)
+    if (filterCache.size > 10) {
+      filterCache.clear();
+    }
+    filterCache.set(filterKey, {
+      filteredCessions: [...filteredCessions],
+      paginatedCessions: [...paginatedCessions],
+      totalPages
+    });
+    lastFilterKey = filterKey;
   }
 
-  async function loadCessions() {
+  // Optimized loading with caching
+  let isLoadingCessions = false;
+  let lastCessionsLoadTime = 0;
+  const CESSIONS_CACHE_DURATION = 30000; // 30 seconds
+
+  async function loadCessions(forceRefresh = false) {
+    const now = Date.now();
+    
+    // Prevent multiple simultaneous loads
+    if (isLoadingCessions) return;
+    
+    // Use cache if recent and not forced refresh
+    if (!forceRefresh && cessions.length > 0 && (now - lastCessionsLoadTime) < CESSIONS_CACHE_DURATION) {
+      applyAdvancedFilters();
+      return;
+    }
+
+    isLoadingCessions = true;
     $loading = true;
+    
     try {
       const response = await cessionsApi.getAll();
       if (response && Array.isArray(response)) {
         cessions = response;
+        lastCessionsLoadTime = now;
+        // Clear filter cache when data changes
+        filterCache.clear();
         applyAdvancedFilters();
       }
     } catch (error) {
@@ -363,6 +433,7 @@
       showAlert(error.message || 'Failed to load cessions', 'error');
     } finally {
       $loading = false;
+      isLoadingCessions = false;
     }
   }
 
@@ -482,8 +553,10 @@
     }
   }
 
-  // Watch for search query changes
-  $: if (searchQuery !== undefined) {
+  // Optimized reactive search - only trigger when actually changed
+  let previousSearchQuery = '';
+  $: if (searchQuery !== previousSearchQuery) {
+    previousSearchQuery = searchQuery;
     handleSmartSearch();
   }
 

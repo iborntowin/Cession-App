@@ -1,108 +1,178 @@
 #!/usr/bin/env pwsh
-# Tauri Build Script for Cession Management App
-# This script builds the backend, frontend, and creates the Tauri executable
+# Complete Tauri Build Workflow Script
+# 1. Builds Spring Boot backend
+# 2. Copies JAR to Tauri directories
+# 3. Builds Tauri application
 
-Write-Host "Building Cession Management App with Tauri..." -ForegroundColor Green
+param(
+    [switch]$Verbose = $false,
+    [switch]$SkipBackendBuild = $false,
+    [switch]$Force = $false
+)
 
-# Check if Java is installed
-Write-Host "Checking Java installation..." -ForegroundColor Yellow
-try {
-    $javaVersion = java -version 2>&1 | Select-String "version"
-    Write-Host "[OK] Java found: $javaVersion" -ForegroundColor Green
-} catch {
-    Write-Host "[ERROR] Java not found. Please install Java 17 or higher." -ForegroundColor Red
-    exit 1
-}
+$ErrorActionPreference = "Stop"
 
-# Check if Rust is installed
-Write-Host "Checking Rust installation..." -ForegroundColor Yellow
-try {
-    $rustVersion = rustc --version
-    Write-Host "[OK] Rust found: $rustVersion" -ForegroundColor Green
-} catch {
-    Write-Host "[ERROR] Rust not found. Please install Rust from https://rustup.rs/" -ForegroundColor Red
-    exit 1
-}
-
-# Step 1: Build the backend
-Write-Host "Building Spring Boot backend..." -ForegroundColor Yellow
-Set-Location backend
-try {
-    mvn clean package -DskipTests
-    if ($LASTEXITCODE -ne 0) {
-        throw "Maven build failed"
+function Invoke-Step {
+    param(
+        [string]$StepName,
+        [scriptblock]$Command,
+        [string]$ErrorMessage = "Step failed"
+    )
+    Write-Host "[$StepName] Starting..." -ForegroundColor Yellow
+    try {
+        & $Command
+        if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+            throw "$ErrorMessage (Exit code: $LASTEXITCODE)"
+        }
+        Write-Host "[$StepName] Success" -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "[$StepName] Failed: $_" -ForegroundColor Red
+        return $false
     }
-    Write-Host "[OK] Backend built successfully" -ForegroundColor Green
-} catch {
-    Write-Host "[ERROR] Backend build failed: $_" -ForegroundColor Red
-    Set-Location ..
-    exit 1
 }
-Set-Location ..
 
-# Step 2: Copy backend JAR to Tauri resources
-Write-Host "Managing backend JAR for Tauri build..." -ForegroundColor Yellow
-try {
-    & .\copy-backend-jar.ps1 -Verbose -Force
-    if ($LASTEXITCODE -ne 0) {
-        throw "JAR management script failed"
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  TAURI COMPLETE BUILD WORKFLOW" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+
+# 1. Build Spring Boot Backend
+$backendBuilt = $false
+if (-not $SkipBackendBuild) {
+    Write-Host "STEP 1: Build Spring Boot Backend" -ForegroundColor Magenta
+    Write-Host "=================================" -ForegroundColor Magenta
+    
+    $backendBuilt = Invoke-Step "Maven Build" {
+        Set-Location backend
+        mvn clean package -DskipTests -Dspring.profiles.active=desktop --batch-mode
+        Set-Location ..
+    } "Backend build failed"
+    
+    if (-not $backendBuilt) {
+        exit 1
     }
-} catch {
-    Write-Host "[ERROR] Failed to manage backend JAR: $_" -ForegroundColor Red
-    exit 1
-}
-
-# Step 3: Install frontend dependencies
-Write-Host "Installing frontend dependencies..." -ForegroundColor Yellow
-Set-Location frontend
-try {
-    npm install
-    if ($LASTEXITCODE -ne 0) {
-        throw "npm install failed"
+    
+    $jarPath = "backend/target/cession-app-backend-0.0.1-SNAPSHOT.jar"
+    if (-not (Test-Path $jarPath)) {
+        Write-Host "JAR NOT FOUND: $jarPath" -ForegroundColor Red
+        exit 1
     }
-    Write-Host "[OK] Frontend dependencies installed" -ForegroundColor Green
-} catch {
-    Write-Host "[ERROR] Frontend dependency installation failed: $_" -ForegroundColor Red
-    Set-Location ..
+    $jarSize = [math]::Round((Get-Item $jarPath).Length / 1MB, 2)
+    Write-Host "Backend JAR built: $jarSize MB" -ForegroundColor Green
+    Write-Host ""
+} else {
+    Write-Host "Skipping backend build as requested" -ForegroundColor Yellow
+    Write-Host ""
+}
+
+# 2. Copy JAR to Tauri directories
+Write-Host "STEP 2: Copy JAR to Tauri Directories" -ForegroundColor Magenta
+Write-Host "=====================================" -ForegroundColor Magenta
+
+$sourceJar = "backend/target/cession-app-backend-0.0.1-SNAPSHOT.jar"
+if (-not (Test-Path $sourceJar)) {
+    Write-Host "Source JAR not found: $sourceJar" -ForegroundColor Red
+    Write-Host "Please build the backend first or remove -SkipBackendBuild flag" -ForegroundColor Yellow
     exit 1
 }
 
-# Step 4: Build the frontend
-Write-Host "Building Svelte frontend..." -ForegroundColor Yellow
-try {
-    npm run build
-    if ($LASTEXITCODE -ne 0) {
-        throw "Frontend build failed"
+# Create required directories
+$directories = @(
+    "frontend/src-tauri/backend",
+    "frontend/src-tauri/target/debug/backend",
+    "frontend/src-tauri/target/release/backend",
+    "frontend/src-tauri/resources/backend"
+)
+
+foreach ($dir in $directories) {
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        if ($Verbose) {
+            Write-Host "Created directory: $dir" -ForegroundColor Gray
+        }
     }
-    Write-Host "[OK] Frontend built successfully" -ForegroundColor Green
-} catch {
-    Write-Host "[ERROR] Frontend build failed: $_" -ForegroundColor Red
-    Set-Location ..
+}
+
+# Define copy targets
+$destinations = @(
+    "frontend/src-tauri/backend/cession-app-backend-0.0.1-SNAPSHOT.jar",
+    "frontend/src-tauri/backend/app.jar",
+    "frontend/src-tauri/target/debug/backend/cession-app-backend-0.0.1-SNAPSHOT.jar",
+    "frontend/src-tauri/target/debug/backend/app.jar",
+    "frontend/src-tauri/target/release/backend/cession-app-backend-0.0.1-SNAPSHOT.jar",
+    "frontend/src-tauri/target/release/backend/app.jar",
+    "frontend/src-tauri/resources/backend/cession-app-backend-0.0.1-SNAPSHOT.jar",
+    "frontend/src-tauri/resources/backend/app.jar"
+)
+
+# Perform copy operations
+$copySuccess = $true
+foreach ($dest in $destinations) {
+    try {
+        Copy-Item $sourceJar $dest -Force
+        if ($Verbose) {
+            Write-Host "Copied to: $dest" -ForegroundColor Gray
+        }
+    } catch {
+        Write-Host "Failed to copy to: $dest" -ForegroundColor Red
+        Write-Host "Error: $_" -ForegroundColor Red
+        $copySuccess = $false
+    }
+}
+
+if (-not $copySuccess) {
+    Write-Host "Some JAR copies failed. Check errors above." -ForegroundColor Red
     exit 1
 }
 
-# Step 5: Build Tauri app
-Write-Host "Building Tauri executable..." -ForegroundColor Yellow
-try {
+Write-Host "JAR copied to $($destinations.Count) locations" -ForegroundColor Green
+Write-Host ""
+
+# 3. Build Tauri application
+Write-Host "STEP 3: Build Tauri Application" -ForegroundColor Magenta
+Write-Host "==============================" -ForegroundColor Magenta
+
+# Update Tauri configuration
+Write-Host "Updating Tauri configuration..." -ForegroundColor Yellow
+$configPath = "frontend/src-tauri/tauri.conf.json"
+if (Test-Path $configPath) {
+    try {
+        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+        $cfg.bundle.resources = @("backend/app.jar")
+        $cfg.app.security.csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:8082 http://localhost:8083 http://localhost:8084 http://localhost:8085;"
+        $cfg | ConvertTo-Json -Depth 10 | Set-Content $configPath
+        Write-Host "tauri.conf.json updated" -ForegroundColor Green
+    } catch {
+        Write-Host "Could not update config: $_" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "tauri.conf.json not found – skipping update" -ForegroundColor Yellow
+}
+Write-Host ""
+
+# Run Tauri build
+Set-Location frontend/src-tauri
+Write-Host "Building Tauri application from: $(Get-Location)" -ForegroundColor Cyan
+Write-Host "This may take several minutes..." -ForegroundColor Yellow
+Write-Host ""
+
+$buildSuccess = Invoke-Step "Tauri Build" {
     npm run tauri build
-    if ($LASTEXITCODE -ne 0) {
-        throw "Tauri build failed"
-    }
-    Write-Host "[OK] Tauri app built successfully!" -ForegroundColor Green
-} catch {
-    Write-Host "[ERROR] Tauri build failed: $_" -ForegroundColor Red
-    Set-Location ..
+} "Tauri build failed"
+
+Set-Location ../..
+
+if ($buildSuccess) {
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "  BUILD COMPLETED SUCCESSFULLY!" -ForegroundColor Green
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "Tauri application built in: frontend/src-tauri/target/release" -ForegroundColor White
+} else {
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "  BUILD FAILED!" -ForegroundColor Red
+    Write-Host "========================================" -ForegroundColor Cyan
     exit 1
 }
-
-Set-Location ..
-
-# Step 6: Show build results
-Write-Host "Build completed successfully!" -ForegroundColor Green
-Write-Host ""
-Write-Host "Build artifacts can be found in:" -ForegroundColor Cyan
-Write-Host "  - Windows: frontend/src-tauri/target/release/bundle/msi/" -ForegroundColor White
-Write-Host "  - Executable: frontend/src-tauri/target/release/cession-app-frontend.exe" -ForegroundColor White
-Write-Host ""
-Write-Host "To run the development version:" -ForegroundColor Cyan
-Write-Host "  cd frontend && npm run tauri dev" -ForegroundColor White

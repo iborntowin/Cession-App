@@ -10,6 +10,10 @@
   import { t } from '$lib/i18n';
   import { slide, fade, fly, scale, blur } from 'svelte/transition';
   import { quintOut, cubicOut, elasticOut } from 'svelte/easing';
+  import { PerformanceMonitor } from '$lib/utils/performance.js';
+
+  // Initialize performance monitoring
+  const perfMonitor = new PerformanceMonitor('InventoryPage');
   
   // Helper function for debouncing
   function debounce(func, wait) {
@@ -24,12 +28,17 @@
     };
   }
   
-  // 🎯 Core Data & State Management
+  // 🎯 Core Data & State Management with Stability
   let products = [];
   let categories = [];
   let recentMovements = [];
   let inventoryAnalytics = {};
   let error = null;
+  
+  // Stable rendering state
+  let renderKey = 0;
+  let isDataStable = false;
+  let stabilityTimeout = null;
   
   // 🔍 Advanced Search & Filtering
   let searchQuery = '';
@@ -135,7 +144,8 @@
       if (result.success) {
         showAlert($t('inventory.restock.success', { quantity: restockQuantity, product: restockProduct.name }), 'success');
         showRestockModal = false;
-        await loadAll();
+        // Force refresh to get updated data
+        await loadAll(true);
       } else {
         showAlert(result.error || $t('inventory.restock.error'), 'error');
       }
@@ -161,17 +171,70 @@
 
   // 🚀 Initialize the Inventory Intelligence Platform
   onMount(async () => {
+    perfMonitor.trackRender();
+    
     if (!$user) {
       showAlert($t('inventory.validation.login_required'), 'error');
       goto('/login');
       return;
     }
-    await loadAll();
+    
+    // Track loading performance
+    const trackedLoadAll = perfMonitor.trackAsyncFunction('loadAll', loadAll);
+    await trackedLoadAll();
     startAutoRefresh();
+    
+    // Log performance report after 10 seconds
+    const reportTimeout = setTimeout(() => {
+      perfMonitor.logReport();
+    }, 10000);
+    
+    // Cleanup function
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+      clearTimeout(reportTimeout);
+      
+      // Clear caches to prevent memory leaks
+      searchCache.clear();
+      analyticsCache = null;
+      
+      if (browser) {
+        document.removeEventListener('visibilitychange', () => {});
+      }
+    };
   });
 
-  async function loadAll() {
+  // Optimized loading with caching and error handling
+  let isLoading = false;
+  let lastLoadTime = 0;
+  const CACHE_DURATION = 30000; // 30 seconds cache
+
+  // Completely stable loading with batch updates
+  async function loadAll(forceRefresh = false) {
+    const now = Date.now();
+    
+    // Prevent multiple simultaneous loads
+    if (isLoading) return;
+    
+    // Use cache if recent and not forced refresh
+    if (!forceRefresh && searchCache.has('__all__') && (now - lastLoadTime) < CACHE_DURATION) {
+      const cachedProducts = searchCache.get('__all__');
+      // Only update if actually different
+      if (JSON.stringify(cachedProducts) !== JSON.stringify(products)) {
+        products = [...cachedProducts];
+        buildInventoryAnalytics();
+        detectStockAlerts();
+        refreshFilteredProducts();
+      }
+      return;
+    }
+
+    isLoading = true;
     loading.set(true);
+    
     try {
       const [productsRes, categoriesRes, movementsRes] = await Promise.all([
         productsApi.getAll(),
@@ -179,22 +242,58 @@
         stockMovementsApi.getRecent('OUTBOUND', 10)
       ]);
 
-      products = productsRes.success ? productsRes.data : [];
-      categories = categoriesRes.success ? categoriesRes.data : [];
-      recentMovements = movementsRes.success ? movementsRes.data : [];
+      // Batch all updates together to prevent flickering
+      const newProducts = productsRes.success ? productsRes.data : [];
+      const newCategories = categoriesRes.success ? categoriesRes.data : [];
+      const newMovements = movementsRes.success ? movementsRes.data : [];
 
-      buildInventoryAnalytics();
-      detectStockAlerts();
+      // Only update if data actually changed
+      const productsChanged = JSON.stringify(newProducts) !== JSON.stringify(products);
+      const categoriesChanged = JSON.stringify(newCategories) !== JSON.stringify(categories);
+      const movementsChanged = JSON.stringify(newMovements) !== JSON.stringify(recentMovements);
+
+      if (productsChanged || categoriesChanged || movementsChanged) {
+        // Batch update all state at once
+        products = [...newProducts];
+        categories = [...newCategories];
+        recentMovements = [...newMovements];
+
+        // Cache the results
+        searchCache.set('__all__', [...products]);
+        lastLoadTime = now;
+
+        // Update derived data
+        buildInventoryAnalytics();
+        detectStockAlerts();
+        refreshFilteredProducts();
+      }
     } catch (e) {
       error = e.message;
       showAlert($t('inventory.validation.load_error'), 'error');
     } finally {
       loading.set(false);
+      isLoading = false;
     }
   }
 
-  // 📊 Build Advanced Analytics
+  // 📊 Optimized Analytics with Memoization
+  let analyticsCache = null;
+  let analyticsCacheKey = '';
+
   function buildInventoryAnalytics() {
+    // Create cache key based on products and categories
+    const cacheKey = `${products.length}-${categories.length}-${products.map(p => `${p.id}-${p.stock_quantity}-${p.selling_price}`).join(',')}`;
+    
+    // Return cached result if unchanged
+    if (analyticsCache && analyticsCacheKey === cacheKey) {
+      inventoryAnalytics = analyticsCache.inventoryAnalytics;
+      lowStockItems = analyticsCache.lowStockItems;
+      profitMargins = analyticsCache.profitMargins;
+      topSellingProducts = analyticsCache.topSellingProducts;
+      return;
+    }
+
+    // Calculate analytics
     const totalValue = products.reduce((sum, p) => sum + (p.stock_quantity * p.selling_price), 0);
     const totalItems = products.reduce((sum, p) => sum + p.stock_quantity, 0);
     
@@ -211,9 +310,7 @@
       .filter(p => p.selling_price > 0 && p.stock_quantity > 0)
       .map(p => ({
         ...p,
-        // Calculate estimated sales based on stock turnover (higher turnover = more sales)
         salesCount: Math.max(1, Math.floor((p.reorder_point || 10) * 2.5)),
-        // Calculate revenue based on realistic sales volume
         revenue: Math.max(100, Math.floor((p.reorder_point || 10) * 2.5 * p.selling_price))
       }))
       .sort((a, b) => b.revenue - a.revenue)
@@ -227,6 +324,34 @@
       avgMargin: profitMargins.reduce((sum, p) => sum + p.margin, 0) / profitMargins.length || 0,
       categories: categories.length
     };
+
+    // Cache the results
+    analyticsCache = {
+      inventoryAnalytics,
+      lowStockItems: [...lowStockItems],
+      profitMargins: [...profitMargins],
+      topSellingProducts: [...topSellingProducts]
+    };
+    analyticsCacheKey = cacheKey;
+    
+    // Trigger stable rendering
+    triggerStableRender();
+  }
+  
+  // Stable rendering system
+  function triggerStableRender() {
+    isDataStable = false;
+    renderKey++;
+    
+    // Clear any existing timeout
+    if (stabilityTimeout) {
+      clearTimeout(stabilityTimeout);
+    }
+    
+    // Set data as stable after a short delay
+    stabilityTimeout = setTimeout(() => {
+      isDataStable = true;
+    }, 100);
   }
 
   // 🚨 Detect Stock Alerts
@@ -255,10 +380,15 @@
     });
   }
 
-  // 🔄 Auto Refresh
+  // 🔄 Optimized Auto Refresh
   function startAutoRefresh() {
     if (autoRefresh && !refreshInterval) {
-      refreshInterval = setInterval(loadAll, 30000); // Refresh every 30 seconds
+      refreshInterval = setInterval(() => {
+        // Only refresh if user is active and page is visible
+        if (document.visibilityState === 'visible') {
+          loadAll(true); // Force refresh for auto-refresh
+        }
+      }, 60000); // Increased to 60 seconds to reduce load
     }
   }
 
@@ -272,43 +402,103 @@
     }
   }
 
-  function handleSearch() {
-    if (!searchQuery.trim()) {
-      loadAll(); // Load all products if search is empty
+  // Cleanup on page visibility change
+  if (browser) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden' && refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      } else if (document.visibilityState === 'visible' && autoRefresh) {
+        startAutoRefresh();
+      }
+    });
+  }
+
+  // Optimized debounced search with caching
+  let searchCache = new Map();
+  let lastSearchQuery = '';
+  
+  const debouncedSearch = debounce(async (query) => {
+    // Prevent duplicate searches
+    if (query === lastSearchQuery) return;
+    lastSearchQuery = query;
+    
+    if (!query.trim()) {
+      if (searchCache.has('__all__')) {
+        const cachedProducts = searchCache.get('__all__');
+        // Only update if different
+        if (JSON.stringify(cachedProducts) !== JSON.stringify(products)) {
+          products = [...cachedProducts];
+          buildInventoryAnalytics();
+          detectStockAlerts();
+          refreshFilteredProducts();
+        }
+        return;
+      }
+      await loadAll();
+      return;
+    }
+
+    // Check cache first
+    if (searchCache.has(query)) {
+      const cachedResults = searchCache.get(query);
+      // Only update if different
+      if (JSON.stringify(cachedResults) !== JSON.stringify(products)) {
+        products = [...cachedResults];
+        buildInventoryAnalytics();
+        detectStockAlerts();
+        refreshFilteredProducts();
+      }
       return;
     }
 
     isSearching = true;
-    debounce(async () => {
-      try {
-        if (!$token) {
-          showAlert($t('inventory.validation.login_required'), 'error');
-          goto('/login');
-          return;
-        }
+    try {
+      if (!$token) {
+        showAlert($t('inventory.validation.login_required'), 'error');
+        goto('/login');
+        return;
+      }
 
-        const response = await productsApi.search(searchQuery);
-        if (response.success) {
-          products = response.data;
+      const response = await productsApi.search(query);
+      if (response.success) {
+        const searchResults = response.data || [];
+        // Only update if different
+        if (JSON.stringify(searchResults) !== JSON.stringify(products)) {
+          products = [...searchResults];
+          // Cache the result
+          searchCache.set(query, [...searchResults]);
           buildInventoryAnalytics();
           detectStockAlerts();
-        } else {
-          showAlert(response.error || $t('inventory.validation.search_error'), 'error');
-          await loadAll(); // Fallback to loading all products
+          refreshFilteredProducts();
         }
-      } catch (err) {
-        console.error('Search error:', err);
-        showAlert(err.message || $t('inventory.validation.search_error'), 'error');
-        await loadAll(); // Fallback to loading all products
-      } finally {
-        isSearching = false;
+      } else {
+        showAlert(response.error || $t('inventory.validation.search_error'), 'error');
+        await loadAll();
       }
-    }, 300)();
-  }
+    } catch (err) {
+      console.error('Search error:', err);
+      showAlert(err.message || $t('inventory.validation.search_error'), 'error');
+      await loadAll();
+    } finally {
+      isSearching = false;
+    }
+  }, 800); // Further increased debounce time
 
-  // Watch for changes in search query
-  $: if (searchQuery !== undefined) {
-    handleSearch();
+  function handleSearchInput(event) {
+    const query = event.target.value;
+    searchQuery = query;
+    debouncedSearch(query);
+  }
+  
+  // Handle category filter changes manually
+  function handleCategoryChange(event) {
+    const newCategoryId = event.target.value;
+    if (newCategoryId !== selectedCategoryId) {
+      selectedCategoryId = newCategoryId;
+      refreshFilteredProducts();
+      triggerStableRender();
+    }
   }
 
   function handleEditProduct(product) {
@@ -322,7 +512,8 @@
         const result = await productsApi.delete(product.id);
         if (result.success) {
           showAlert($t('inventory.delete.success'), 'success');
-          await loadAll();
+          // Force refresh to get updated data
+          await loadAll(true);
         } else {
           showAlert(result.error || $t('inventory.delete.error'), 'error');
         }
@@ -352,7 +543,8 @@
         showAlert($t('inventory.create.success'), 'success');
         showAddModal = false;
         resetAddProductForm();
-        await loadAll();
+        // Force refresh to get new data
+        await loadAll(true);
       } else {
         showAlert(result.error || $t('inventory.create.error'), 'error');
       }
@@ -384,10 +576,34 @@
     currentStep = 1; // Reset to first step
   }
 
-  // Filtered products based on category
-  $: filteredProducts = selectedCategoryId
-    ? products.filter(p => p.category_id == selectedCategoryId)
-    : products;
+  // Completely stable filtered products with manual updates only
+  let filteredProducts = [];
+  let lastFilterKey = '';
+  let stableProducts = []; // Stable reference to prevent flickering
+
+  function updateFilteredProducts() {
+    const filterKey = `${selectedCategoryId}-${products.length}-${products.map(p => p.id).join(',')}`;
+    
+    if (filterKey === lastFilterKey) return;
+    
+    // Create stable reference
+    const newFiltered = selectedCategoryId
+      ? products.filter(p => p.category_id == selectedCategoryId)
+      : [...products];
+    
+    // Only update if actually different
+    if (JSON.stringify(newFiltered) !== JSON.stringify(filteredProducts)) {
+      filteredProducts = newFiltered;
+      stableProducts = [...newFiltered]; // Create stable copy
+    }
+    
+    lastFilterKey = filterKey;
+  }
+
+  // Manual update function - no reactive statements
+  function refreshFilteredProducts() {
+    updateFilteredProducts();
+  }
 </script>
 
 <svelte:head>
@@ -628,7 +844,8 @@
           <div class="relative">
             <input
               type="text"
-              bind:value={searchQuery}
+              value={searchQuery}
+              on:input={handleSearchInput}
               placeholder="🔍 Search products, SKUs, categories..."
               class="w-full pl-12 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
             />
@@ -650,7 +867,7 @@
 
         <!-- Smart Filters -->
         <div class="flex flex-wrap gap-3">
-          <select bind:value={selectedCategoryId} class="px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700">
+          <select value={selectedCategoryId} on:change={handleCategoryChange} class="px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700">
             <option value="">{$t('inventory.filters.all_categories')}</option>
             {#each categories as category}
               <option value={category.id}>{category.name}</option>
@@ -751,10 +968,22 @@
         </button>
       </div>
     {:else}
-      <!-- Products Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {#each filteredProducts as product}
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group" transition:scale={{ duration: 200 }}>
+      <!-- Products Grid with Stable Rendering -->
+      <div class="relative">
+        <!-- Loading Overlay -->
+        {#if !isDataStable}
+          <div class="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+            <div class="flex items-center space-x-3">
+              <div class="w-6 h-6 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
+              <span class="text-sm font-medium text-gray-600">Updating...</span>
+            </div>
+          </div>
+        {/if}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {#each stableProducts as product (product.id)}
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group"
+            >
             <!-- Product Image Placeholder -->
             <div class="w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl mb-4 flex items-center justify-center group-hover:from-blue-50 group-hover:to-indigo-50 transition-all duration-300">
               {#if product.image_url}
@@ -855,7 +1084,8 @@
               </div>
             </div>
           </div>
-        {/each}
+          {/each}
+        </div>
       </div>
     {/if}
   </div>
@@ -1121,7 +1351,7 @@
 {#if showCategoryModal}
   <CategoryModal
     bind:show={showCategoryModal}
-    on:save={loadAll}
+    on:save={() => loadAll(true)}
     on:close={() => showCategoryModal = false}
   />
 {/if}
@@ -1131,7 +1361,7 @@
     bind:show={showEditModal}
     product={selectedProduct}
     {categories}
-    on:save={loadAll}
+    on:save={() => loadAll(true)}
     on:close={() => {
       showEditModal = false;
       selectedProduct = null;

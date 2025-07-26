@@ -312,7 +312,6 @@
       "cessions": {
         "title": "الإحالات",
         "details": {
-          "view_full_details": "عرض التفاصيل الكاملة"
         },
         "view_all": "عرض جميع الإحالات",
         "no_cessions": "لا توجد الإحالةات لهذا العميل",
@@ -329,7 +328,6 @@
       "worker_number": "رقم العامل",
       "workplace": "مكان العمل",
       "create_cession": "إنشاء الإحالة",
-      "view_full_details": "عرض التفاصيل الكاملة",
       "status": {
         "active": "نشط",
         "inactive": "غير نشط"
@@ -382,7 +380,6 @@
     }
   },
   "cessions": {
-    "view_full_details": "عرض التفاصيل الكاملة",
     "title": "الإحالات",
     "subtitle": "إدارة الإحالات",
     "new": "الإحالة جديد",
@@ -411,7 +408,8 @@
       "all_status": "جميع الحالات"
     },
     "results": {
-      "total_value": "القيمة الإجمالية"
+      "total_value": "القيمة الإجمالية",
+      "showing_results": "عرض {count} نتيجة"
     },
     "analytics": {
       "total_value": "القيمة الإجمالية",
@@ -468,8 +466,7 @@
         "add_payment_desc": "إضافة مدفوعات جديدة",
         "add_payment_success": "تم إضافة الدفعة بنجاح",
         "add_payment_error": "فشل إضافة الدفعة",
-        "add_payment_success_desc": "تم إضافة الدفعة بنجاح",
-        "view_full_details": "عرض التفاصيل الكاملة"
+        "add_payment_success_desc": "تم إضافة الدفعة بنجاح"
       },
       "view_profile": "عرض الملف الشخصي"
     },
@@ -814,6 +811,10 @@
     "description": "الوصف"
   },
   "finance": {
+    "expenses": {
+      "title": "المصروفات",
+      "add": "إضافة مصروف"
+    },
     "title": "التتبع المالي",
     "subtitle": "راقب مصروفاتك ومبيعاتك",
     "dashboard": {
@@ -884,45 +885,41 @@
       "download": "تحميل التقرير",
       "print": "طباعة التقرير"
     },
-    "sales": {
-      "total": "مبيعات",
-      "no_data": "لا توجد بيانات مبيعات متاحة"
-    },
-    "export": {
-      "title": "تصدير البيانات",
-      "description": "اختر تنسيق التصدير المفضل لديك",
-      "options": {
-        "pdf": "تقرير PDF",
-        "excel": "جدول Excel",
-        "csv": "ملف CSV"
-      },
+   
+    
       "generate": "إنشاء التصدير"
     },
+    
+    "income_summary": {
+      "title": "ملخص الدخل",
+      "subtitle": "تتبع دخلك الشهري",
+      "total_income": "إجمالي الدخل",
+      "average_income": "متوسط الدخل",
+      "income_by_category": "الدخل حسب الفئة",
+      "no_income_data": "لا توجد بيانات دخل متاحة"
+    },
+    "expenses_summary": {
+      "title": "ملخص المصروفات",
+      "subtitle": "تتبع مصروفاتك الشهرية",
+      "total_expenses": "إجمالي المصروفات",
+      "average_expenses": "متوسط المصروفات",
+      "expenses_by_category": "المصروفات حسب الفئة",  
+      "no_expenses_data": "لا توجد بيانات مصروفات متاحة"
+    },
     "income": {
+      "title": "الدخل",
       "add": "إضافة دخل",
-      "form_placeholder": "نموذج الدخل سيكون متاحاً قريباً"
+      "no_income": "لم يتم العثور على دخل",
+      "columns": {
+        "date": "التاريخ",
+        "source": "المصدر",
+        "amount": "المبلغ",
+        "category": "الفئة",
+        "notes": "ملاحظات"
+      }
     },
-    "buttons": {
-      "add_expense": "إضافة مصروف",
-      "export_data": "تصدير البيانات"
-    },
-    "expenses": {
-      "title": "المصروفات",
-      "add": "إضافة مصروف"
-    },
-    "categories": {
-      "water": "المياه",
-      "electricity": "الكهرباء",
-      "transport": "النقل",
-      "rent": "الإيجار",
-      "supplies": "المستلزمات",
-      "maintenance": "الصيانة",
-      "salaries": "الرواتب",
-      "insurance": "التأمين",
-      "taxes": "الضرائب",
-      "marketing": "التسويق",
-      "other": "أخرى"
-    },
+    
+    
     "month_selector": "اختر الشهر",
     "recent_sales": "المبيعات الأخيرة",
     "recent_expenses": "النفقات الأخيرة",
@@ -978,7 +975,8 @@
     },
     "buttons": {
       "add_expense": "إضافة نفقة",
-      "add_income": "إضافة دخل"
+      "add_income": "إضافة دخل",
+      "add":"إضافة نفقة"
     },
     "sort": {
       "date": "التاريخ",
@@ -1025,6 +1023,7 @@
       "include_details": "تضمين تفاصيل المعاملات"
     },
     "expense": {
+      "add": "إضافة نفقة",
       "add_title": "إضافة نفقة جديدة",
       "add_subtitle": "تتبع نفقات عملك بكفاءة",
       "success_title": "تم إضافة النفقة بنجاح!",
@@ -1060,19 +1059,14 @@
       "marketing": "التسويق",
       "other": "أخرى"
     },
-    "validation": {
-      "category_required": "يرجى اختيار فئة",
-      "description_required": "يجب أن يكون الوصف 3 أحرف على الأقل",
-      "amount_required": "يرجى إدخال مبلغ صالح أكبر من 0",
-      "date_required": "يرجى اختيار تاريخ",
-      "fix_errors": "يرجى إصلاح الأخطاء قبل الإرسال"
-    },
+    
+   
     "error": {
       "load_data": "خطأ في تحميل البيانات:",
       "load_summary": "فشل في تحميل الملخص المالي"
     },
     "unknown_product": "منتج غير معروف"
-  },
+  ,
   "payments": {
     "title": "ذكاء المدفوعات",
     "subtitle": "تحليل وإدارة متقدمة للمدفوعات",

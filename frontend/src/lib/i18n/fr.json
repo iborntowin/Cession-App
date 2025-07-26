@@ -70,7 +70,6 @@
       "new": "Nouvelle Cession",
       "edit": "Modifier la Cession",
       "details": "Détails de la Cession",
-      "view_full_details": "Voir les détails complets",
       "document": "Document",
       "status": {
         "active": "Active",
@@ -338,7 +337,6 @@
       },
       "cessions": {
         "view_all": "Voir toutes les cessions",
-        "view_full_details": "Voir les détails complets",
         "no_cessions": "Aucune cession trouvée",
         "title": "Cessions",
         "table": {
@@ -355,7 +353,6 @@
       "phone": "Téléphone",
       "address": "Adresse",
       "create_cession": "Créer une Cession",
-      "view_full_details": "Voir les détails complets",
       "work_info": {
         "title": "Informations du Travail",
         "subtitle": "Voir et gérer les informations du travail du client",
@@ -427,7 +424,8 @@
       "active": "Actif"
     },
     "results": {
-      "total_value": "Valeur Totale"
+      "total_value": "Valeur Totale",
+      "showing_results": "Affichage de {count} résultats"
     },
     "analytics": {
       "total_value": "Valeur Totale",
@@ -506,8 +504,11 @@
     "filters": {
       "title": "Filtrer les cessions",
       "client_name": "Nom du Client",
+      "high_value": "Valeur élevée",
+      "recent": "Récent",
+      "advanced": "Filtres avancés",
       "client_cin": "Numéro d'Identité",
-      "active_only": "active",
+      "active_only": "Actif seulement",
       "client_number": "Numéro de Client",
       "client_job": "Emploi",
       "client_workplace": "Lieu de Travail",
@@ -549,8 +550,7 @@
         "success": "Cession créée avec succès !"
       },
       "search_client": "Rechercher un client"
-    },
-    "view_full_details": "Voir les détails complets"
+    }
   },
   "inventory": {
     "title": "Inventaire",
@@ -853,6 +853,17 @@
     "dashboard": {
       "title": "Tableau de Bord Financier",
       "subtitle": "Suivez vos performances financières"
+    },
+    "analytics": {
+      "total_sales": "Total des Ventes",
+      "total_expenses": "Total des Dépenses",
+      "transactions": "Transactions",
+      "net_profit": "Bénéfice Net",
+      "this_month": "Ce Mois",
+      "profit_margin": "Marge Bénéficiaire",
+      "efficiency": "Efficacité",
+      "top_categories": "Principales Catégories",
+      "vs_last_month": "par rapport au mois dernier"
     },
     "months": {
       "january": "Janvier",

@@ -46,12 +46,33 @@
     await tick();
   });
 
-  async function loadClients() {
+  // Optimized loading with caching
+  let isLoadingClients = false;
+  let lastClientsLoadTime = 0;
+  const CLIENTS_CACHE_DURATION = 30000; // 30 seconds
+
+  async function loadClients(forceRefresh = false) {
+    const now = Date.now();
+    
+    // Prevent multiple simultaneous loads
+    if (isLoadingClients) return;
+    
+    // Use cache if recent and not forced refresh
+    if (!forceRefresh && clients.length > 0 && (now - lastClientsLoadTime) < CLIENTS_CACHE_DURATION) {
+      applyFilters();
+      return;
+    }
+
+    isLoadingClients = true;
     $loading = true;
+    
     try {
       const response = await clientsApi.getAll();
       if (response && Array.isArray(response)) {
         clients = response;
+        lastClientsLoadTime = now;
+        // Clear filter cache when data changes
+        clientFilterCache.clear();
         applyFilters();
       }
     } catch (error) {
@@ -59,6 +80,7 @@
       showAlert(error.message || 'Failed to load clients', 'error');
     } finally {
       $loading = false;
+      isLoadingClients = false;
     }
   }
 
@@ -90,43 +112,87 @@
     }
   }
 
+  // Optimized client extras computation with memoization
+  let clientExtrasCache = new Map();
+  let lastClientExtrasKey = '';
+  
   function computeClientExtras() {
-    console.log('Clients:', clients);
-    console.log('Cessions:', cessions);
-    console.log('CessionsByClient:', cessionsByClient);
-
-    for (const client of clients) {
-      // Workplace name
-      client.workplaceName = client.workplaceId ? workplacesMap[client.workplaceId] || 'N/A' : 'N/A';
-      // Status calculation removed
+    const extrasKey = `${clients.length}-${Object.keys(workplacesMap).length}-${cessions.length}`;
+    
+    // Return if already computed for current data
+    if (extrasKey === lastClientExtrasKey) {
+      applyFilters();
+      return;
     }
+
+    // Batch process client extras
+    const updatedClients = clients.map(client => ({
+      ...client,
+      workplaceName: client.workplaceId ? workplacesMap[client.workplaceId] || 'N/A' : 'N/A'
+    }));
+    
+    clients = updatedClients;
+    lastClientExtrasKey = extrasKey;
+    
+    // Clear filter cache when client data changes
+    clientFilterCache.clear();
     applyFilters();
   }
 
+  // Optimized filtering with memoization
+  let clientFilterCache = new Map();
+  let lastClientFilterKey = '';
+  
   function applyFilters() {
-    filteredClients = clients.filter(client => {
-      const matchesSearch = 
-        (searchQuery === '' || client.fullName?.toLowerCase().includes(searchQuery.toLowerCase())) &&
-        (searchCIN === '' || (client.cin && client.cin.toString().includes(searchCIN))) &&
-        (searchWorkerNumber === '' || (client.workerNumber && client.workerNumber.toString().includes(searchWorkerNumber))) &&
-        (searchClientNumber === '' || (client.clientNumber && client.clientNumber.toString().includes(searchClientNumber)));
-
-      return matchesSearch;
+    // Create cache key based on all filter parameters
+    const filterKey = JSON.stringify({
+      searchQuery,
+      searchCIN,
+      searchWorkerNumber,
+      searchClientNumber,
+      filters,
+      clientsLength: clients.length
     });
-
-    // Apply sorting
-    filteredClients.sort((a, b) => {
-      const aValue = a[filters.sortBy]?.toString().toLowerCase() || '';
-      const bValue = b[filters.sortBy]?.toString().toLowerCase() || '';
-      
-      if (filters.sortOrder === 'asc') {
-        return aValue.localeCompare(bValue);
-      } else {
-        return bValue.localeCompare(aValue);
-      }
-    });
-
     
+    // Return cached result if unchanged
+    if (filterKey === lastClientFilterKey && clientFilterCache.has(filterKey)) {
+      filteredClients = clientFilterCache.get(filterKey);
+      return;
+    }
+
+    // Apply filters
+    filteredClients = clients.filter(client => {
+      // Early return for empty searches
+      if (!searchQuery && !searchCIN && !searchWorkerNumber && !searchClientNumber) {
+        return true;
+      }
+      
+      const matchesName = !searchQuery || client.fullName?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCIN = !searchCIN || (client.cin && client.cin.toString().includes(searchCIN));
+      const matchesWorkerNumber = !searchWorkerNumber || (client.workerNumber && client.workerNumber.toString().includes(searchWorkerNumber));
+      const matchesClientNumber = !searchClientNumber || (client.clientNumber && client.clientNumber.toString().includes(searchClientNumber));
+
+      return matchesName && matchesCIN && matchesWorkerNumber && matchesClientNumber;
+    });
+
+    // Apply sorting (optimized)
+    if (filters.sortBy && filters.sortOrder) {
+      filteredClients.sort((a, b) => {
+        const aValue = a[filters.sortBy]?.toString().toLowerCase() || '';
+        const bValue = b[filters.sortBy]?.toString().toLowerCase() || '';
+        
+        return filters.sortOrder === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      });
+    }
+
+    // Cache the result (limit cache size)
+    if (clientFilterCache.size > 10) {
+      clientFilterCache.clear();
+    }
+    clientFilterCache.set(filterKey, [...filteredClients]);
+    lastClientFilterKey = filterKey;
   }
 
   function toggleSearch() {
@@ -263,8 +329,15 @@
   // Check if current language is RTL
   $: isRTL = $currentLanguage === 'ar';
 
-  $: if (searchQuery !== undefined) applyFilters();
-  $: if (filters) applyFilters();
+  // Optimized reactive filtering - only trigger when actually changed
+  let previousSearchState = '';
+  $: {
+    const currentSearchState = JSON.stringify({ searchQuery, searchCIN, searchWorkerNumber, searchClientNumber, filters });
+    if (currentSearchState !== previousSearchState) {
+      previousSearchState = currentSearchState;
+      applyFilters();
+    }
+  }
 </script>
 
 <svelte:head>
