@@ -1,0 +1,82 @@
+<script lang="ts">
+  export let analytics;
+  export let quickStats;
+  export let totalClients;
+  export let recentClients;
+  export let systemHealth;
+  export let formatCurrency;
+</script>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+  <!-- Active Cessions -->
+  <div class="group bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-white/20 hover:bg-white/90 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+    <div class="flex items-start justify-between">
+      <div class="w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div class="text-right">
+        <p class="text-sm font-semibold text-gray-600 mb-1">Active Cessions</p>
+        <p class="text-4xl font-bold text-gray-900">{analytics.activeCount}</p>
+        <p class="text-xs text-emerald-600 font-medium mt-1">
+          {analytics.monthlyGrowth >= 0 ? '+' : ''}{analytics.monthlyGrowth.toFixed(1)}% this month
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Revenue -->
+  <div class="group bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-white/20 hover:bg-white/90 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+    <div class="flex items-start justify-between">
+      <div class="w-14 h-14 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+        </svg>
+      </div>
+      <div class="text-right">
+        <p class="text-sm font-semibold text-gray-600 mb-1">Monthly Revenue</p>
+        <p class="text-4xl font-bold text-gray-900">{formatCurrency(quickStats.monthlyRevenue)}</p>
+        <p class="text-xs text-blue-600 font-medium mt-1">
+          {quickStats.paymentSuccessRate.toFixed(1)}% success rate
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Clients -->
+  <div class="group bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-white/20 hover:bg-white/90 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+    <div class="flex items-start justify-between">
+      <div class="w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+      </div>
+      <div class="text-right">
+        <p class="text-sm font-semibold text-gray-600 mb-1">Total Clients</p>
+        <p class="text-4xl font-bold text-gray-900">{totalClients}</p>
+        <p class="text-xs text-purple-600 font-medium mt-1">
+          {recentClients.length} new this month
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Health -->
+  <div class="group bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-white/20 hover:bg-white/90 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+    <div class="flex items-start justify-between">
+      <div class="w-14 h-14 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <div class="text-right">
+        <p class="text-sm font-semibold text-gray-600 mb-1">System Health</p>
+        <p class="text-4xl font-bold text-gray-900">{systemHealth.uptime}</p>
+        <p class="text-xs text-yellow-600 font-medium mt-1 capitalize">
+          {systemHealth.status}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
