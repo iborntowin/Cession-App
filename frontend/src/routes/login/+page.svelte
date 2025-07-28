@@ -243,7 +243,7 @@
           <div class="mt-3">
             <HealthStatus 
               on:healthUpdate={handleHealthUpdate}
-              autoRefresh={true}
+              autoRefresh={false}
               showActions={false}
             />
           </div>

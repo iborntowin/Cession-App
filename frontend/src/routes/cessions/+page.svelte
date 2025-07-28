@@ -1,7 +1,8 @@
 <script lang="ts">
   import { cessionsApi } from '$lib/api';
   import { onMount, tick } from 'svelte';
-  import { showAlert, loading } from '$lib/stores';
+  import { showAlert } from '$lib/stores';
+  import { cessionsLoading, cessionsLoadingManager } from '$lib/stores/pageLoading';
   import { fade, fly, slide, scale, blur } from 'svelte/transition';
   import { quintOut, cubicOut, elasticOut, backOut } from 'svelte/easing';
   import { t } from '$lib/i18n';
@@ -28,7 +29,7 @@
   let showQuickActions = false;
   let selectedCessions = new Set();
   let showBulkActions = false;
-  let autoRefresh = false;
+  let autoRefresh = false; // Disabled by default to prevent flickering
   let refreshInterval = null;
   let showInsights = true;
   let compactMode = false;
@@ -94,7 +95,8 @@
 
   onMount(async () => {
     await loadCessions();
-    startAutoRefresh();
+    // Auto-refresh disabled by default to prevent flickering
+    // startAutoRefresh();
     generateInsights();
     
     // Check for clientId in query params and pre-fill filter
@@ -188,7 +190,7 @@
     ];
   }
 
-  // 🔄 Optimized Auto Refresh System
+  // 🔄 Stable Auto Refresh System (Anti-flickering)
   function startAutoRefresh() {
     if (autoRefresh && !refreshInterval) {
       refreshInterval = setInterval(async () => {
@@ -197,7 +199,7 @@
           await loadCessions(true); // Force refresh for auto-refresh
           generateInsights();
         }
-      }, 60000); // Increased to 60 seconds
+      }, 300000); // Increased to 5 minutes to prevent flickering
     }
   }
 
@@ -399,10 +401,11 @@
     lastFilterKey = filterKey;
   }
 
-  // Optimized loading with caching
+  // Stable loading with anti-flickering system
   let isLoadingCessions = false;
   let lastCessionsLoadTime = 0;
-  const CESSIONS_CACHE_DURATION = 30000; // 30 seconds
+  let stableCessions = []; // Stable reference to prevent flickering
+  const CESSIONS_CACHE_DURATION = 300000; // 5 minutes to reduce flickering
 
   async function loadCessions(forceRefresh = false) {
     const now = Date.now();
@@ -417,22 +420,33 @@
     }
 
     isLoadingCessions = true;
-    $loading = true;
+    // Don't show loading spinner for background refreshes to prevent flickering
+    if (cessions.length === 0) {
+      cessionsLoadingManager.start();
+    }
     
     try {
       const response = await cessionsApi.getAll();
       if (response && Array.isArray(response)) {
-        cessions = response;
-        lastCessionsLoadTime = now;
-        // Clear filter cache when data changes
-        filterCache.clear();
-        applyAdvancedFilters();
+        // Only update if data actually changed to prevent unnecessary re-renders
+        const dataChanged = JSON.stringify(response) !== JSON.stringify(cessions);
+        if (dataChanged) {
+          cessions = response;
+          stableCessions = [...response]; // Create stable copy
+          lastCessionsLoadTime = now;
+          // Clear filter cache when data changes
+          filterCache.clear();
+          applyAdvancedFilters();
+        }
       }
     } catch (error) {
       console.error('Error loading cessions:', error);
-      showAlert(error.message || 'Failed to load cessions', 'error');
+      // Only show error if we don't have cached data
+      if (cessions.length === 0) {
+        showAlert(error.message || 'Failed to load cessions', 'error');
+      }
     } finally {
-      $loading = false;
+      cessionsLoadingManager.stop();
       isLoadingCessions = false;
     }
   }
@@ -553,11 +567,15 @@
     }
   }
 
-  // Optimized reactive search - only trigger when actually changed
+  // Stable reactive search - manual updates only to prevent flickering
   let previousSearchQuery = '';
-  $: if (searchQuery !== previousSearchQuery) {
-    previousSearchQuery = searchQuery;
-    handleSmartSearch();
+  
+  // Remove reactive statement and use manual updates instead
+  function handleSearchChange() {
+    if (searchQuery !== previousSearchQuery) {
+      previousSearchQuery = searchQuery;
+      handleSmartSearch();
+    }
   }
 
   // 🎯 Additional Helper Functions
@@ -1004,7 +1022,7 @@
     </div>
 
     <!-- 🎯 Cessions Display -->
-    {#if $loading}
+    {#if $cessionsLoading}
       <div class="flex flex-col items-center justify-center h-96 space-y-4">
         <div class="relative">
           <div class="w-16 h-16 border-4 border-purple-200 rounded-full animate-spin"></div>

@@ -2,7 +2,8 @@
 <script>
   import { onMount, tick } from 'svelte';
   import { productsApi, categoriesApi, stockMovementsApi } from '$lib/api';
-  import { user, showAlert, token, loading } from '$lib/stores';
+  import { user, showAlert, token } from '$lib/stores';
+  import { inventoryLoading, inventoryLoadingManager } from '$lib/stores/pageLoading';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
   import CategoryModal from './CategoryModal.svelte';
@@ -71,7 +72,7 @@
   let showAIInsights = false;
   let showPredictiveAnalytics = false;
   let showInventoryOptimization = false;
-  let autoRefresh = false;
+  let autoRefresh = false; // Disabled by default to prevent flickering
   let refreshInterval = null;
   
   // 📝 Form Management
@@ -182,7 +183,8 @@
     // Track loading performance
     const trackedLoadAll = perfMonitor.trackAsyncFunction('loadAll', loadAll);
     await trackedLoadAll();
-    startAutoRefresh();
+    // Auto-refresh disabled by default to prevent flickering
+    // startAutoRefresh();
     
     // Log performance report after 10 seconds
     const reportTimeout = setTimeout(() => {
@@ -212,7 +214,7 @@
   let lastLoadTime = 0;
   const CACHE_DURATION = 30000; // 30 seconds cache
 
-  // Completely stable loading with batch updates
+  // Ultra-stable loading with anti-flickering system
   async function loadAll(forceRefresh = false) {
     const now = Date.now();
     
@@ -233,7 +235,10 @@
     }
 
     isLoading = true;
-    loading.set(true);
+    // Don't show loading spinner for background refreshes to prevent flickering
+    if (products.length === 0) {
+      inventoryLoadingManager.start();
+    }
     
     try {
       const [productsRes, categoriesRes, movementsRes] = await Promise.all([
@@ -269,9 +274,12 @@
       }
     } catch (e) {
       error = e.message;
-      showAlert($t('inventory.validation.load_error'), 'error');
+      // Only show error if we don't have cached data
+      if (products.length === 0) {
+        showAlert($t('inventory.validation.load_error'), 'error');
+      }
     } finally {
-      loading.set(false);
+      inventoryLoadingManager.stop();
       isLoading = false;
     }
   }
@@ -380,7 +388,7 @@
     });
   }
 
-  // 🔄 Optimized Auto Refresh
+  // 🔄 Stable Auto Refresh (Anti-flickering)
   function startAutoRefresh() {
     if (autoRefresh && !refreshInterval) {
       refreshInterval = setInterval(() => {
@@ -388,7 +396,7 @@
         if (document.visibilityState === 'visible') {
           loadAll(true); // Force refresh for auto-refresh
         }
-      }, 60000); // Increased to 60 seconds to reduce load
+      }, 300000); // Increased to 5 minutes to prevent flickering
     }
   }
 
@@ -928,7 +936,7 @@
     </div>
 
     <!-- 🎯 Products Display -->
-    {#if $loading}
+    {#if $inventoryLoading}
       <div class="flex flex-col items-center justify-center h-64 space-y-4">
         <div class="relative">
           <div class="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin"></div>

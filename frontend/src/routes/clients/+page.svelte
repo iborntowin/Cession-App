@@ -2,7 +2,8 @@
   import { clientsApi, jobsApi, workplacesApi, cessionsApi } from '$lib/api';
   import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
-  import { showAlert, loading } from '$lib/stores';
+  import { showAlert } from '$lib/stores';
+  import { clientsLoading, clientsLoadingManager } from '$lib/stores/pageLoading';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
   import { fade, fly } from 'svelte/transition';
@@ -46,10 +47,11 @@
     await tick();
   });
 
-  // Optimized loading with caching
+  // Stable loading with anti-flickering system
   let isLoadingClients = false;
   let lastClientsLoadTime = 0;
-  const CLIENTS_CACHE_DURATION = 30000; // 30 seconds
+  let stableClients = []; // Stable reference to prevent flickering
+  const CLIENTS_CACHE_DURATION = 300000; // 5 minutes to reduce flickering
 
   async function loadClients(forceRefresh = false) {
     const now = Date.now();
@@ -64,22 +66,33 @@
     }
 
     isLoadingClients = true;
-    $loading = true;
+    // Don't show loading spinner for background refreshes to prevent flickering
+    if (clients.length === 0) {
+      clientsLoadingManager.start();
+    }
     
     try {
       const response = await clientsApi.getAll();
       if (response && Array.isArray(response)) {
-        clients = response;
-        lastClientsLoadTime = now;
-        // Clear filter cache when data changes
-        clientFilterCache.clear();
-        applyFilters();
+        // Only update if data actually changed to prevent unnecessary re-renders
+        const dataChanged = JSON.stringify(response) !== JSON.stringify(clients);
+        if (dataChanged) {
+          clients = response;
+          stableClients = [...response]; // Create stable copy
+          lastClientsLoadTime = now;
+          // Clear filter cache when data changes
+          clientFilterCache.clear();
+          applyFilters();
+        }
       }
     } catch (error) {
       console.error('Error loading clients:', error);
-      showAlert(error.message || 'Failed to load clients', 'error');
+      // Only show error if we don't have cached data
+      if (clients.length === 0) {
+        showAlert(error.message || 'Failed to load clients', 'error');
+      }
     } finally {
-      $loading = false;
+      clientsLoadingManager.stop();
       isLoadingClients = false;
     }
   }
@@ -329,15 +342,23 @@
   // Check if current language is RTL
   $: isRTL = $currentLanguage === 'ar';
 
-  // Optimized reactive filtering - only trigger when actually changed
+  // Stable reactive filtering - manual updates only to prevent flickering
   let previousSearchState = '';
-  $: {
+  
+  // Remove reactive statement and use manual updates instead
+  function handleFilterChange() {
     const currentSearchState = JSON.stringify({ searchQuery, searchCIN, searchWorkerNumber, searchClientNumber, filters });
     if (currentSearchState !== previousSearchState) {
       previousSearchState = currentSearchState;
-      applyFilters();
+      // Debounce filter application to prevent rapid updates
+      clearTimeout(filterTimeout);
+      filterTimeout = setTimeout(() => {
+        applyFilters();
+      }, 300);
     }
   }
+  
+  let filterTimeout;
 </script>
 
 <svelte:head>
@@ -408,7 +429,7 @@
             <input
               type="text"
               bind:value={searchQuery}
-              on:input={applyFilters}
+              on:input={handleFilterChange}
               placeholder={$t('clients.search.name_placeholder')}
               class="w-full {isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
             />
@@ -498,7 +519,7 @@
                 type="text"
                 id="cinSearch"
                 bind:value={searchCIN}
-                on:input={applyFilters}
+                on:input={handleFilterChange}
                 placeholder={$t('clients.search.cin_placeholder')}
                 class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
               />
@@ -518,7 +539,7 @@
                 type="text"
                 id="workerNumberSearch"
                 bind:value={searchWorkerNumber}
-                on:input={applyFilters}
+                on:input={handleFilterChange}
                 placeholder={$t('clients.search.worker_number_placeholder')}
                 class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
               />
@@ -538,7 +559,7 @@
                 type="text"
                 id="clientNumberSearch"
                 bind:value={searchClientNumber}
-                on:input={applyFilters}
+                on:input={handleFilterChange}
                 placeholder={$t('clients.search.client_number_placeholder')}
                 class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
               />
@@ -558,7 +579,7 @@
               searchCIN = '';
               searchWorkerNumber = '';
               searchClientNumber = '';
-              applyFilters();
+              handleFilterChange();
             }}
             class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors shadow-sm"
           >
@@ -581,7 +602,7 @@
       </div>
 
       <!-- Client Content -->
-    {#if $loading}
+    {#if $clientsLoading}
       <div class="flex flex-col items-center justify-center h-96 space-y-4">
         <div class="relative">
           <div class="w-16 h-16 border-4 border-primary-200 rounded-full animate-spin"></div>
