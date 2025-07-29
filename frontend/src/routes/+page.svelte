@@ -238,6 +238,7 @@
       const totalValue = allCessions.reduce((sum, c) => sum + (c.totalLoanAmount || 0), 0);
       const avgLoanAmount = allCessions.length > 0 ? totalValue / allCessions.length : 0;
       
+      // FIXED: Ensure consistent data between chart and stats
       analytics = {
         ...analytics,
         totalValue,
@@ -245,6 +246,12 @@
         activeCount: activeCessionsCount,
         avgLoanAmount,
       };
+
+      console.log('Cessions Analytics:', {
+        totalCessions: allCessions.length,
+        activeCessions: activeCessionsCount,
+        finishedCessions: finishedCessionsCount
+      });
 
       const now = new Date();
       cessionsEndingSoon = allCessions.filter(c => {

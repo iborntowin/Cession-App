@@ -164,10 +164,21 @@
     }
   }
 
-  // Calculate profit percentage
+  // FIXED: Calculate profit percentage correctly (consistent with detail view)
   function calculateProfitPercentage(product) {
-    if (!product.purchase_price || product.purchase_price === 0) return 0;
-    return ((product.selling_price - product.purchase_price) / product.purchase_price * 100);
+    const purchasePrice = product.purchase_price || 0;
+    const sellingPrice = product.selling_price || 0;
+    const profit = sellingPrice - purchasePrice;
+    
+    if (purchasePrice === 0) return 0;
+    return (profit / purchasePrice * 100);
+  }
+
+  // Calculate profit amount
+  function calculateProfitAmount(product) {
+    const purchasePrice = product.purchase_price || 0;
+    const sellingPrice = product.selling_price || 0;
+    return sellingPrice - purchasePrice;
   }
 
   // 🚀 Initialize the Inventory Intelligence Platform
@@ -290,7 +301,7 @@
 
   function buildInventoryAnalytics() {
     // Create cache key based on products and categories
-    const cacheKey = `${products.length}-${categories.length}-${products.map(p => `${p.id}-${p.stock_quantity}-${p.selling_price}`).join(',')}`;
+    const cacheKey = `${products.length}-${categories.length}-${products.map(p => `${p.id}-${p.stock_quantity}-${p.selling_price}-${p.purchase_price}`).join(',')}`;
     
     // Return cached result if unchanged
     if (analyticsCache && analyticsCacheKey === cacheKey) {
@@ -301,17 +312,27 @@
       return;
     }
 
-    // Calculate analytics
-    const totalValue = products.reduce((sum, p) => sum + (p.stock_quantity * p.selling_price), 0);
+    // FIXED: Calculate analytics with correct values
+    // Total selling value (for revenue potential)
+    const totalSellingValue = products.reduce((sum, p) => sum + (p.stock_quantity * p.selling_price), 0);
+    // Total purchase value (actual stock worth/investment)
+    const totalPurchaseValue = products.reduce((sum, p) => sum + (p.stock_quantity * (p.purchase_price || 0)), 0);
     const totalItems = products.reduce((sum, p) => sum + p.stock_quantity, 0);
     
     lowStockItems = products.filter(p => p.stock_quantity <= p.reorder_point);
     
-    // Calculate profit margins
-    profitMargins = products.map(p => ({
-      ...p,
-      margin: p.selling_price > 0 ? ((p.selling_price - p.purchase_price) / p.selling_price * 100) : 0
-    })).sort((a, b) => b.margin - a.margin);
+    // FIXED: Calculate profit margins correctly (profit / purchase_price * 100)
+    profitMargins = products.map(p => {
+      const purchasePrice = p.purchase_price || 0;
+      const sellingPrice = p.selling_price || 0;
+      const profit = sellingPrice - purchasePrice;
+      
+      return {
+        ...p,
+        profit: profit,
+        margin: purchasePrice > 0 ? (profit / purchasePrice * 100) : 0
+      };
+    }).sort((a, b) => b.margin - a.margin);
 
     // Top selling products (based on stock turnover and value)
     topSellingProducts = products
@@ -325,12 +346,14 @@
       .slice(0, 5);
 
     inventoryAnalytics = {
-      totalValue,
+      totalValue: totalSellingValue, // Keep for revenue potential
+      totalPurchaseValue: totalPurchaseValue, // FIXED: Add actual stock worth
       totalItems,
       totalProducts: products.length,
       lowStockCount: lowStockItems.length,
       avgMargin: profitMargins.reduce((sum, p) => sum + p.margin, 0) / profitMargins.length || 0,
-      categories: categories.length
+      categories: categories.length,
+      totalProfit: totalSellingValue - totalPurchaseValue
     };
 
     // Cache the results
@@ -640,18 +663,43 @@
           
           <!-- Real-time Stats Pills -->
           <div class="hidden lg:flex items-center space-x-3 ml-8">
-            <div class="flex items-center px-3 py-1.5 bg-green-100 rounded-full">
-              <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-              <span class="text-xs font-semibold text-green-800">{inventoryAnalytics.totalProducts || 0} {$t('inventory.header.products')}</span>
+            <!-- Combined Stats Display -->
+            <div class="flex items-center px-4 py-2 bg-gradient-to-r from-green-50 to-blue-50 rounded-full border border-green-200 shadow-sm">
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-xs font-bold text-green-800">{inventoryAnalytics.totalProducts || 0}</span>
+                <span class="text-xs font-medium text-green-700">Produits</span>
+              </div>
+              <div class="mx-2 w-px h-4 bg-gray-300"></div>
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span class="text-xs font-bold text-blue-800">${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}</span>
+                <span class="text-xs font-medium text-blue-700">Valeur</span>
+              </div>
+              {#if stockAlerts.length > 0}
+                <div class="mx-2 w-px h-4 bg-gray-300"></div>
+                <div class="flex items-center space-x-1">
+                  <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  <span class="text-xs font-bold text-red-800">{stockAlerts.length}</span>
+                  <span class="text-xs font-medium text-red-700">Alertes</span>
+                </div>
+              {/if}
             </div>
-            <div class="flex items-center px-3 py-1.5 bg-blue-100 rounded-full">
-              <div class="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-              <span class="text-xs font-semibold text-blue-800">${(inventoryAnalytics.totalValue || 0).toLocaleString()}</span>
+          </div>
+          
+          <!-- Mobile Stats Display -->
+          <div class="flex lg:hidden items-center space-x-2 ml-4">
+            <div class="flex items-center px-2 py-1 bg-green-100 rounded-lg">
+              <span class="text-xs font-bold text-green-800">{inventoryAnalytics.totalProducts || 0}</span>
+              <span class="text-xs text-green-600 ml-1">P</span>
+            </div>
+            <div class="flex items-center px-2 py-1 bg-blue-100 rounded-lg">
+              <span class="text-xs font-bold text-blue-800">${Math.round((inventoryAnalytics.totalPurchaseValue || 0) / 1000)}k</span>
             </div>
             {#if stockAlerts.length > 0}
-              <div class="flex items-center px-3 py-1.5 bg-red-100 rounded-full">
-                <div class="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></div>
-                <span class="text-xs font-semibold text-red-800">{stockAlerts.length} {$t('inventory.header.alerts')}</span>
+              <div class="flex items-center px-2 py-1 bg-red-100 rounded-lg">
+                <span class="text-xs font-bold text-red-800">{stockAlerts.length}</span>
+                <span class="text-xs text-red-600 ml-1">!</span>
               </div>
             {/if}
           </div>
@@ -762,9 +810,9 @@
           <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600">{$t('inventory.analytics.total_inventory_value')}</p>
-                <p class="text-3xl font-bold text-gray-900 mt-2">${(inventoryAnalytics.totalValue || 0).toLocaleString()}</p>
-                <p class="text-sm text-green-600 mt-1">↗ 12.5% {$t('inventory.analytics.vs_last_month')}</p>
+                <p class="text-sm font-medium text-gray-600">Stock Worth (Purchase Value)</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}</p>
+                <p class="text-sm text-green-600 mt-1">Potential Revenue: ${(inventoryAnalytics.totalValue || 0).toLocaleString()}</p>
               </div>
               <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1038,12 +1086,11 @@
                   </div>
                   <div class="text-right">
                     <p class="text-sm font-semibold text-green-600">
-                      {product.selling_price && product.purchase_price ? 
-                        ((product.selling_price - product.purchase_price) / product.selling_price * 100).toFixed(1) + '%' : 
-                        '0%'
-                      }
+                      ${calculateProfitAmount(product).toFixed(2)}
                     </p>
-                    <p class="text-xs text-gray-500">{$t('inventory.profit.margin')}</p>
+                    <p class="text-xs text-gray-500">
+                      {calculateProfitPercentage(product).toFixed(1)}% Profit Margin
+                    </p>
                   </div>
                 </div>
               </div>
