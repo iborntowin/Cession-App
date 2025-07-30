@@ -88,8 +88,8 @@
     "validation": {
       "required": "Ce champ est obligatoire",
       "invalid_format": "Format invalide",
-      "min_length": "Longueur minimale de {{length}} caractères",
-      "max_length": "Longueur maximale de {{length}} caractères"
+      "min_length": "Longueur minimale de {length} caractères",
+      "max_length": "Longueur maximale de {length} caractères"
     },
     "alerts": {
       "success": "Succès",
@@ -553,6 +553,12 @@
     }
   },
   "inventory": {
+    "sort": {
+      "name": "Trier par nom",
+      "price": "Trier par prix",
+      "stock": "Trier par stock",
+      "margin": "Trier par marge"
+    },
     "title": "Inventaire",
     "subtitle": "Gérez votre stock",
     "add_product": "Ajouter un produit",
@@ -560,12 +566,7 @@
     "search": {
       "placeholder": "Rechercher des produits..."
     },
-    "sort": {
-      "name": "Trier par nom",
-      "price": "Trier par prix",
-      "stock": "Trier par stock",
-      "margin": "Trier par marge"
-    },
+    
     "filters": {
       "title": "Filtres",
       "all_categories": "Toutes les catégories",
@@ -697,6 +698,9 @@
       "out_of_stock": "Rupture de stock",
       "low_stock": "Stock faible : {quantity} restant",
       "overstock": "Surstock potentiel : {quantity} unités"
+    },
+    "results": {
+      "showing_results": "Affichage de {count} résultats"
     },
     "analytics": {
       "title": "Tableau de Bord Analytique",
@@ -867,7 +871,7 @@
     },
     "months": {
       "january": "Janvier",
-      "february": "Février", 
+      "february": "Février",
       "march": "Mars",
       "april": "Avril",
       "may": "Mai",
@@ -937,7 +941,7 @@
       "description": "Choisissez votre format d'export préféré",
       "options": {
         "pdf": "Rapport PDF",
-        "excel": "Feuille Excel", 
+        "excel": "Feuille Excel",
         "csv": "Fichier CSV"
       },
       "generate": "Générer l'Export"

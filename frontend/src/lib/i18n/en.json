@@ -185,7 +185,7 @@
     "subtitle": "Overview of your business",
     "greeting": {
       "morning": "Good morning",
-      "afternoon": "Good afternoon", 
+      "afternoon": "Good afternoon",
       "evening": "Good evening"
     },
     "header": {
@@ -199,7 +199,7 @@
     "actions": {
       "title": "Quick Actions",
       "new_client": "New Client",
-      "new_cession": "New Cession", 
+      "new_cession": "New Cession",
       "manage_inventory": "Manage Inventory"
     },
     "smart_insights": "Business Intelligence",
@@ -312,8 +312,7 @@
       },
       "cessions": {
         "title": "Cessions",
-        "details": {
-        },
+        "details": {},
         "view_all": "View All Cessions",
         "no_cessions": "No cessions found for this client",
         "table": {
@@ -390,10 +389,6 @@
     "title": "Cessions",
     "subtitle": "Manage your cessions",
     "new": "New Cession",
-    "header": {
-      "total": "Total",
-      "active": "Active"
-    },
     "header": {
       "total": "Total",
       "active": "Active"
@@ -509,19 +504,6 @@
         "error": "Failed to create cession"
       }
     },
-    "filters": {
-      "title": "Filter",
-      "client_name": "Client Name",
-      "client_cin": "ID Number",
-      "client_number": "Client Number",
-      "amount": "Amount",
-      "status": "Status",
-      "date_range": "Date Range",
-      "start_date": "Start Date",
-      "end_date": "End Date",
-      "clear": "Clear Filter",
-      "all_status": "All Statuses"
-    },
     "errors": {
       "invalid_id": "Invalid cession ID",
       "not_found": "Cession not found",
@@ -535,15 +517,14 @@
     "subtitle": "Manage your inventory",
     "add_product": "Add Product",
     "manage_categories": "Manage Categories",
-    "search": {
-      "placeholder": "Search products..."
+    "sort": {
+      "name": "Sort by Name",
+      "price": "Sort by Price",
+      "stock": "Sort by Stock",
+      "margin": "Sort by Margin"
     },
-    "filters": {
-      "all_categories": "All Categories",
-      "sort_by": "Sort By",
-      "name": "Name",
-      "price": "Price",
-      "stock": "Stock"
+    "results": {
+      "showing_results": "Showing {count} results"
     },
     "stock": "Stock",
     "category": "Category",
@@ -703,15 +684,25 @@
       "sales": "sales",
       "revenue": "Revenue"
     },
+    "header": {
+      "title": "Inventory Intelligence",
+      "subtitle": "Smart Stock Management",
+      "products": "Products",
+      "alerts": "Alerts",
+      "auto_refresh": "Auto Refresh",
+      "categories": "Categories",
+      "add_product": "Add Product"
+    },
     "search": {
       "placeholder_advanced": "🔍 Search products, SKUs, categories...",
       "loading": "Loading inventory...",
       "error_loading": "Error Loading Inventory"
     },
     "filters": {
+      "title": "Filters",
       "all_categories": "All Categories",
       "sort_by_name": "Sort by Name",
-      "sort_by_price": "Sort by Price", 
+      "sort_by_price": "Sort by Price",
       "sort_by_stock": "Sort by Stock",
       "sort_by_margin": "Sort by Margin",
       "filters": "Filters",
@@ -725,15 +716,6 @@
       "max": "Max",
       "supplier": "Supplier",
       "all_suppliers": "All Suppliers"
-    },
-    "header": {
-      "title": "Inventory Intelligence",
-      "subtitle": "Stock Management",
-      "products": "Products",
-      "alerts": "Alerts",
-      "auto_refresh": "Auto Refresh",
-      "categories": "Categories",
-      "add_product": "Add Product"
     }
   },
   "selling": {
@@ -860,7 +842,7 @@
     },
     "months": {
       "january": "January",
-      "february": "February", 
+      "february": "February",
       "march": "March",
       "april": "April",
       "may": "May",
@@ -940,7 +922,7 @@
       "description": "Choose your preferred export format",
       "options": {
         "pdf": "PDF Report",
-        "excel": "Excel Spreadsheet", 
+        "excel": "Excel Spreadsheet",
         "csv": "CSV File"
       },
       "generate": "Generate Export"
@@ -994,7 +976,6 @@
         "amount": "Amount"
       }
     },
-
     "charts": {
       "title": "Expenses by Category",
       "no_data": "No data available",

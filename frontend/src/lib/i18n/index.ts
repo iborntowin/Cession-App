@@ -49,19 +49,30 @@ function handlePluralization(key: string, params: any, lang: string): string {
 
 // Create a derived store for translations
 export const t = derived(currentLanguage, ($currentLanguage) => {
-  return (key: string, fallback?: string) => {
+  return (key: string, params?: any) => {
     const value = key.split('.').reduce((obj, k) => obj?.[k], translations[$currentLanguage]);
+    
     if (!value) {
       console.warn(`Translation key not found: ${key}`);
-      return fallback || key;
+      return key;
     }
 
     if (typeof value === 'string') {
       let result = value;
+      
+      // Handle parameter interpolation
+      if (params) {
+        Object.keys(params).forEach(param => {
+          const regex = new RegExp(`{${param}}`, 'g');
+          result = result.replace(regex, params[param]);
+        });
+      }
+      
       // Handle pluralization
       if (value.includes('plural')) {
-        result = handlePluralization(key, {}, $currentLanguage);
+        result = handlePluralization(key, params || {}, $currentLanguage);
       }
+      
       return result;
     }
     return value;

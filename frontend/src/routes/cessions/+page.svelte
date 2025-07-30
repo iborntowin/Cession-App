@@ -111,20 +111,51 @@
     unsubscribe();
   });
 
-  // 🚀 Advanced Analytics & Insights
+  // 🚀 Advanced Analytics & Insights - Fixed to use real data
   function generateInsights() {
     // Calculate analytics
     const totalValue = cessions.reduce((sum, c) => sum + (c.totalLoanAmount || 0), 0);
     const activeCount = cessions.filter(c => c.status?.toUpperCase() === 'ACTIVE').length;
     const avgLoanAmount = cessions.length > 0 ? totalValue / cessions.length : 0;
     
+    // Calculate real monthly growth based on creation dates
+    const now = new Date();
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    
+    const currentMonthCessions = cessions.filter(c => {
+      const startDate = c.startDate ? new Date(c.startDate) : null;
+      return startDate && startDate >= currentMonth;
+    });
+    
+    const lastMonthCessions = cessions.filter(c => {
+      const startDate = c.startDate ? new Date(c.startDate) : null;
+      return startDate && startDate >= lastMonth && startDate < currentMonth;
+    });
+    
+    const monthlyGrowth = lastMonthCessions.length > 0 
+      ? ((currentMonthCessions.length - lastMonthCessions.length) / lastMonthCessions.length) * 100
+      : currentMonthCessions.length > 0 ? 100 : 0;
+    
+    // Calculate risk score based on real factors
+    const highValueCessions = cessions.filter(c => (c.totalLoanAmount || 0) > avgLoanAmount * 1.5).length;
+    const overdueCessions = cessions.filter(c => {
+      if (!c.endDate) return false;
+      const endDate = new Date(c.endDate);
+      return endDate < now && c.status?.toUpperCase() === 'ACTIVE';
+    }).length;
+    
+    const riskScore = cessions.length > 0 
+      ? Math.min(100, ((highValueCessions + overdueCessions * 2) / cessions.length) * 100)
+      : 0;
+    
     analytics = {
       totalValue,
       totalCessions: cessions.length,
       activeCount,
       avgLoanAmount,
-      monthlyGrowth: Math.random() * 20 - 10, // Mock growth rate
-      riskScore: Math.random() * 100
+      monthlyGrowth,
+      riskScore
     };
 
     // Build status distribution
@@ -1046,8 +1077,53 @@
           Clear Filters
         </button>
       </div>
-    {:else}     
- <!-- Cards View -->
+    {:else}
+      <!-- Results Count Display -->
+      <div class="mb-6 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm">
+            <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">
+              {$t('cessions.results.showing_results', { count: filteredCessions.length })}
+            </span>
+          </div>
+          
+          {#if searchQuery}
+            <div class="flex items-center px-3 py-1 bg-blue-100 rounded-lg">
+              <svg class="w-4 h-4 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <span class="text-xs font-medium text-blue-800">"{searchQuery}"</span>
+            </div>
+          {/if}
+          
+          {#if Object.values(smartFilters).some(f => f) || searchFields.status !== 'all'}
+            <div class="flex items-center px-3 py-1 bg-purple-100 rounded-lg">
+              <svg class="w-4 h-4 text-purple-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+              </svg>
+              <span class="text-xs font-medium text-purple-800">Filtered</span>
+            </div>
+          {/if}
+        </div>
+        
+        <!-- Clear Filters Button -->
+        {#if searchQuery || Object.values(smartFilters).some(f => f) || searchFields.status !== 'all'}
+          <button
+            on:click={clearFilters}
+            class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Clear Filters
+          </button>
+        {/if}
+      </div>
+      
+      <!-- Cards View -->
       {#if viewMode === 'cards'}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {#each paginatedCessions as cession, i (cession.id)}

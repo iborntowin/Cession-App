@@ -8,6 +8,7 @@
   import { browser } from '$app/environment';
   import CategoryModal from './CategoryModal.svelte';
   import EditProductModal from './EditProductModal.svelte';
+  import CollapsibleAlert from '$lib/components/CollapsibleAlert.svelte';
   import { t } from '$lib/i18n';
   import { slide, fade, fly, scale, blur } from 'svelte/transition';
   import { quintOut, cubicOut, elasticOut } from 'svelte/easing';
@@ -57,6 +58,9 @@
   let topSellingProducts = [];
   let profitMargins = [];
   let stockAlerts = [];
+  let categoryAnalytics = [];
+  let stockDistribution = [];
+  let profitAnalysis = [];
   
   // 🎨 UI State & Modals
   let showAddModal = false;
@@ -197,6 +201,12 @@
     // Auto-refresh disabled by default to prevent flickering
     // startAutoRefresh();
     
+    // Add event listener for restock action from alert component
+    const handleRestockEvent = (event) => {
+      handleRestock(event.detail);
+    };
+    document.addEventListener('restock', handleRestockEvent);
+    
     // Log performance report after 10 seconds
     const reportTimeout = setTimeout(() => {
       perfMonitor.logReport();
@@ -209,6 +219,9 @@
         refreshInterval = null;
       }
       clearTimeout(reportTimeout);
+      
+      // Remove event listener
+      document.removeEventListener('restock', handleRestockEvent);
       
       // Clear caches to prevent memory leaks
       searchCache.clear();
@@ -295,7 +308,7 @@
     }
   }
 
-  // 📊 Optimized Analytics with Memoization
+  // 📊 Enhanced Analytics with Real Data and Charts
   let analyticsCache = null;
   let analyticsCacheKey = '';
 
@@ -309,19 +322,20 @@
       lowStockItems = analyticsCache.lowStockItems;
       profitMargins = analyticsCache.profitMargins;
       topSellingProducts = analyticsCache.topSellingProducts;
+      categoryAnalytics = analyticsCache.categoryAnalytics;
+      stockDistribution = analyticsCache.stockDistribution;
+      profitAnalysis = analyticsCache.profitAnalysis;
       return;
     }
 
-    // FIXED: Calculate analytics with correct values
-    // Total selling value (for revenue potential)
-    const totalSellingValue = products.reduce((sum, p) => sum + (p.stock_quantity * p.selling_price), 0);
-    // Total purchase value (actual stock worth/investment)
+    // Calculate real analytics
+    const totalSellingValue = products.reduce((sum, p) => sum + (p.stock_quantity * (p.selling_price || 0)), 0);
     const totalPurchaseValue = products.reduce((sum, p) => sum + (p.stock_quantity * (p.purchase_price || 0)), 0);
     const totalItems = products.reduce((sum, p) => sum + p.stock_quantity, 0);
     
-    lowStockItems = products.filter(p => p.stock_quantity <= p.reorder_point);
+    lowStockItems = products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.reorder_point > 0);
     
-    // FIXED: Calculate profit margins correctly (profit / purchase_price * 100)
+    // Calculate profit margins
     profitMargins = products.map(p => {
       const purchasePrice = p.purchase_price || 0;
       const sellingPrice = p.selling_price || 0;
@@ -334,20 +348,99 @@
       };
     }).sort((a, b) => b.margin - a.margin);
 
-    // Top selling products (based on stock turnover and value)
+    // Generate category analytics
+    categoryAnalytics = categories.map(category => {
+      const categoryProducts = products.filter(p => p.category_id === category.id);
+      const totalValue = categoryProducts.reduce((sum, p) => sum + (p.stock_quantity * (p.selling_price || 0)), 0);
+      const totalCost = categoryProducts.reduce((sum, p) => sum + (p.stock_quantity * (p.purchase_price || 0)), 0);
+      const totalStock = categoryProducts.reduce((sum, p) => sum + p.stock_quantity, 0);
+      
+      return {
+        ...category,
+        productCount: categoryProducts.length,
+        totalValue,
+        totalCost,
+        totalStock,
+        profit: totalValue - totalCost,
+        avgMargin: categoryProducts.length > 0 ? 
+          categoryProducts.reduce((sum, p) => {
+            const purchasePrice = p.purchase_price || 0;
+            const sellingPrice = p.selling_price || 0;
+            return sum + (purchasePrice > 0 ? ((sellingPrice - purchasePrice) / purchasePrice * 100) : 0);
+          }, 0) / categoryProducts.length : 0
+      };
+    }).filter(c => c.productCount > 0).sort((a, b) => b.totalValue - a.totalValue);
+
+    // Stock distribution analysis
+    stockDistribution = [
+      {
+        label: 'Well Stocked',
+        count: products.filter(p => p.stock_quantity > (p.reorder_point || 0) * 2).length,
+        color: '#10b981'
+      },
+      {
+        label: 'Normal Stock',
+        count: products.filter(p => p.stock_quantity > (p.reorder_point || 0) && p.stock_quantity <= (p.reorder_point || 0) * 2).length,
+        color: '#3b82f6'
+      },
+      {
+        label: 'Low Stock',
+        count: products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0 && p.reorder_point > 0).length,
+        color: '#f59e0b'
+      },
+      {
+        label: 'Out of Stock',
+        count: products.filter(p => p.stock_quantity === 0).length,
+        color: '#ef4444'
+      }
+    ];
+
+    // Profit analysis by ranges
+    profitAnalysis = [
+      {
+        range: 'High Margin (>30%)',
+        count: profitMargins.filter(p => p.margin > 30).length,
+        color: '#10b981'
+      },
+      {
+        range: 'Good Margin (15-30%)',
+        count: profitMargins.filter(p => p.margin >= 15 && p.margin <= 30).length,
+        color: '#3b82f6'
+      },
+      {
+        range: 'Low Margin (5-15%)',
+        count: profitMargins.filter(p => p.margin >= 5 && p.margin < 15).length,
+        color: '#f59e0b'
+      },
+      {
+        range: 'No Profit (<5%)',
+        count: profitMargins.filter(p => p.margin < 5).length,
+        color: '#ef4444'
+      }
+    ];
+
+    // Top performing products (based on value and turnover)
     topSellingProducts = products
-      .filter(p => p.selling_price > 0 && p.stock_quantity > 0)
-      .map(p => ({
-        ...p,
-        salesCount: Math.max(1, Math.floor((p.reorder_point || 10) * 2.5)),
-        revenue: Math.max(100, Math.floor((p.reorder_point || 10) * 2.5 * p.selling_price))
-      }))
-      .sort((a, b) => b.revenue - a.revenue)
+      .filter(p => p.selling_price > 0)
+      .map(p => {
+        const stockValue = p.stock_quantity * (p.selling_price || 0);
+        const profitPerUnit = (p.selling_price || 0) - (p.purchase_price || 0);
+        const totalProfit = p.stock_quantity * profitPerUnit;
+        
+        return {
+          ...p,
+          stockValue,
+          profitPerUnit,
+          totalProfit,
+          score: stockValue + totalProfit // Combined score for ranking
+        };
+      })
+      .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
     inventoryAnalytics = {
-      totalValue: totalSellingValue, // Keep for revenue potential
-      totalPurchaseValue: totalPurchaseValue, // FIXED: Add actual stock worth
+      totalValue: totalSellingValue,
+      totalPurchaseValue: totalPurchaseValue,
       totalItems,
       totalProducts: products.length,
       lowStockCount: lowStockItems.length,
@@ -361,7 +454,10 @@
       inventoryAnalytics,
       lowStockItems: [...lowStockItems],
       profitMargins: [...profitMargins],
-      topSellingProducts: [...topSellingProducts]
+      topSellingProducts: [...topSellingProducts],
+      categoryAnalytics: [...categoryAnalytics],
+      stockDistribution: [...stockDistribution],
+      profitAnalysis: [...profitAnalysis]
     };
     analyticsCacheKey = cacheKey;
     
@@ -385,30 +481,31 @@
     }, 100);
   }
 
-  // 🚨 Detect Stock Alerts
+  // 🚨 Detect Stock Alerts - Fixed to only show when quantity < reorder point
   function detectStockAlerts() {
     stockAlerts = [];
     
-    lowStockItems.forEach(item => {
+    // Only alert when stock is below reorder point
+    const lowStockProducts = products.filter(item => 
+      item.stock_quantity <= (item.reorder_point || 0) && item.reorder_point > 0
+    );
+    
+    lowStockProducts.forEach(item => {
+      const severity = item.stock_quantity === 0 ? 'critical' : 'warning';
+      const message = item.stock_quantity === 0 
+        ? 'Rupture de stock' 
+        : `Stock faible : ${item.stock_quantity} restant (seuil: ${item.reorder_point})`;
+      
       stockAlerts.push({
         type: 'low_stock',
-        severity: item.stock_quantity === 0 ? 'critical' : 'warning',
+        severity,
         product: item,
-        message: item.stock_quantity === 0 ? $t('inventory.alerts.out_of_stock') : $t('inventory.alerts.low_stock', { quantity: item.stock_quantity })
+        message
       });
     });
 
-    // Detect overstock (mock logic)
-    products.forEach(item => {
-      if (item.stock_quantity > item.reorder_point * 5) {
-        stockAlerts.push({
-          type: 'overstock',
-          severity: 'info',
-          product: item,
-          message: $t('inventory.alerts.overstock', { quantity: item.stock_quantity })
-        });
-      }
-    });
+    // Update lowStockItems to match the alert logic
+    lowStockItems = lowStockProducts;
   }
 
   // 🔄 Stable Auto Refresh (Anti-flickering)
@@ -773,122 +870,223 @@
 
   <!-- 🎯 Smart Command Center -->
   <div class="max-w-7xl mx-auto px-6 py-8">
-    <!-- 🚨 Critical Alerts Banner -->
-    {#if stockAlerts.length > 0}
-      <div class="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-400 rounded-xl p-4" transition:slide={{ duration: 300 }}>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <svg class="w-6 h-6 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-            </svg>
-            <div>
-              <h3 class="text-lg font-semibold text-red-800">{$t('inventory.alerts.inventory_alerts')}</h3>
-              <p class="text-sm text-red-600">{stockAlerts.length} {$t('inventory.alerts.items_require_attention')}</p>
-            </div>
-          </div>
-          <div class="flex space-x-2">
-            {#each stockAlerts.slice(0, 3) as alert}
-              <span class="px-3 py-1 bg-white rounded-full text-xs font-medium {alert.severity === 'critical' ? 'text-red-800 border border-red-200' : alert.severity === 'warning' ? 'text-yellow-800 border border-yellow-200' : 'text-blue-800 border border-blue-200'}">
-                {alert.product.name}: {alert.message}
-              </span>
-            {/each}
-            {#if stockAlerts.length > 3}
-              <span class="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
-                +{stockAlerts.length - 3} more
-              </span>
-            {/if}
-          </div>
-        </div>
-      </div>
-    {/if}
+    <!-- 🚨 Collapsible Alerts Banner -->
+    <CollapsibleAlert 
+      alerts={stockAlerts} 
+      title="Alertes d'Inventaire" 
+      type="warning" 
+      isMinimized={true}
+    />
 
-    <!-- 📊 Analytics Dashboard -->
+    <!-- 📊 Real Analytics Dashboard -->
     {#if viewMode === 'analytics'}
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8" transition:fade={{ duration: 300 }}>
-        <!-- KPI Cards -->
-        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="space-y-8 mb-8" transition:fade={{ duration: 300 }}>
+        <!-- Real KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Total Stock Value -->
           <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600">Stock Worth (Purchase Value)</p>
-                <p class="text-3xl font-bold text-gray-900 mt-2">${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}</p>
-                <p class="text-sm text-green-600 mt-1">Potential Revenue: ${(inventoryAnalytics.totalValue || 0).toLocaleString()}</p>
+                <p class="text-sm font-medium text-gray-600">Stock Value</p>
+                <p class="text-2xl font-bold text-gray-900 mt-2">${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}</p>
+                <p class="text-xs text-gray-500 mt-1">Purchase cost</p>
               </div>
-              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/>
                 </svg>
               </div>
             </div>
           </div>
 
+          <!-- Total Products -->
           <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm font-medium text-gray-600">Total Products</p>
-                <p class="text-3xl font-bold text-gray-900 mt-2">{inventoryAnalytics.totalProducts || 0}</p>
-                <p class="text-sm text-blue-600 mt-1">{inventoryAnalytics.categories || 0} categories</p>
+                <p class="text-sm font-medium text-gray-600">Products</p>
+                <p class="text-2xl font-bold text-gray-900 mt-2">{inventoryAnalytics.totalProducts || 0}</p>
+                <p class="text-xs text-gray-500 mt-1">{categories.length} categories</p>
               </div>
-              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4"/>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600">Low Stock Items</p>
-                <p class="text-3xl font-bold text-gray-900 mt-2">{inventoryAnalytics.lowStockCount || 0}</p>
-                <p class="text-sm text-red-600 mt-1">Requires attention</p>
-              </div>
-              <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                </svg>
+          <!-- Low Stock Alert -->
+          {#if inventoryAnalytics.lowStockCount > 0}
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-600">Low Stock</p>
+                  <p class="text-2xl font-bold text-red-600 mt-2">{inventoryAnalytics.lowStockCount}</p>
+                  <p class="text-xs text-red-500 mt-1">Need restock</p>
+                </div>
+                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/>
+                  </svg>
+                </div>
               </div>
             </div>
+          {/if}
+
+          <!-- Average Margin -->
+          {#if inventoryAnalytics.avgMargin > 0}
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-600">Avg. Margin</p>
+                  <p class="text-2xl font-bold text-purple-600 mt-2">{inventoryAnalytics.avgMargin.toFixed(1)}%</p>
+                  <p class="text-xs text-gray-500 mt-1">Profit margin</p>
+                </div>
+                <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          {/if}
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Category Distribution Chart -->
+          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Products by Category</h3>
+            {#if categories.length > 0}
+              <div class="space-y-4">
+                {#each categories as category}
+                  {@const categoryProducts = products.filter(p => p.category_id === category.id)}
+                  {@const percentage = products.length > 0 ? (categoryProducts.length / products.length) * 100 : 0}
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                      <span class="text-sm font-medium text-gray-700">{category.name}</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <div class="w-24 bg-gray-200 rounded-full h-2">
+                        <div 
+                          class="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
+                          style="width: {percentage}%"
+                        ></div>
+                      </div>
+                      <span class="text-sm font-bold text-gray-900 w-8">{categoryProducts.length}</span>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <div class="text-center py-8 text-gray-500">
+                <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a1 1 0 01-1 1h-2a1 1 0 01-1-1z"/>
+                </svg>
+                <p>No categories available</p>
+              </div>
+            {/if}
           </div>
 
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600">Avg. Profit Margin</p>
-                <p class="text-3xl font-bold text-gray-900 mt-2">{(inventoryAnalytics.avgMargin || 0).toFixed(1)}%</p>
-                <p class="text-sm text-purple-600 mt-1">Across all products</p>
+          <!-- Stock Status Chart -->
+          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Stock Status</h3>
+            {#if products.length > 0}
+              {@const inStockCount = products.filter(p => p.stock_quantity > (p.reorder_point || 0)).length}
+              {@const lowStockCount = products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length}
+              {@const outOfStockCount = products.filter(p => p.stock_quantity === 0).length}
+              
+              <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                    <span class="text-sm font-medium text-gray-700">In Stock</span>
+                  </div>
+                  <div class="flex items-center space-x-3">
+                    <div class="w-24 bg-gray-200 rounded-full h-2">
+                      <div 
+                        class="bg-green-500 h-2 rounded-full transition-all duration-500"
+                        style="width: {(inStockCount / products.length) * 100}%"
+                      ></div>
+                    </div>
+                    <span class="text-sm font-bold text-gray-900 w-8">{inStockCount}</span>
+                  </div>
+                </div>
+                
+                {#if lowStockCount > 0}
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
+                      <span class="text-sm font-medium text-gray-700">Low Stock</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <div class="w-24 bg-gray-200 rounded-full h-2">
+                        <div 
+                          class="bg-yellow-500 h-2 rounded-full transition-all duration-500"
+                          style="width: {(lowStockCount / products.length) * 100}%"
+                        ></div>
+                      </div>
+                      <span class="text-sm font-bold text-gray-900 w-8">{lowStockCount}</span>
+                    </div>
+                  </div>
+                {/if}
+                
+                {#if outOfStockCount > 0}
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <div class="w-4 h-4 rounded-full bg-red-500"></div>
+                      <span class="text-sm font-medium text-gray-700">Out of Stock</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <div class="w-24 bg-gray-200 rounded-full h-2">
+                        <div 
+                          class="bg-red-500 h-2 rounded-full transition-all duration-500"
+                          style="width: {(outOfStockCount / products.length) * 100}%"
+                        ></div>
+                      </div>
+                      <span class="text-sm font-bold text-gray-900 w-8">{outOfStockCount}</span>
+                    </div>
+                  </div>
+                {/if}
               </div>
-              <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            {:else}
+              <div class="text-center py-8 text-gray-500">
+                <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4"/>
                 </svg>
+                <p>No products available</p>
               </div>
-            </div>
+            {/if}
           </div>
         </div>
 
-        <!-- Top Performers -->
-        <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-900 mb-6">{$t('inventory.analytics.top_performers')}</h3>
-          <div class="space-y-4">
-            {#each topSellingProducts.slice(0, 5) as product, i}
-              <div class="flex items-center space-x-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {i + 1}
+        <!-- Top Products by Value -->
+        {#if products.length > 0}
+          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Products by Stock Value</h3>
+            <div class="space-y-4">
+              {#each products
+                .map(p => ({ ...p, stockValue: p.stock_quantity * (p.purchase_price || 0) }))
+                .sort((a, b) => b.stockValue - a.stockValue)
+                .slice(0, 5) as product, i}
+                <div class="flex items-center space-x-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                  <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    {i + 1}
+                  </div>
+                  <div class="flex-1">
+                    <p class="font-medium text-gray-900">{product.name}</p>
+                    <p class="text-sm text-gray-500">{product.stock_quantity} units in stock</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-semibold text-gray-900">${product.stockValue.toLocaleString()}</p>
+                    <p class="text-sm text-green-600">Stock value</p>
+                  </div>
                 </div>
-                <div class="flex-1">
-                  <p class="font-medium text-gray-900">{product.name}</p>
-                  <p class="text-sm text-gray-500">{product.salesCount} {$t('inventory.analytics.sales')}</p>
-                </div>
-                <div class="text-right">
-                  <p class="font-semibold text-gray-900">${product.revenue.toLocaleString()}</p>
-                  <p class="text-sm text-green-600">{$t('inventory.analytics.revenue')}</p>
-                </div>
-              </div>
-            {/each}
+              {/each}
+            </div>
           </div>
-        </div>
+        {/if}
       </div>
     {/if}
 
@@ -1024,6 +1222,57 @@
         </button>
       </div>
     {:else}
+      <!-- Results Count Display -->
+      <div class="mb-6 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 shadow-sm">
+            <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h2M9 5a2 2 0 012 2v10a2 2 0 01-2 2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 5v10a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H9z"/>
+            </svg>
+            <span class="text-sm font-medium text-gray-700">
+              {$t('inventory.results.showing_results', { count: stableProducts.length })}
+            </span>
+          </div>
+          
+          {#if searchQuery}
+            <div class="flex items-center px-3 py-1 bg-blue-100 rounded-lg">
+              <svg class="w-4 h-4 text-blue-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <span class="text-xs font-medium text-blue-800">"{searchQuery}"</span>
+            </div>
+          {/if}
+          
+          {#if selectedCategoryId}
+            <div class="flex items-center px-3 py-1 bg-purple-100 rounded-lg">
+              <svg class="w-4 h-4 text-purple-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+              </svg>
+              <span class="text-xs font-medium text-purple-800">
+                {categories.find(c => c.id == selectedCategoryId)?.name || 'Category'}
+              </span>
+            </div>
+          {/if}
+        </div>
+        
+        <!-- Clear Filters Button -->
+        {#if searchQuery || selectedCategoryId}
+          <button
+            on:click={() => {
+              searchQuery = '';
+              selectedCategoryId = '';
+              refreshFilteredProducts();
+            }}
+            class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Clear Filters
+          </button>
+        {/if}
+      </div>
+
       <!-- Products Grid with Stable Rendering -->
       <div class="relative">
         <!-- Loading Overlay -->
@@ -1038,107 +1287,102 @@
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {#each stableProducts as product (product.id)}
-            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group"
-            >
-            <!-- Product Image Placeholder -->
-            <div class="w-full h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl mb-4 flex items-center justify-center group-hover:from-blue-50 group-hover:to-indigo-50 transition-all duration-300">
-              {#if product.image_url}
-                <img src={product.image_url} alt={product.name} class="w-full h-full object-cover rounded-xl" />
-              {:else}
-                <svg class="w-12 h-12 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                </svg>
-              {/if}
-            </div>
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
+              <!-- Compact Product Card Design -->
+              <div class="p-4">
+                <!-- Product Image - Smaller and Conditional -->
+                {#if product.image_url}
+                  <div class="w-full h-24 mb-3 rounded-lg overflow-hidden">
+                    <img src={product.image_url} alt={product.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                {/if}
 
-            <!-- Product Info -->
-            <div class="space-y-3">
-              <div class="flex items-start justify-between">
-                <h3 class="text-lg font-semibold text-gray-900 truncate flex-1 mr-2">{product.name}</h3>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {product.stock_quantity <= product.reorder_point ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
-                  {product.stock_quantity <= product.reorder_point ? $t('inventory.stock_status.low') : $t('inventory.stock_status.in_stock')}
-                </span>
-              </div>
-
-              <div class="space-y-2">
-                <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-500">{$t('inventory.sku')}:</span>
-                  <span class="font-medium text-gray-900">{product.sku}</span>
-                </div>
-                <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-500">{$t('inventory.category')}:</span>
-                  <span class="font-medium text-gray-700">{categories.find(c => c.id === product.category_id)?.name || 'N/A'}</span>
-                </div>
-                <div class="flex justify-between items-center text-sm">
-                  <span class="text-gray-500">{$t('inventory.stock')}:</span>
-                  <span class="font-semibold {product.stock_quantity <= product.reorder_point ? 'text-red-600' : 'text-green-600'}">
-                    {product.stock_quantity} {$t('common.pagination.items')}
+                <!-- Product Header -->
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-semibold text-gray-900 truncate">{product.name}</h3>
+                    <p class="text-sm text-gray-500 truncate">{product.sku}</p>
+                  </div>
+                  <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {product.stock_quantity <= (product.reorder_point || 0) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                    {product.stock_quantity <= (product.reorder_point || 0) ? 'Low' : 'OK'}
                   </span>
                 </div>
-              </div>
 
-              <!-- Price and Margin -->
-              <div class="pt-3 border-t border-gray-100">
-                <div class="flex justify-between items-center">
+                <!-- Key Info Grid -->
+                <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
                   <div>
-                    <p class="text-2xl font-bold text-gray-900">${product.selling_price?.toFixed(2) || '0.00'}</p>
-                    <p class="text-sm text-gray-500">{$t('inventory.create.fields.selling_price')}</p>
+                    <span class="text-gray-500">Stock:</span>
+                    <span class="font-semibold ml-1 {product.stock_quantity <= (product.reorder_point || 0) ? 'text-red-600' : 'text-green-600'}">
+                      {product.stock_quantity}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-gray-500">Category:</span>
+                    <span class="font-medium ml-1 text-gray-700 truncate block">
+                      {categories.find(c => c.id === product.category_id)?.name || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Price Section -->
+                <div class="flex items-center justify-between mb-4 pt-3 border-t border-gray-100">
+                  <div>
+                    <p class="text-xl font-bold text-gray-900">${product.selling_price?.toFixed(2) || '0.00'}</p>
+                    <p class="text-xs text-gray-500">Selling Price</p>
                   </div>
                   <div class="text-right">
                     <p class="text-sm font-semibold text-green-600">
-                      ${calculateProfitAmount(product).toFixed(2)}
+                      +${calculateProfitAmount(product).toFixed(2)}
                     </p>
                     <p class="text-xs text-gray-500">
-                      {calculateProfitPercentage(product).toFixed(1)}% Profit Margin
+                      {calculateProfitPercentage(product).toFixed(1)}% margin
                     </p>
                   </div>
                 </div>
-              </div>
 
-              <!-- Action Buttons -->
-              <div class="flex space-x-2 pt-4">
-                <!-- Restock Button (show when stock is low) -->
-                {#if product.stock_quantity <= product.reorder_point}
+                <!-- Compact Action Buttons -->
+                <div class="flex space-x-2">
+                  {#if product.stock_quantity <= (product.reorder_point || 0)}
+                    <button
+                      on:click={() => handleRestock(product)}
+                      class="flex-1 inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg transition-all duration-200"
+                    >
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                      </svg>
+                      Restock
+                    </button>
+                  {:else}
+                    <button
+                      on:click={() => handleRestock(product)}
+                      class="flex-1 inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-all duration-200"
+                    >
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                      </svg>
+                      Add
+                    </button>
+                  {/if}
+                  
                   <button
-                    on:click={() => handleRestock(product)}
-                    class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent rounded-xl text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg"
+                    on:click={() => handleEditProduct(product)}
+                    class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200"
                   >
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
-                    {$t('inventory.actions.restock')}
                   </button>
-                {:else}
                   <button
-                    on:click={() => handleRestock(product)}
-                    class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-green-300 rounded-xl text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 transition-all duration-200"
+                    on:click={() => handleDeleteProduct(product)}
+                    class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-all duration-200"
                   >
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
-                    {$t('inventory.actions.restock')}
                   </button>
-                {/if}
-                
-                <button
-                  on:click={() => handleEditProduct(product)}
-                  class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                  </svg>
-                </button>
-                <button
-                  on:click={() => handleDeleteProduct(product)}
-                  class="inline-flex items-center justify-center px-3 py-2 border border-transparent rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-all duration-200"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                  </svg>
-                </button>
+                </div>
               </div>
             </div>
-          </div>
           {/each}
         </div>
       </div>
