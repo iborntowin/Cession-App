@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { token, user, showAlert, setAuth, clearAuth } from '$lib/stores';
   import { authApi, checkDbHealth } from '$lib/api';
@@ -24,8 +24,14 @@
   let formVisible = false;
   let backgroundLoaded = false;
 
-  // Loading bar state
+  // Enhanced loading bar state
   let loadingBarProgress = 0;
+  let loadingMessage = 'Initializing...';
+  let isLoadingComplete = false;
+  let loadingStartTime = 0;
+  let progressInterval;
+  let progressTimeout;
+  let maxWaitTime = 30000; // 30 seconds max wait time
 
   // Handle health status updates
   function handleHealthUpdate(event) {
@@ -38,21 +44,122 @@
     // Enable login only when backend is reachable and database is connected
     canLogin = backend && db && status === 'healthy';
 
-    // Update loading bar based on health status
-    if (status === 'healthy') {
-      loadingBarProgress = 100;
-    } else if (status === 'starting') {
-      loadingBarProgress = 30;
-    } else if (status === 'checking') {
-      loadingBarProgress = 10;
-    } else {
-      loadingBarProgress = 0;
+    // Start realistic loading sequence when system becomes healthy
+    if (status === 'healthy' && !isLoadingComplete) {
+      startRealisticLoading();
+    } else if (status === 'starting' || status === 'checking') {
+      // Show intermediate progress for system startup
+      if (loadingBarProgress < 30) {
+        animateProgressTo(30, 'Connecting to services...');
+      }
+    } else if (status === 'unhealthy' || status === 'error') {
+      // Auto-refresh when system has issues to retry connection
+      if (loadingBarProgress < 100) {
+        setTimeout(() => {
+          console.log('System unhealthy, refreshing page to retry...');
+          window.location.reload();
+        }, 3000); // Wait 3 seconds before refresh to show error state
+      }
     }
 
     // If backend becomes available and we were waiting, try login again
     if (canLogin && isLoading && email && password) {
       handleLogin();
     }
+  }
+
+  function startRealisticLoading() {
+    if (isLoadingComplete) return;
+    
+    loadingStartTime = Date.now();
+    
+    // Set maximum wait timeout
+    const maxWaitTimeout = setTimeout(() => {
+      if (!isLoadingComplete && !canLogin) {
+        loadingMessage = 'Taking longer than expected...';
+        animateProgressTo(95, 'Retrying connection...', 1000);
+        
+        setTimeout(() => {
+          console.log('Max wait time exceeded, refreshing page...');
+          refreshPage();
+        }, 2000);
+      }
+    }, maxWaitTime);
+    
+    // Stage 1: Fast initial progress (0% → 60% in 1s)
+    animateProgressTo(60, 'Loading workspace...', 1000);
+    
+    setTimeout(() => {
+      // Stage 2: Slower progress (60% → 90% in 2.5s)
+      animateProgressTo(90, 'Syncing data...', 2500);
+      
+      setTimeout(() => {
+        // Stage 3: Wait for real backend confirmation, then finish
+        if (canLogin) {
+          clearTimeout(maxWaitTimeout);
+          finishLoading();
+        } else {
+          // Wait for backend to be ready with timeout
+          const waitForBackend = setInterval(() => {
+            if (canLogin) {
+              clearInterval(waitForBackend);
+              clearTimeout(maxWaitTimeout);
+              finishLoading();
+            } else if (Date.now() - loadingStartTime > maxWaitTime) {
+              clearInterval(waitForBackend);
+              // Timeout will handle the refresh
+            }
+          }, 500);
+        }
+      }, 2500);
+    }, 1000);
+  }
+
+  function animateProgressTo(targetProgress, message, duration = 500) {
+    loadingMessage = message;
+    const startProgress = loadingBarProgress;
+    const progressDiff = targetProgress - startProgress;
+    const startTime = Date.now();
+    
+    clearInterval(progressInterval);
+    
+    progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Use easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      loadingBarProgress = Math.round(startProgress + (progressDiff * easeOutQuart));
+      
+      if (progress >= 1) {
+        clearInterval(progressInterval);
+        loadingBarProgress = targetProgress;
+      }
+    }, 16); // 60fps
+  }
+
+  function finishLoading() {
+    animateProgressTo(100, 'System ready!', 800);
+    
+    setTimeout(() => {
+      isLoadingComplete = true;
+      // Don't auto-refresh when system is ready - user can now login
+    }, 800);
+  }
+
+  function refreshPage() {
+    // Reset loading state before refresh
+    loadingBarProgress = 0;
+    loadingMessage = 'Initializing...';
+    isLoadingComplete = false;
+    loadingStartTime = 0;
+    
+    // Clear any existing intervals
+    clearInterval(progressInterval);
+    clearTimeout(progressTimeout);
+    
+    // Refresh the page
+    window.location.reload();
   }
 
   onMount(() => {
@@ -68,6 +175,12 @@
       formVisible = true;
       backgroundLoaded = true;
     }, 100);
+  });
+
+  // Cleanup intervals on component destroy
+  onDestroy(() => {
+    clearInterval(progressInterval);
+    clearTimeout(progressTimeout);
   });
 
   async function handleLogin() {
@@ -212,30 +325,92 @@
             </div>
           </div>
 
-          <!-- Creative Loading Bar -->
+          <!-- Enhanced Realistic Loading Bar -->
           <div class="mt-4">
-            <div class="relative w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div class="relative w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+              <!-- Background gradient -->
+              <div class="absolute inset-0 bg-gradient-to-r from-gray-100 to-gray-200"></div>
+              
+              <!-- Main progress bar with smooth animation -->
               <div 
-                class="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 rounded-full transition-all duration-500 ease-out"
+                class="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 rounded-full transition-all duration-300 ease-out shadow-sm"
                 style="width: {loadingBarProgress}%"
               >
-                <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
-                <div class="absolute right-0 top-0 h-full w-2 bg-white/40 animate-pulse"></div>
+                <!-- Shimmer effect for realism -->
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent shimmer-animation"></div>
+                
+                <!-- Progress indicator dot -->
+                <div class="absolute right-0 top-0 h-full w-1 bg-white/70 animate-pulse"></div>
+                
+                <!-- Completion glow effect -->
+                {#if loadingBarProgress >= 100}
+                  <div class="absolute inset-0 bg-emerald-400/60 animate-pulse completion-glow"></div>
+                {/if}
+              </div>
+              
+              <!-- Step markers for visual feedback -->
+              <div class="absolute inset-0 flex justify-between items-center px-1">
+                {#each [20, 40, 60, 80] as marker}
+                  <div 
+                    class="w-1.5 h-1.5 rounded-full transition-all duration-300 {
+                      loadingBarProgress >= marker ? 'bg-white shadow-lg scale-110' : 'bg-white/30'
+                    }"
+                  ></div>
+                {/each}
               </div>
             </div>
+            
+            <!-- Progress info with dynamic messages -->
             <div class="flex justify-between items-center mt-2">
-              <span class="text-xs text-gray-500">
-                {#if healthStatus === 'healthy'}
-                  All systems operational
-                {:else if healthStatus === 'starting'}
-                  Backend starting...
-                {:else if healthStatus === 'checking'}
-                  Checking services...
+              <div class="flex items-center space-x-2">
+                <!-- Loading spinner -->
+                {#if loadingBarProgress < 100}
+                  <div class="w-3 h-3 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                 {:else}
-                  System issues detected
+                  <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
                 {/if}
-              </span>
-              <span class="text-xs font-medium text-emerald-600">{loadingBarProgress}%</span>
+                
+                <span class="text-xs text-gray-600 font-medium transition-all duration-300">
+                  {loadingMessage}
+                </span>
+              </div>
+              
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-emerald-600 transition-all duration-300">
+                  {loadingBarProgress}%
+                </span>
+                
+                <!-- Time indicator -->
+                {#if loadingStartTime > 0}
+                  <span class="text-xs text-gray-400">
+                    {Math.round((Date.now() - loadingStartTime) / 1000)}s
+                  </span>
+                {/if}
+              </div>
+            </div>
+            
+            <!-- System status indicators -->
+            <div class="flex items-center justify-center space-x-4 mt-3 pt-2 border-t border-gray-100">
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 rounded-full transition-all duration-300 {
+                  backendReachable ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-gray-300'
+                }"></div>
+                <span class="text-xs text-gray-600">API</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 rounded-full transition-all duration-300 {
+                  databaseConnected ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-gray-300'
+                }"></div>
+                <span class="text-xs text-gray-600">Database</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <div class="w-2 h-2 rounded-full transition-all duration-300 {
+                  canLogin ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-gray-300'
+                }"></div>
+                <span class="text-xs text-gray-600">Auth</span>
+              </div>
             </div>
           </div>
 
@@ -304,7 +479,7 @@
                 </div>
               </div>
 
-              <!-- Remember Me & Forgot Password -->
+              <!-- Remember Me & Refresh Page -->
               <div class="flex items-center justify-between">
                 <label class="flex items-center">
                   <input
@@ -313,9 +488,16 @@
                   />
                   <span class="ml-2 text-sm text-gray-600">Remember me</span>
                 </label>
-                <a href="/forgot-password" class="text-sm font-medium text-emerald-600 hover:text-emerald-500 transition-colors">
-                  Forgot password?
-                </a>
+                <button 
+                  type="button"
+                  on:click={refreshPage}
+                  class="text-sm font-medium text-emerald-600 hover:text-emerald-500 transition-colors flex items-center space-x-1 hover:underline"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  <span>Refresh page</span>
+                </button>
               </div>
 
               <!-- Error Message -->
@@ -521,20 +703,39 @@
     box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.25), 0 2px 4px -1px rgba(16, 185, 129, 0.06);
   }
 
-  /* Loading bar shimmer effect */
+  /* Enhanced loading bar animations */
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
 
-  .bg-gradient-to-r::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  .shimmer-animation {
     animation: shimmer 2s infinite;
+  }
+
+  @keyframes completion-glow {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .completion-glow {
+    animation: completion-glow 1.5s ease-in-out;
+  }
+
+  /* Smooth progress bar transitions */
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Enhanced shadow effects */
+  .shadow-emerald-500\/50 {
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
+  }
+
+  /* Loading bar step markers */
+  .scale-110 {
+    transform: scale(1.1);
   }
 </style>
