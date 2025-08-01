@@ -44,9 +44,17 @@
     // Enable login only when backend is reachable and database is connected
     canLogin = backend && db && status === 'healthy';
 
-    // Start realistic loading sequence when system becomes healthy
-    if (status === 'healthy' && !isLoadingComplete) {
+    // Start realistic loading sequence immediately, regardless of status
+    if (!isLoadingComplete && loadingBarProgress === 0) {
       startRealisticLoading();
+    }
+
+    // Update progress based on actual status
+    if (status === 'healthy' && canLogin) {
+      // System is ready - complete the loading
+      if (loadingBarProgress < 100) {
+        finishLoading();
+      }
     } else if (status === 'starting' || status === 'checking') {
       // Show intermediate progress for system startup
       if (loadingBarProgress < 30) {
@@ -69,13 +77,13 @@
   }
 
   function startRealisticLoading() {
-    if (isLoadingComplete) return;
+    if (isLoadingComplete || loadingStartTime > 0) return; // Prevent multiple starts
     
     loadingStartTime = Date.now();
     
-    // Set maximum wait timeout
+    // Set maximum wait timeout (reduced to 15 seconds)
     const maxWaitTimeout = setTimeout(() => {
-      if (!isLoadingComplete && !canLogin) {
+      if (!isLoadingComplete) {
         loadingMessage = 'Taking longer than expected...';
         animateProgressTo(95, 'Retrying connection...', 1000);
         
@@ -84,34 +92,42 @@
           refreshPage();
         }, 2000);
       }
-    }, maxWaitTime);
+    }, 15000); // Reduced from 30 seconds to 15 seconds
     
     // Stage 1: Fast initial progress (0% → 60% in 1s)
     animateProgressTo(60, 'Loading workspace...', 1000);
     
     setTimeout(() => {
-      // Stage 2: Slower progress (60% → 90% in 2.5s)
-      animateProgressTo(90, 'Syncing data...', 2500);
+      // Stage 2: Slower progress (60% → 90% in 2s) - reduced time
+      animateProgressTo(90, 'Syncing data...', 2000);
       
       setTimeout(() => {
-        // Stage 3: Wait for real backend confirmation, then finish
+        // Stage 3: Check if system is ready, if not wait briefly then complete anyway
         if (canLogin) {
           clearTimeout(maxWaitTimeout);
           finishLoading();
         } else {
-          // Wait for backend to be ready with timeout
+          // Wait for backend to be ready but with shorter timeout
+          let waitCount = 0;
+          const maxWaitCount = 10; // Maximum 5 seconds (10 * 500ms)
+          
           const waitForBackend = setInterval(() => {
+            waitCount++;
+            
             if (canLogin) {
               clearInterval(waitForBackend);
               clearTimeout(maxWaitTimeout);
               finishLoading();
-            } else if (Date.now() - loadingStartTime > maxWaitTime) {
+            } else if (waitCount >= maxWaitCount) {
+              // If backend still not ready after 5 seconds, complete anyway
               clearInterval(waitForBackend);
-              // Timeout will handle the refresh
+              clearTimeout(maxWaitTimeout);
+              console.log('Backend not ready after 5 seconds, completing loading anyway');
+              finishLoading();
             }
           }, 500);
         }
-      }, 2500);
+      }, 2000); // Reduced from 2500ms to 2000ms
     }, 1000);
   }
 
@@ -143,7 +159,11 @@
     
     setTimeout(() => {
       isLoadingComplete = true;
-      // Don't auto-refresh when system is ready - user can now login
+      // Enable login when loading completes, regardless of health status
+      if (!canLogin) {
+        canLogin = true;
+        console.log('Login enabled after loading completion');
+      }
     }, 800);
   }
 
@@ -175,6 +195,22 @@
       formVisible = true;
       backgroundLoaded = true;
     }, 100);
+
+    // Fallback: Start loading after 2 seconds if not started yet
+    setTimeout(() => {
+      if (loadingBarProgress === 0 && !isLoadingComplete) {
+        console.log('Fallback: Starting loading sequence');
+        startRealisticLoading();
+      }
+    }, 2000);
+
+    // Ultimate fallback: Complete loading after 20 seconds no matter what
+    setTimeout(() => {
+      if (!isLoadingComplete) {
+        console.log('Ultimate fallback: Forcing loading completion');
+        finishLoading();
+      }
+    }, 20000);
   });
 
   // Cleanup intervals on component destroy
@@ -518,7 +554,7 @@
               <div>
                 <button
                   type="submit"
-                  disabled={isLoading || !canLogin}
+                  disabled={isLoading || (!canLogin && !isLoadingComplete)}
                   class="group relative w-full flex justify-center items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium border border-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg"
                 >
                   {#if isLoading}
@@ -526,11 +562,13 @@
                       <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       <span>Signing in...</span>
                     </div>
-                  {:else if !canLogin}
+                  {:else if !canLogin && !isLoadingComplete}
                     <div class="flex items-center space-x-3">
                       <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       <span>
-                        {#if healthStatus === 'starting'}
+                        {#if loadingBarProgress < 100}
+                          Loading system...
+                        {:else if healthStatus === 'starting'}
                           Waiting for backend...
                         {:else if healthStatus === 'checking'}
                           Checking system...
@@ -551,7 +589,7 @@
               </div>
 
               <!-- System Status Help -->
-              {#if !canLogin && (healthStatus === 'error' || healthStatus === 'unhealthy')}
+              {#if !canLogin && !isLoadingComplete && (healthStatus === 'error' || healthStatus === 'unhealthy')}
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-4" in:slide={{ duration: 300 }}>
                   <div class="flex items-start">
                     <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
