@@ -439,14 +439,15 @@
       .slice(0, 5);
 
     inventoryAnalytics = {
-      totalValue: totalSellingValue,
+      totalValue: totalSellingValue, // Total selling price sum
       totalPurchaseValue: totalPurchaseValue,
       totalItems,
       totalProducts: products.length,
       lowStockCount: lowStockItems.length,
       avgMargin: profitMargins.reduce((sum, p) => sum + p.margin, 0) / profitMargins.length || 0,
       categories: categories.length,
-      totalProfit: totalSellingValue - totalPurchaseValue
+      totalProfit: totalSellingValue - totalPurchaseValue,
+      profitMarginPercent: totalPurchaseValue > 0 ? ((totalSellingValue - totalPurchaseValue) / totalPurchaseValue * 100) : 0
     };
 
     // Cache the results
@@ -710,14 +711,47 @@
   let stableProducts = []; // Stable reference to prevent flickering
 
   function updateFilteredProducts() {
-    const filterKey = `${selectedCategoryId}-${products.length}-${products.map(p => p.id).join(',')}`;
+    const filterKey = `${selectedCategoryId}-${sortBy}-${sortOrder}-${products.length}-${products.map(p => p.id).join(',')}`;
     
     if (filterKey === lastFilterKey) return;
     
-    // Create stable reference
-    const newFiltered = selectedCategoryId
+    // Filter products
+    let newFiltered = selectedCategoryId
       ? products.filter(p => p.category_id == selectedCategoryId)
       : [...products];
+    
+    // Sort products
+    newFiltered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name?.toLowerCase() || '';
+          bValue = b.name?.toLowerCase() || '';
+          break;
+        case 'price':
+          aValue = a.selling_price || 0;
+          bValue = b.selling_price || 0;
+          break;
+        case 'stock':
+          aValue = a.stock_quantity || 0;
+          bValue = b.stock_quantity || 0;
+          break;
+        case 'margin':
+          aValue = calculateProfitPercentage(a);
+          bValue = calculateProfitPercentage(b);
+          break;
+        default:
+          aValue = a.name?.toLowerCase() || '';
+          bValue = b.name?.toLowerCase() || '';
+      }
+      
+      if (sortBy === 'name') {
+        return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      } else {
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+    });
     
     // Only update if actually different
     if (JSON.stringify(newFiltered) !== JSON.stringify(filteredProducts)) {
@@ -878,219 +912,524 @@
       isMinimized={true}
     />
 
-    <!-- 📊 Real Analytics Dashboard -->
+    <!-- 🚀 World-Class Analytics Intelligence Dashboard -->
     {#if viewMode === 'analytics'}
       <div class="space-y-8 mb-8" transition:fade={{ duration: 300 }}>
-        <!-- Real KPI Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <!-- Total Stock Value -->
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600">Stock Value</p>
-                <p class="text-2xl font-bold text-gray-900 mt-2">${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}</p>
-                <p class="text-xs text-gray-500 mt-1">Purchase cost</p>
+        <!-- Hero Analytics Section -->
+        <div class="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-3xl p-8 text-white shadow-2xl">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main KPI -->
+            <div class="lg:col-span-2">
+              <h2 class="text-3xl font-bold mb-2">Inventory Intelligence</h2>
+              <p class="text-indigo-200 mb-8">Real-time insights into your inventory performance</p>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Total Selling Value (NEW) -->
+                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/>
+                      </svg>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs text-emerald-300 font-medium">REVENUE POTENTIAL</div>
+                    </div>
+                  </div>
+                  <div class="text-3xl font-bold text-white mb-1">
+                    ${(inventoryAnalytics.totalValue || 0).toLocaleString()}
+                  </div>
+                  <div class="text-sm text-emerald-300">
+                    Total Selling Value
+                  </div>
+                  <div class="mt-3 flex items-center text-xs text-white/70">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                    Potential profit: ${((inventoryAnalytics.totalValue || 0) - (inventoryAnalytics.totalPurchaseValue || 0)).toLocaleString()}
+                  </div>
+                </div>
+
+                <!-- Stock Investment -->
+                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                      </svg>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-xs text-blue-300 font-medium">INVESTMENT</div>
+                    </div>
+                  </div>
+                  <div class="text-3xl font-bold text-white mb-1">
+                    ${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}
+                  </div>
+                  <div class="text-sm text-blue-300">
+                    Stock Investment
+                  </div>
+                  <div class="mt-3 flex items-center text-xs text-white/70">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4"/>
+                    </svg>
+                    {inventoryAnalytics.totalItems || 0} total items
+                  </div>
+                </div>
               </div>
-              <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/>
-                </svg>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="space-y-4">
+              <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-2xl font-bold text-white">{inventoryAnalytics.totalProducts || 0}</div>
+                    <div class="text-sm text-white/70">Products</div>
+                  </div>
+                  <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4"/>
+                    </svg>
+                  </div>
+                </div>
               </div>
+
+              <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-2xl font-bold text-white">{categories.length}</div>
+                    <div class="text-sm text-white/70">Categories</div>
+                  </div>
+                  <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {#if inventoryAnalytics.avgMargin > 0}
+                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-2xl font-bold text-white">{inventoryAnalytics.avgMargin.toFixed(1)}%</div>
+                      <div class="text-sm text-white/70">Avg. Margin</div>
+                    </div>
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+
+              {#if inventoryAnalytics.lowStockCount > 0}
+                <div class="bg-red-500/20 backdrop-blur-sm rounded-2xl p-4 border border-red-400/30">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-2xl font-bold text-red-300">{inventoryAnalytics.lowStockCount}</div>
+                      <div class="text-sm text-red-200">Low Stock</div>
+                    </div>
+                    <div class="w-10 h-10 bg-red-400/30 rounded-lg flex items-center justify-center">
+                      <svg class="w-5 h-5 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              {/if}
             </div>
           </div>
-
-          <!-- Total Products -->
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-medium text-gray-600">Products</p>
-                <p class="text-2xl font-bold text-gray-900 mt-2">{inventoryAnalytics.totalProducts || 0}</p>
-                <p class="text-xs text-gray-500 mt-1">{categories.length} categories</p>
-              </div>
-              <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <!-- Low Stock Alert -->
-          {#if inventoryAnalytics.lowStockCount > 0}
-            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-600">Low Stock</p>
-                  <p class="text-2xl font-bold text-red-600 mt-2">{inventoryAnalytics.lowStockCount}</p>
-                  <p class="text-xs text-red-500 mt-1">Need restock</p>
-                </div>
-                <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                  <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          {/if}
-
-          <!-- Average Margin -->
-          {#if inventoryAnalytics.avgMargin > 0}
-            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-600">Avg. Margin</p>
-                  <p class="text-2xl font-bold text-purple-600 mt-2">{inventoryAnalytics.avgMargin.toFixed(1)}%</p>
-                  <p class="text-xs text-gray-500 mt-1">Profit margin</p>
-                </div>
-                <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          {/if}
         </div>
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- Category Distribution Chart -->
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Products by Category</h3>
+        <!-- 🎨 Redesigned Analytics Dashboard with Better UX -->
+        
+        <!-- Primary Analytics Row - Most Important Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          
+          <!-- 📊 Category Distribution - Primary Focus -->
+          <div class="lg:col-span-2 bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-300">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">Category Overview</h3>
+                <p class="text-sm text-gray-600">Distribution of your inventory across categories</p>
+              </div>
+              <div class="w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
+            </div>
+            
             {#if categories.length > 0}
-              <div class="space-y-4">
-                {#each categories as category}
-                  {@const categoryProducts = products.filter(p => p.category_id === category.id)}
-                  {@const percentage = products.length > 0 ? (categoryProducts.length / products.length) * 100 : 0}
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                      <div class="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                      <span class="text-sm font-medium text-gray-700">{category.name}</span>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                      <div class="w-24 bg-gray-200 rounded-full h-2">
-                        <div 
-                          class="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
-                          style="width: {percentage}%"
-                        ></div>
+              <div class="flex flex-col lg:flex-row items-center gap-8">
+                <!-- Donut Chart -->
+                <div class="relative flex-shrink-0">
+                  <svg class="w-56 h-56 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#f3f4f6" stroke-width="8"/>
+                    {#each categories as category, i}
+                      {@const categoryProducts = products.filter(p => p.category_id === category.id)}
+                      {@const percentage = products.length > 0 ? (categoryProducts.length / products.length) * 100 : 0}
+                      {@const circumference = 2 * Math.PI * 40}
+                      {@const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`}
+                      {@const strokeDashoffset = -((categories.slice(0, i).reduce((acc, cat) => {
+                        const catProducts = products.filter(p => p.category_id === cat.id);
+                        return acc + (products.length > 0 ? (catProducts.length / products.length) * 100 : 0);
+                      }, 0) / 100) * circumference)}
+                      {@const colors = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899']}
+                      
+                      <circle 
+                        cx="50" 
+                        cy="50" 
+                        r="40" 
+                        fill="none" 
+                        stroke={colors[i % colors.length]}
+                        stroke-width="8"
+                        stroke-linecap="round"
+                        stroke-dasharray={strokeDasharray}
+                        stroke-dashoffset={strokeDashoffset}
+                        class="transition-all duration-1000 ease-out"
+                        style="animation: drawCircle 2s ease-out forwards;"
+                      />
+                    {/each}
+                  </svg>
+                  
+                  <!-- Center Stats -->
+                  <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <div class="text-4xl font-bold text-gray-900">{products.length}</div>
+                    <div class="text-sm text-gray-500 font-medium">Total Products</div>
+                  </div>
+                </div>
+                
+                <!-- Legend - Better Spacing -->
+                <div class="flex-1 space-y-4">
+                  {#each categories as category, i}
+                    {@const categoryProducts = products.filter(p => p.category_id === category.id)}
+                    {@const percentage = products.length > 0 ? (categoryProducts.length / products.length) * 100 : 0}
+                    {@const colors = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899']}
+                    
+                    <div class="flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 transition-all duration-200 cursor-pointer group border border-gray-100">
+                      <div class="flex items-center space-x-4">
+                        <div class="w-5 h-5 rounded-full transition-transform group-hover:scale-110" style="background-color: {colors[i % colors.length]}"></div>
+                        <div>
+                          <div class="text-base font-semibold text-gray-900 group-hover:text-gray-700">{category.name}</div>
+                          <div class="text-sm text-gray-500">{percentage.toFixed(1)}% of inventory</div>
+                        </div>
                       </div>
-                      <span class="text-sm font-bold text-gray-900 w-8">{categoryProducts.length}</span>
+                      <div class="text-right">
+                        <div class="text-xl font-bold text-gray-900">{categoryProducts.length}</div>
+                        <div class="text-xs text-gray-500">products</div>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {:else}
+              <div class="text-center py-16">
+                <div class="w-20 h-20 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg class="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                  </svg>
+                </div>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">No Categories Yet</h4>
+                <p class="text-gray-500">Create categories to organize your inventory</p>
+              </div>
+            {/if}
+          </div>
+
+          <!-- 🚨 Smart Alerts - Secondary Focus -->
+          <div class="bg-gradient-to-br from-rose-50 to-pink-50 rounded-3xl p-6 shadow-xl border border-rose-100 hover:shadow-2xl transition-all duration-300">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-1">Smart Alerts</h3>
+                <p class="text-sm text-gray-600">Important notifications</p>
+              </div>
+              <div class="w-8 h-8 bg-gradient-to-r from-rose-400 to-pink-500 rounded-full flex items-center justify-center animate-pulse">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5z"/>
+                </svg>
+              </div>
+            </div>
+            
+            <div class="space-y-3">
+              <!-- Low Stock Alert -->
+              {#if products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length > 0}
+                <div class="bg-yellow-100/80 backdrop-blur-sm border border-yellow-200 rounded-xl p-3">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-yellow-800">Low Stock</div>
+                      <div class="text-xs text-yellow-700">
+                        {products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length} items need restocking
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+              
+              <!-- Out of Stock Alert -->
+              {#if products.filter(p => p.stock_quantity === 0).length > 0}
+                <div class="bg-red-100/80 backdrop-blur-sm border border-red-200 rounded-xl p-3">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-red-800">Out of Stock</div>
+                      <div class="text-xs text-red-700">
+                        {products.filter(p => p.stock_quantity === 0).length} items unavailable
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+              
+              <!-- High Margin Opportunity -->
+              {#if products.filter(p => calculateProfitPercentage(p) > 40).length > 0}
+                <div class="bg-green-100/80 backdrop-blur-sm border border-green-200 rounded-xl p-3">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-semibold text-green-800">High Performers</div>
+                      <div class="text-xs text-green-700">
+                        {products.filter(p => calculateProfitPercentage(p) > 40).length} items with 40%+ margins
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+              
+              <!-- Default State -->
+              {#if products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length === 0 && products.filter(p => p.stock_quantity === 0).length === 0 && products.filter(p => calculateProfitPercentage(p) > 40).length === 0}
+                <div class="bg-blue-100/80 backdrop-blur-sm border border-blue-200 rounded-xl p-4 text-center">
+                  <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div class="text-sm font-semibold text-blue-800">All Good!</div>
+                  <div class="text-xs text-blue-700">No urgent alerts at the moment</div>
+                </div>
+              {/if}
+            </div>
+          </div>
+        </div>
+
+        <!-- Secondary Analytics Row - Supporting Information -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          <!-- 🎨 Profit Margin Heatmap -->
+          <div class="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-300">
+            <div class="flex items-center justify-between mb-8">
+              <h3 class="text-xl font-bold text-gray-900">Profit Margin Analysis</h3>
+              <div class="flex items-center space-x-2">
+                <div class="w-3 h-3 bg-red-400 rounded-sm"></div>
+                <div class="w-3 h-3 bg-yellow-400 rounded-sm"></div>
+                <div class="w-3 h-3 bg-green-400 rounded-sm"></div>
+              </div>
+            </div>
+            
+            {#if products.length > 0}
+              {@const highMargin = products.filter(p => calculateProfitPercentage(p) > 30).length}
+              {@const mediumMargin = products.filter(p => calculateProfitPercentage(p) > 15 && calculateProfitPercentage(p) <= 30).length}
+              {@const lowMargin = products.filter(p => calculateProfitPercentage(p) > 0 && calculateProfitPercentage(p) <= 15).length}
+              {@const noMargin = products.filter(p => calculateProfitPercentage(p) <= 0).length}
+              
+              <div class="grid grid-cols-4 gap-2 mb-6">
+                {#each products.slice(0, 16) as product}
+                  {@const margin = calculateProfitPercentage(product)}
+                  {@const intensity = Math.min(margin / 50, 1)} <!-- Normalize to 0-1 based on 50% max -->
+                  
+                  <div 
+                    class="aspect-square rounded-lg flex items-center justify-center text-xs font-bold text-white transition-all duration-300 hover:scale-110 cursor-pointer group relative"
+                    style="background-color: {
+                      margin > 30 ? `rgba(34, 197, 94, ${0.3 + intensity * 0.7})` :
+                      margin > 15 ? `rgba(245, 158, 11, ${0.3 + intensity * 0.7})` :
+                      margin > 0 ? `rgba(249, 115, 22, ${0.3 + intensity * 0.7})` :
+                      'rgba(239, 68, 68, 0.8)'
+                    }"
+                  >
+                    {margin.toFixed(0)}%
+                    
+                    <!-- Tooltip -->
+                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {product.name}: {margin.toFixed(1)}%
                     </div>
                   </div>
                 {/each}
               </div>
-            {:else}
-              <div class="text-center py-8 text-gray-500">
-                <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a1 1 0 01-1 1h-2a1 1 0 01-1-1z"/>
-                </svg>
-                <p>No categories available</p>
-              </div>
-            {/if}
-          </div>
-
-          <!-- Stock Status Chart -->
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Stock Status</h3>
-            {#if products.length > 0}
-              {@const inStockCount = products.filter(p => p.stock_quantity > (p.reorder_point || 0)).length}
-              {@const lowStockCount = products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length}
-              {@const outOfStockCount = products.filter(p => p.stock_quantity === 0).length}
               
-              <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-4 h-4 rounded-full bg-green-500"></div>
-                    <span class="text-sm font-medium text-gray-700">In Stock</span>
+              <!-- Margin Distribution -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between text-sm">
+                  <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-green-500 rounded-sm"></div>
+                    <span class="text-gray-700">High Margin (30%+)</span>
                   </div>
-                  <div class="flex items-center space-x-3">
-                    <div class="w-24 bg-gray-200 rounded-full h-2">
-                      <div 
-                        class="bg-green-500 h-2 rounded-full transition-all duration-500"
-                        style="width: {(inStockCount / products.length) * 100}%"
-                      ></div>
-                    </div>
-                    <span class="text-sm font-bold text-gray-900 w-8">{inStockCount}</span>
-                  </div>
+                  <span class="font-bold text-green-600">{highMargin} products</span>
                 </div>
                 
-                {#if lowStockCount > 0}
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                      <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
-                      <span class="text-sm font-medium text-gray-700">Low Stock</span>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                      <div class="w-24 bg-gray-200 rounded-full h-2">
-                        <div 
-                          class="bg-yellow-500 h-2 rounded-full transition-all duration-500"
-                          style="width: {(lowStockCount / products.length) * 100}%"
-                        ></div>
-                      </div>
-                      <span class="text-sm font-bold text-gray-900 w-8">{lowStockCount}</span>
-                    </div>
+                <div class="flex items-center justify-between text-sm">
+                  <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-yellow-500 rounded-sm"></div>
+                    <span class="text-gray-700">Medium Margin (15-30%)</span>
                   </div>
-                {/if}
+                  <span class="font-bold text-yellow-600">{mediumMargin} products</span>
+                </div>
                 
-                {#if outOfStockCount > 0}
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                      <div class="w-4 h-4 rounded-full bg-red-500"></div>
-                      <span class="text-sm font-medium text-gray-700">Out of Stock</span>
+                <div class="flex items-center justify-between text-sm">
+                  <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-orange-500 rounded-sm"></div>
+                    <span class="text-gray-700">Low Margin (0-15%)</span>
+                  </div>
+                  <span class="font-bold text-orange-600">{lowMargin} products</span>
+                </div>
+                
+                {#if noMargin > 0}
+                  <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-3 h-3 bg-red-500 rounded-sm"></div>
+                      <span class="text-gray-700">No Profit/Loss</span>
                     </div>
-                    <div class="flex items-center space-x-3">
-                      <div class="w-24 bg-gray-200 rounded-full h-2">
-                        <div 
-                          class="bg-red-500 h-2 rounded-full transition-all duration-500"
-                          style="width: {(outOfStockCount / products.length) * 100}%"
-                        ></div>
-                      </div>
-                      <span class="text-sm font-bold text-gray-900 w-8">{outOfStockCount}</span>
-                    </div>
+                    <span class="font-bold text-red-600">{noMargin} products</span>
                   </div>
                 {/if}
               </div>
             {:else}
-              <div class="text-center py-8 text-gray-500">
-                <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4"/>
-                </svg>
-                <p>No products available</p>
+              <div class="text-center py-12">
+                <div class="w-16 h-16 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                </div>
+                <p class="text-gray-500 font-medium">No margin data available</p>
               </div>
             {/if}
           </div>
-        </div>
 
-        <!-- Top Products by Value -->
-        {#if products.length > 0}
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Products by Stock Value</h3>
+          <!-- 🚨 Smart Alerts & Recommendations -->
+          <div class="bg-gradient-to-br from-rose-50 to-pink-50 rounded-3xl p-8 shadow-xl border border-rose-100 hover:shadow-2xl transition-all duration-300">
+            <div class="flex items-center justify-between mb-8">
+              <h3 class="text-xl font-bold text-gray-900">Smart Insights</h3>
+              <div class="w-8 h-8 bg-gradient-to-r from-rose-400 to-pink-500 rounded-full flex items-center justify-center animate-pulse">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+            </div>
+            
             <div class="space-y-4">
-              {#each products
-                .map(p => ({ ...p, stockValue: p.stock_quantity * (p.purchase_price || 0) }))
-                .sort((a, b) => b.stockValue - a.stockValue)
-                .slice(0, 5) as product, i}
-                <div class="flex items-center space-x-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                  <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    {i + 1}
-                  </div>
-                  <div class="flex-1">
-                    <p class="font-medium text-gray-900">{product.name}</p>
-                    <p class="text-sm text-gray-500">{product.stock_quantity} units in stock</p>
-                  </div>
-                  <div class="text-right">
-                    <p class="font-semibold text-gray-900">${product.stockValue.toLocaleString()}</p>
-                    <p class="text-sm text-green-600">Stock value</p>
+              <!-- Low Stock Alert -->
+              {#if products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length > 0}
+                <div class="bg-yellow-100/60 backdrop-blur-sm border border-yellow-200 rounded-2xl p-4">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="font-semibold text-yellow-800">Low Stock Warning</div>
+                      <div class="text-sm text-yellow-700">
+                        {products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length} products need restocking
+                      </div>
+                    </div>
                   </div>
                 </div>
-              {/each}
+              {/if}
+              
+              <!-- Out of Stock Alert -->
+              {#if products.filter(p => p.stock_quantity === 0).length > 0}
+                <div class="bg-red-100/60 backdrop-blur-sm border border-red-200 rounded-2xl p-4">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="font-semibold text-red-800">Out of Stock</div>
+                      <div class="text-sm text-red-700">
+                        {products.filter(p => p.stock_quantity === 0).length} products are completely out of stock
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+              
+              <!-- High Margin Opportunity -->
+              {#if products.filter(p => calculateProfitPercentage(p) > 40).length > 0}
+                <div class="bg-green-100/60 backdrop-blur-sm border border-green-200 rounded-2xl p-4">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="font-semibold text-green-800">High Profit Products</div>
+                      <div class="text-sm text-green-700">
+                        {products.filter(p => calculateProfitPercentage(p) > 40).length} products have excellent margins (40%+)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+              
+              <!-- Category Insights -->
+              {#if categories.length > 0}
+                {@const topCategory = categories.reduce((max, cat) => {
+                  const catProducts = products.filter(p => p.category_id === cat.id);
+                  const maxProducts = products.filter(p => p.category_id === max.id);
+                  return catProducts.length > maxProducts.length ? cat : max;
+                })}
+                
+                <div class="bg-blue-100/60 backdrop-blur-sm border border-blue-200 rounded-2xl p-4">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a1 1 0 01-1 1h-2a1 1 0 01-1-1z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="font-semibold text-blue-800">Top Category</div>
+                      <div class="text-sm text-blue-700">
+                        "{topCategory.name}" dominates with {products.filter(p => p.category_id === topCategory.id).length} products
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+              
+              <!-- Investment Summary -->
+              <div class="bg-purple-100/60 backdrop-blur-sm border border-purple-200 rounded-2xl p-4">
+                <div class="flex items-start space-x-3">
+                  <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="font-semibold text-purple-800">Portfolio Health</div>
+                    <div class="text-sm text-purple-700">
+                      ${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()} invested across {products.length} products
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        {/if}
+        </div>
       </div>
-    {/if}
-
-    <!-- 🔍 Advanced Search & Filter Bar -->
+    {:else}
+      <!-- Non-Analytics Views -->
     <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
       <div class="flex flex-col lg:flex-row gap-4">
         <!-- Smart Search -->
@@ -1121,14 +1460,14 @@
 
         <!-- Smart Filters -->
         <div class="flex flex-wrap gap-3">
-          <select value={selectedCategoryId} on:change={handleCategoryChange} class="px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700">
+          <select bind:value={selectedCategoryId} on:change={refreshFilteredProducts} class="px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700">
             <option value="">{$t('inventory.filters.all_categories')}</option>
             {#each categories as category}
               <option value={category.id}>{category.name}</option>
             {/each}
           </select>
 
-          <select bind:value={sortBy} class="px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700">
+          <select bind:value={sortBy} on:change={refreshFilteredProducts} class="px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700">
             <option value="name">{$t('inventory.sort.name')}</option>
             <option value="price">{$t('inventory.sort.price')}</option>
             <option value="stock">{$t('inventory.sort.stock')}</option>
@@ -1136,49 +1475,17 @@
           </select>
 
           <button
-            on:click={() => showFilters = !showFilters}
+            on:click={() => { sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; refreshFilteredProducts(); }}
             class="px-4 py-3 bg-white/50 border border-gray-200 rounded-xl hover:bg-white transition-all duration-200 text-gray-700 font-medium"
+            title="Toggle sort order"
           >
-            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            <svg class="w-4 h-4 transition-transform duration-200 {sortOrder === 'desc' ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
             </svg>
-{$t('inventory.filters.title')}
           </button>
+
         </div>
       </div>
-
-      <!-- Advanced Filters Panel -->
-      {#if showFilters}
-        <div class="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200" transition:slide={{ duration: 300 }}>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Stock Status</label>
-              <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                <option>All Items</option>
-                <option>In Stock</option>
-                <option>Low Stock</option>
-                <option>Out of Stock</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
-              <div class="flex space-x-2">
-                <input type="number" placeholder="{$t('inventory.filters.min')}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                <input type="number" placeholder="{$t('inventory.filters.max')}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
-              <select bind:value={selectedSupplier} class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                <option value="">All Suppliers</option>
-                {#each [...new Set(products.map(p => p.supplier).filter(Boolean))] as supplier}
-                  <option value={supplier}>{supplier}</option>
-                {/each}
-              </select>
-            </div>
-          </div>
-        </div>
-      {/if}
     </div>
 
     <!-- 🎯 Products Display -->
@@ -1273,7 +1580,7 @@
         {/if}
       </div>
 
-      <!-- Products Grid with Stable Rendering -->
+      <!-- Products Display with Multiple Views -->
       <div class="relative">
         <!-- Loading Overlay -->
         {#if !isDataStable}
@@ -1285,7 +1592,9 @@
           </div>
         {/if}
         
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Products Display Views -->
+        {#if viewMode === 'grid'}
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {#each stableProducts as product (product.id)}
             <div class="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
               <!-- Compact Product Card Design -->
@@ -1384,8 +1693,136 @@
               </div>
             </div>
           {/each}
-        </div>
+          </div>
+        
+        <!-- List View -->
+        {:else if viewMode === 'list'}
+          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <!-- Table Header -->
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <div class="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700">
+                <div class="col-span-3">Product</div>
+                <div class="col-span-2">Category</div>
+                <div class="col-span-1">Stock</div>
+                <div class="col-span-2">Purchase Price</div>
+                <div class="col-span-2">Selling Price</div>
+                <div class="col-span-1">Margin</div>
+                <div class="col-span-1">Actions</div>
+              </div>
+            </div>
+            
+            <!-- Table Body -->
+            <div class="divide-y divide-gray-100">
+              {#each stableProducts as product (product.id)}
+                {@const margin = calculateProfitPercentage(product)}
+                <div class="px-6 py-4 hover:bg-gray-50 transition-colors duration-200">
+                  <div class="grid grid-cols-12 gap-4 items-center">
+                    <!-- Product Info -->
+                    <div class="col-span-3">
+                      <div class="flex items-center space-x-3">
+                        {#if product.image_url}
+                          <img src={product.image_url} alt={product.name} class="w-10 h-10 rounded-lg object-cover" />
+                        {:else}
+                          <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4"/>
+                            </svg>
+                          </div>
+                        {/if}
+                        <div>
+                          <div class="font-medium text-gray-900">{product.name}</div>
+                          <div class="text-sm text-gray-500">{product.sku}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Category -->
+                    <div class="col-span-2">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {categories.find(c => c.id === product.category_id)?.name || 'N/A'}
+                      </span>
+                    </div>
+                    
+                    <!-- Stock -->
+                    <div class="col-span-1">
+                      <div class="flex items-center">
+                        <span class="font-medium {product.stock_quantity <= (product.reorder_point || 0) ? 'text-red-600' : 'text-green-600'}">
+                          {product.stock_quantity}
+                        </span>
+                        {#if product.stock_quantity <= (product.reorder_point || 0) && product.reorder_point > 0}
+                          <svg class="w-4 h-4 text-red-500 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01"/>
+                          </svg>
+                        {/if}
+                      </div>
+                    </div>
+                    
+                    <!-- Purchase Price -->
+                    <div class="col-span-2">
+                      <span class="font-medium text-gray-900">${(product.purchase_price || 0).toFixed(2)}</span>
+                    </div>
+                    
+                    <!-- Selling Price -->
+                    <div class="col-span-2">
+                      <span class="font-medium text-gray-900">${(product.selling_price || 0).toFixed(2)}</span>
+                    </div>
+                    
+                    <!-- Margin -->
+                    <div class="col-span-1">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {
+                        margin > 30 ? 'bg-green-100 text-green-800' :
+                        margin > 15 ? 'bg-yellow-100 text-yellow-800' :
+                        margin > 0 ? 'bg-orange-100 text-orange-800' :
+                        'bg-red-100 text-red-800'
+                      }">
+                        {margin.toFixed(1)}%
+                      </span>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="col-span-1">
+                      <div class="flex items-center space-x-2">
+                        <button
+                          on:click={() => handleEditProduct(product)}
+                          class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                          title="Edit"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                          </svg>
+                        </button>
+                        
+                        {#if product.stock_quantity <= (product.reorder_point || 0)}
+                          <button
+                            on:click={() => handleRestock(product)}
+                            class="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200"
+                            title="Restock"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                          </button>
+                        {/if}
+                        
+                        <button
+                          on:click={() => handleDeleteProduct(product)}
+                          class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                          title="Delete"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </div>
+    {/if}
     {/if}
   </div>
 </div>
@@ -1791,3 +2228,163 @@
     </div>
   </div>
 {/if}
+<style
+>
+  @keyframes drawCircle {
+    from {
+      stroke-dasharray: 0 251.2;
+    }
+    to {
+      stroke-dasharray: var(--dash-array, 0) 251.2;
+    }
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200px 0;
+    }
+    100% {
+      background-position: calc(200px + 100%) 0;
+    }
+  }
+  
+  .animate-fadeInUp {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  .animate-scaleIn {
+    animation: scaleIn 0.5s ease-out forwards;
+  }
+  
+  .animate-slideInRight {
+    animation: slideInRight 0.4s ease-out forwards;
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200px 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  /* Custom gradient backgrounds */
+  .gradient-mesh {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+  
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  /* Hover effects for cards */
+  .card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  /* Progress bar animations */
+  .progress-bar {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    background-size: 200% 100%;
+    animation: progressShine 3s ease-in-out infinite;
+  }
+  
+  @keyframes progressShine {
+    0%, 100% { background-position: 200% 0; }
+    50% { background-position: -200% 0; }
+  }
+  
+  /* Floating animation for icons */
+  .float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  /* Glow effect */
+  .glow {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  @keyframes glow {
+    from { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+    to { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+  }
+  
+  /* Ripple effect */
+  .ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .ripple::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  
+  .ripple:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+</style>
