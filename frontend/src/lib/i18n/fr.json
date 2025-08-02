@@ -1375,6 +1375,10 @@
     "title": "Liste Nominative des Cessions sur Salaire",
     "subtitle": "Résumé mensuel des affectations de cessions sur salaire",
     "loading": "Chargement des cessions sur salaire...",
+    "tabs": {
+      "list": "Liste",
+      "analytics": "Analyses"
+    },
     "filters": {
       "month": "Mois",
       "all_clients": "Tous les clients",

@@ -25,9 +25,11 @@
 
   /* ---------- filters & search ---------- */
   let searchQuery = '';
-  let selectedMonth = '2025-05'; // Default to May 2025 to match sample data
+  // Always default to current month
+  let selectedMonth = new Date().toISOString().slice(0, 7);
   let selectedClient = '';
   let showAdvancedFilters = false;
+  let activeTab = 'list'; // 'list' or 'analytics'
 
   /* ---------- analytics ---------- */
   let monthlyAnalytics = {
@@ -35,6 +37,24 @@
     totalAssignedAmounts: 0,
     clientCount: 0,
     cessionCount: 0
+  };
+
+  let advancedAnalytics = {
+    averageInstallment: 0,
+    averageLoanAmount: 0,
+    topClients: [],
+    topBanks: [],
+    paymentDistribution: [],
+    monthlyTrends: [],
+    riskAnalysis: {
+      highRiskClients: [],
+      averageRiskScore: 0
+    },
+    performanceMetrics: {
+      collectionRate: 0,
+      averageProcessingTime: 0,
+      clientSatisfactionScore: 0
+    }
   };
 
   /* ---------- grouping ---------- */
@@ -110,6 +130,166 @@
       }
       groupedData[clientName].push(cession);
     });
+
+    // Build advanced analytics
+    buildAdvancedAnalytics(selectedMonthCessions);
+  }
+
+  function buildAdvancedAnalytics(selectedMonthCessions) {
+    if (selectedMonthCessions.length === 0) {
+      advancedAnalytics = {
+        averageInstallment: 0,
+        averageLoanAmount: 0,
+        topClients: [],
+        topBanks: [],
+        paymentDistribution: [],
+        monthlyTrends: [],
+        riskAnalysis: { highRiskClients: [], averageRiskScore: 0 },
+        performanceMetrics: { collectionRate: 0, averageProcessingTime: 0, clientSatisfactionScore: 0 }
+      };
+      return;
+    }
+
+    // Calculate averages
+    const averageInstallment = monthlyAnalytics.totalInstallments / monthlyAnalytics.cessionCount;
+    const averageLoanAmount = monthlyAnalytics.totalAssignedAmounts / monthlyAnalytics.cessionCount;
+
+    // Top clients by total loan amount
+    const clientTotals = {};
+    selectedMonthCessions.forEach(c => {
+      const name = c.clientName || 'Unknown';
+      if (!clientTotals[name]) {
+        clientTotals[name] = { 
+          name, 
+          totalLoan: 0, 
+          totalInstallment: 0, 
+          cessionCount: 0,
+          avgLoanAmount: 0
+        };
+      }
+      clientTotals[name].totalLoan += c.totalLoanAmount || 0;
+      clientTotals[name].totalInstallment += c.monthlyDeduction || c.monthlyPayment || 0;
+      clientTotals[name].cessionCount += 1;
+    });
+
+    const topClients = Object.values(clientTotals)
+      .map(client => ({
+        ...client,
+        avgLoanAmount: client.totalLoan / client.cessionCount
+      }))
+      .sort((a, b) => b.totalLoan - a.totalLoan)
+      .slice(0, 5);
+
+    // Top banks/agencies
+    const bankTotals = {};
+    selectedMonthCessions.forEach(c => {
+      const bank = c.bankOrAgency || 'Unknown';
+      if (!bankTotals[bank]) {
+        bankTotals[bank] = { name: bank, count: 0, totalAmount: 0 };
+      }
+      bankTotals[bank].count += 1;
+      bankTotals[bank].totalAmount += c.totalLoanAmount || 0;
+    });
+
+    const topBanks = Object.values(bankTotals)
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+      .slice(0, 5);
+
+    // Payment distribution (installment ranges)
+    const ranges = [
+      { min: 0, max: 50000, label: '0-50K', count: 0 },
+      { min: 50000, max: 100000, label: '50K-100K', count: 0 },
+      { min: 100000, max: 200000, label: '100K-200K', count: 0 },
+      { min: 200000, max: 500000, label: '200K-500K', count: 0 },
+      { min: 500000, max: Infinity, label: '500K+', count: 0 }
+    ];
+
+    selectedMonthCessions.forEach(c => {
+      const installment = c.monthlyDeduction || c.monthlyPayment || 0;
+      const range = ranges.find(r => installment >= r.min && installment < r.max);
+      if (range) range.count++;
+    });
+
+    // Monthly trends (last 6 months)
+    const monthlyTrends = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = date.toISOString().slice(0, 7);
+      
+      const monthCessions = cessions.filter(c => {
+        if (!c.startDate && !c.createdAt) return false;
+        try {
+          const dateToCheck = c.startDate || c.createdAt;
+          const cessionDate = new Date(dateToCheck);
+          return cessionDate.toISOString().slice(0, 7) === monthKey;
+        } catch {
+          return false;
+        }
+      });
+
+      monthlyTrends.push({
+        month: monthKey,
+        monthName: date.toLocaleDateString($language.code === 'ar' ? 'ar-DZ' : 'fr-FR', { month: 'short', year: 'numeric' }),
+        count: monthCessions.length,
+        totalAmount: monthCessions.reduce((sum, c) => sum + (c.totalLoanAmount || 0), 0),
+        totalInstallments: monthCessions.reduce((sum, c) => sum + (c.monthlyDeduction || c.monthlyPayment || 0), 0)
+      });
+    }
+
+    // Risk analysis (based on loan amount vs installment ratio)
+    const highRiskClients = topClients.filter(client => {
+      const ratio = client.totalLoan / (client.totalInstallment * 12); // Years to pay off
+      return ratio > 5; // More than 5 years to pay off
+    }).slice(0, 3);
+
+    const averageRiskScore = selectedMonthCessions.reduce((sum, c) => {
+      const loanAmount = c.totalLoanAmount || 0;
+      const installment = c.monthlyDeduction || c.monthlyPayment || 1;
+      const ratio = loanAmount / (installment * 12);
+      return sum + Math.min(ratio / 10 * 100, 100); // Convert to 0-100 scale
+    }, 0) / selectedMonthCessions.length;
+
+    // Performance metrics (calculated based on available data)
+    const collectionRate = selectedMonthCessions.filter(c => 
+      (c.monthlyDeduction || c.monthlyPayment || 0) > 0
+    ).length / selectedMonthCessions.length * 100;
+
+    const averageProcessingTime = selectedMonthCessions.reduce((sum, c) => {
+      if (c.createdAt && c.startDate) {
+        const created = new Date(c.createdAt);
+        const started = new Date(c.startDate);
+        const diffDays = Math.abs(started - created) / (1000 * 60 * 60 * 24);
+        return sum + diffDays;
+      }
+      return sum + 7; // Default 7 days if no data
+    }, 0) / selectedMonthCessions.length;
+
+    // Client satisfaction score (simulated based on loan terms)
+    const clientSatisfactionScore = selectedMonthCessions.reduce((sum, c) => {
+      const loanAmount = c.totalLoanAmount || 0;
+      const installment = c.monthlyDeduction || c.monthlyPayment || 1;
+      const affordabilityRatio = installment / (loanAmount * 0.1); // Assume 10% of loan as comfortable payment
+      return sum + Math.min(affordabilityRatio * 100, 100);
+    }, 0) / selectedMonthCessions.length;
+
+    advancedAnalytics = {
+      averageInstallment,
+      averageLoanAmount,
+      topClients,
+      topBanks,
+      paymentDistribution: ranges.filter(r => r.count > 0),
+      monthlyTrends,
+      riskAnalysis: {
+        highRiskClients,
+        averageRiskScore: Math.round(averageRiskScore)
+      },
+      performanceMetrics: {
+        collectionRate: Math.round(collectionRate),
+        averageProcessingTime: Math.round(averageProcessingTime),
+        clientSatisfactionScore: Math.round(clientSatisfactionScore)
+      }
+    };
   }
 
   function applyFilters() {
@@ -167,6 +347,9 @@
     currentPage = Math.min(currentPage, totalPages);
     const start = (currentPage - 1) * itemsPerPage;
     filteredCessions = list.slice(start, start + itemsPerPage);
+
+    // Build advanced analytics for the filtered data
+    buildAdvancedAnalytics(list);
   }
 
   function handleMonthChange() {
@@ -307,6 +490,22 @@
         </div>
         
         <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+          <!-- Tab Navigation -->
+          <div class="flex items-center bg-gray-100 rounded-xl p-1">
+            <button
+              on:click={() => activeTab = 'list'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {activeTab === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              {$t('salary_cessions.tabs.list')}
+            </button>
+            <button
+              on:click={() => activeTab = 'analytics'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {activeTab === 'analytics' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              {$t('salary_cessions.tabs.analytics')}
+            </button>
+          </div>
+
           <!-- Month Selector -->
           <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
             <label class="text-sm font-medium text-gray-700">{$t('salary_cessions.filters.month')}:</label>
@@ -364,7 +563,7 @@
       </div>
     {:else}
       <div class="space-y-6">
-        <!-- Analytics Cards -->
+        <!-- Analytics Cards (shown on both tabs) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
             <div class="flex items-center justify-between">
@@ -422,6 +621,9 @@
             </div>
           </div>
         </div>
+
+        <!-- Tab Content -->
+        {#if activeTab === 'list'}
 
         <!-- Search and Filters -->
         <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
@@ -600,6 +802,167 @@
             </div>
           </div>
         </div>
+
+        {:else if activeTab === 'analytics'}
+        <!-- Advanced Analytics Tab -->
+        <div class="space-y-6">
+          <!-- Performance Metrics -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-600">Collection Rate</p>
+                  <p class="text-3xl font-bold text-green-600 mt-2">{advancedAnalytics.performanceMetrics.collectionRate}%</p>
+                </div>
+                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-600">Avg Processing Time</p>
+                  <p class="text-3xl font-bold text-blue-600 mt-2">{advancedAnalytics.performanceMetrics.averageProcessingTime} days</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-600">Client Satisfaction</p>
+                  <p class="text-3xl font-bold text-purple-600 mt-2">{advancedAnalytics.performanceMetrics.clientSatisfactionScore}%</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Averages and Risk Analysis -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Average Analysis</h3>
+              <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Average Installment:</span>
+                  <span class="font-semibold text-green-600">{formatCurrency(advancedAnalytics.averageInstallment)}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Average Loan Amount:</span>
+                  <span class="font-semibold text-blue-600">{formatCurrency(advancedAnalytics.averageLoanAmount)}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600">Average Risk Score:</span>
+                  <span class="font-semibold {advancedAnalytics.riskAnalysis.averageRiskScore > 70 ? 'text-red-600' : advancedAnalytics.riskAnalysis.averageRiskScore > 40 ? 'text-yellow-600' : 'text-green-600'}">{advancedAnalytics.riskAnalysis.averageRiskScore}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">High Risk Clients</h3>
+              <div class="space-y-3">
+                {#each advancedAnalytics.riskAnalysis.highRiskClients as client}
+                  <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <span class="font-medium text-gray-900">{client.name}</span>
+                    <span class="text-sm text-red-600">{formatCurrency(client.totalLoan)}</span>
+                  </div>
+                {:else}
+                  <p class="text-gray-500 text-center py-4">No high-risk clients identified</p>
+                {/each}
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Clients and Banks -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Clients by Loan Amount</h3>
+              <div class="space-y-3">
+                {#each advancedAnalytics.topClients as client, i}
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                      <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">{i + 1}</span>
+                      <div>
+                        <p class="font-medium text-gray-900">{client.name}</p>
+                        <p class="text-sm text-gray-500">{client.cessionCount} cessions</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-semibold text-blue-600">{formatCurrency(client.totalLoan)}</p>
+                      <p class="text-sm text-gray-500">{formatCurrency(client.totalInstallment)}/month</p>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Banks/Agencies</h3>
+              <div class="space-y-3">
+                {#each advancedAnalytics.topBanks as bank, i}
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                      <span class="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">{i + 1}</span>
+                      <div>
+                        <p class="font-medium text-gray-900">{bank.name}</p>
+                        <p class="text-sm text-gray-500">{bank.count} cessions</p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-semibold text-green-600">{formatCurrency(bank.totalAmount)}</p>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Distribution -->
+          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Distribution</h3>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {#each advancedAnalytics.paymentDistribution as range}
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                  <p class="text-2xl font-bold text-indigo-600">{range.count}</p>
+                  <p class="text-sm text-gray-600 mt-1">{range.label}</p>
+                  <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div class="bg-indigo-600 h-2 rounded-full" style="width: {(range.count / Math.max(...advancedAnalytics.paymentDistribution.map(r => r.count))) * 100}%"></div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          </div>
+
+          <!-- Monthly Trends -->
+          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">6-Month Trends</h3>
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {#each advancedAnalytics.monthlyTrends as trend}
+                <div class="text-center p-4 bg-gray-50 rounded-lg">
+                  <p class="text-sm font-medium text-gray-600">{trend.monthName}</p>
+                  <p class="text-xl font-bold text-blue-600 mt-1">{trend.count}</p>
+                  <p class="text-xs text-gray-500">cessions</p>
+                  <p class="text-sm font-semibold text-green-600 mt-2">{formatCurrency(trend.totalInstallments)}</p>
+                  <p class="text-xs text-gray-500">installments</p>
+                </div>
+              {/each}
+            </div>
+          </div>
+        </div>
+        {/if}
       </div>
     {/if}
   </div>

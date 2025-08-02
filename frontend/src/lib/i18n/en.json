@@ -1339,6 +1339,10 @@
     "title": "Nominal List of Salary Cessions",
     "subtitle": "Monthly summary of salary cession assignments",
     "loading": "Loading salary cessions...",
+    "tabs": {
+      "list": "List",
+      "analytics": "Analytics"
+    },
     "filters": {
       "month": "Month",
       "all_clients": "All clients",
