@@ -38,18 +38,35 @@
     }
   };
 
-  $: if (expenses.length > 0 || sales.length > 0) {
+  let filteredSales = [];
+  let filteredExpenses = [];
+
+  $: {
+    if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      filteredSales = sales.filter(sale => {
+        const saleDate = new Date(sale.createdAt);
+        return saleDate.getFullYear() === year && saleDate.getMonth() === month - 1;
+      });
+      filteredExpenses = expenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate.getFullYear() === year && expenseDate.getMonth() === month - 1;
+      });
+    } else {
+      filteredSales = sales;
+      filteredExpenses = expenses;
+    }
     calculateAnalytics();
   }
 
   function calculateAnalytics() {
     // Revenue Analysis
-    const totalRevenue = sales.reduce((sum, sale) => sum + ((sale.sellingPriceAtSale || 0) * (sale.quantity || 0)), 0);
-    const averageTransactionValue = sales.length > 0 ? totalRevenue / sales.length : 0;
+    const totalRevenue = filteredSales.reduce((sum, sale) => sum + ((sale.sellingPriceAtSale || 0) * (sale.quantity || 0)), 0);
+    const averageTransactionValue = filteredSales.length > 0 ? totalRevenue / filteredSales.length : 0;
     
     // Expense Analysis
-    const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-    const averageExpense = expenses.length > 0 ? totalExpenses / expenses.length : 0;
+    const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    const averageExpense = filteredExpenses.length > 0 ? totalExpenses / filteredExpenses.length : 0;
     
     // Category breakdown
     const categoryBreakdown = calculateCategoryBreakdown();
@@ -61,7 +78,7 @@
     const monthlyTrend = calculateMonthlyTrend();
     
     // Profitability
-    const grossProfit = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    const grossProfit = filteredSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
     const netProfit = grossProfit - totalExpenses;
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
     const roi = totalExpenses > 0 ? (netProfit / totalExpenses) * 100 : 0;
@@ -105,7 +122,7 @@
 
   function calculateCategoryBreakdown() {
     const categories = {};
-    expenses.forEach(expense => {
+    filteredExpenses.forEach(expense => {
       const category = expense.category || 'Other';
       categories[category] = (categories[category] || 0) + (expense.amount || 0);
     });
@@ -117,7 +134,7 @@
 
   function calculateTopProducts() {
     const products = {};
-    sales.forEach(sale => {
+    filteredSales.forEach(sale => {
       const productName = sale.productName || 'Unknown Product';
       if (!products[productName]) {
         products[productName] = {
@@ -139,7 +156,7 @@
 
   function calculateMonthlyTrend() {
     const monthlyData = {};
-    sales.forEach(sale => {
+    filteredSales.forEach(sale => {
       const date = new Date(sale.createdAt);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
@@ -158,7 +175,7 @@
 
   function calculateExpenseMonthlyTrend() {
     const monthlyData = {};
-    expenses.forEach(expense => {
+    filteredExpenses.forEach(expense => {
       const date = new Date(expense.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
@@ -180,7 +197,7 @@
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     
-    const data = type === 'sales' ? sales : expenses;
+    const data = type === 'sales' ? filteredSales : filteredExpenses;
     const currentMonthData = data.filter(item => {
       const date = new Date(type === 'sales' ? item.createdAt : item.date);
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
@@ -205,12 +222,12 @@
   }
 
   function calculateBreakEvenPoint() {
-    const totalFixedCosts = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-    const averageSellingPrice = sales.length > 0 
-      ? sales.reduce((sum, sale) => sum + (sale.sellingPriceAtSale || 0), 0) / sales.length 
+    const totalFixedCosts = filteredExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    const averageSellingPrice = filteredSales.length > 0 
+      ? filteredSales.reduce((sum, sale) => sum + (sale.sellingPriceAtSale || 0), 0) / filteredSales.length 
       : 0;
-    const averageCost = sales.length > 0 
-      ? sales.reduce((sum, sale) => sum + (sale.purchasePriceAtSale || 0), 0) / sales.length 
+    const averageCost = filteredSales.length > 0 
+      ? filteredSales.reduce((sum, sale) => sum + (sale.purchasePriceAtSale || 0), 0) / filteredSales.length 
       : 0;
     
     const contributionMargin = averageSellingPrice - averageCost;
@@ -234,14 +251,14 @@
   <!-- Revenue Analysis -->
   <div class="analytics-section" transition:fly={{ y: 20, duration: 400, delay: 0 }}>
     <div class="section-header">
-      <h3>{$$t('finance.analytics.revenue_analysis')}</h3>
+      <h3>{$t('finance.analytics.revenue_analysis')}</h3>
       <div class="section-icon">📈</div>
     </div>
     
     <div class="metrics-grid">
       <div class="metric-card primary">
         <div class="metric-header">
-          <span class="metric-label">{$$t('finance.analytics.total_revenue')}</span>
+          <span class="metric-label">{$t('finance.analytics.total_revenue')}</span>
           <div class="metric-trend {getGrowthColor(analytics.revenueAnalysis.revenueGrowthRate)}">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{getGrowthIcon(analytics.revenueAnalysis.revenueGrowthRate)}"/>
@@ -251,12 +268,12 @@
         </div>
         <div class="metric-value">{formatCurrency(analytics.revenueAnalysis.totalRevenue)}</div>
         <div class="metric-subtitle">
-          {$$t('finance.analytics.avg_transaction')}: {formatCurrency(analytics.revenueAnalysis.averageTransactionValue)}
+          {$t('finance.analytics.avg_transaction')}: {formatCurrency(analytics.revenueAnalysis.averageTransactionValue)}
         </div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-label">{$$t('finance.analytics.top_products')}</div>
+        <div class="metric-label">{$t('finance.analytics.top_products')}</div>
         <div class="top-products-list">
           {#each analytics.revenueAnalysis.topProducts.slice(0, 3) as product}
             <div class="product-item">
@@ -272,14 +289,14 @@
   <!-- Expense Analysis -->
   <div class="analytics-section" transition:fly={{ y: 20, duration: 400, delay: 100 }}>
     <div class="section-header">
-      <h3>{$$t('finance.analytics.expense_analysis')}</h3>
+      <h3>{$t('finance.analytics.expense_analysis')}</h3>
       <div class="section-icon">💸</div>
     </div>
     
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-header">
-          <span class="metric-label">{$$t('finance.analytics.total_expenses')}</span>
+          <span class="metric-label">{$t('finance.analytics.total_expenses')}</span>
           <div class="metric-trend {getGrowthColor(analytics.expenseAnalysis.expenseGrowthRate)}">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{getGrowthIcon(analytics.expenseAnalysis.expenseGrowthRate)}"/>
@@ -289,12 +306,12 @@
         </div>
         <div class="metric-value">{formatCurrency(analytics.expenseAnalysis.totalExpenses)}</div>
         <div class="metric-subtitle">
-          {$$t('finance.analytics.avg_expense')}: {formatCurrency(analytics.expenseAnalysis.averageExpense)}
+          {$t('finance.analytics.avg_expense')}: {formatCurrency(analytics.expenseAnalysis.averageExpense)}
         </div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-label">{$$t('finance.analytics.expense_categories')}</div>
+        <div class="metric-label">{$t('finance.analytics.expense_categories')}</div>
         <div class="category-breakdown">
           {#each analytics.expenseAnalysis.categoryBreakdown.slice(0, 4) as category}
             <div class="category-item">
@@ -310,30 +327,30 @@
   <!-- Profitability Analysis -->
   <div class="analytics-section" transition:fly={{ y: 20, duration: 400, delay: 200 }}>
     <div class="section-header">
-      <h3>{$$t('finance.analytics.profitability_analysis')}</h3>
+      <h3>{$t('finance.analytics.profitability_analysis')}</h3>
       <div class="section-icon">💰</div>
     </div>
     
     <div class="profitability-grid">
       <div class="profit-card">
-        <div class="profit-label">{$$t('finance.analytics.gross_profit')}</div>
+        <div class="profit-label">{$t('finance.analytics.gross_profit')}</div>
         <div class="profit-value">{formatCurrency(analytics.profitabilityAnalysis.grossProfit)}</div>
       </div>
       
       <div class="profit-card">
-        <div class="profit-label">{$$t('finance.analytics.net_profit')}</div>
+        <div class="profit-label">{$t('finance.analytics.net_profit')}</div>
         <div class="profit-value {analytics.profitabilityAnalysis.netProfit >= 0 ? 'positive' : 'negative'}">
           {formatCurrency(analytics.profitabilityAnalysis.netProfit)}
         </div>
       </div>
       
       <div class="profit-card">
-        <div class="profit-label">{$$t('finance.analytics.profit_margin')}</div>
+        <div class="profit-label">{$t('finance.analytics.profit_margin')}</div>
         <div class="profit-value">{analytics.profitabilityAnalysis.profitMargin.toFixed(1)}%</div>
       </div>
       
       <div class="profit-card">
-        <div class="profit-label">{$$t('finance.analytics.roi')}</div>
+        <div class="profit-label">{$t('finance.analytics.roi')}</div>
         <div class="profit-value">{analytics.profitabilityAnalysis.roi.toFixed(1)}%</div>
       </div>
     </div>
@@ -342,14 +359,14 @@
   <!-- Performance Metrics -->
   <div class="analytics-section" transition:fly={{ y: 20, duration: 400, delay: 300 }}>
     <div class="section-header">
-      <h3>{$$t('finance.analytics.performance_metrics')}</h3>
+      <h3>{$t('finance.analytics.performance_metrics')}</h3>
       <div class="section-icon">⚡</div>
     </div>
     
     <div class="performance-grid">
       <div class="performance-card">
         <div class="performance-header">
-          <span class="performance-label">{$$t('finance.analytics.sales_growth')}</span>
+          <span class="performance-label">{$t('finance.analytics.sales_growth')}</span>
           <div class="performance-score {getGrowthColor(analytics.performanceMetrics.salesGrowth)}">
             {analytics.performanceMetrics.salesGrowth.toFixed(1)}%
           </div>
@@ -361,7 +378,7 @@
 
       <div class="performance-card">
         <div class="performance-header">
-          <span class="performance-label">{$$t('finance.analytics.efficiency_ratio')}</span>
+          <span class="performance-label">{$t('finance.analytics.efficiency_ratio')}</span>
           <div class="performance-score">{analytics.performanceMetrics.efficiency.toFixed(1)}%</div>
         </div>
         <div class="performance-bar">
@@ -371,7 +388,7 @@
 
       <div class="performance-card">
         <div class="performance-header">
-          <span class="performance-label">{$$t('finance.analytics.cash_flow')}</span>
+          <span class="performance-label">{$t('finance.analytics.cash_flow')}</span>
           <div class="performance-score {analytics.performanceMetrics.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}">
             {formatCurrency(analytics.performanceMetrics.cashFlow)}
           </div>

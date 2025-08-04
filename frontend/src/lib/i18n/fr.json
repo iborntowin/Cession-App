@@ -182,7 +182,8 @@
     "try_adjusting_filters": "Essayez d'ajuster vos filtres",
     "name": "Nom",
     "status": "Statut",
-    "months": "mois"
+    "months": "mois",
+    "not_available": "Non disponible"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -566,7 +567,6 @@
     "search": {
       "placeholder": "Rechercher des produits..."
     },
-    
     "filters": {
       "title": "Filtres",
       "all_categories": "Toutes les catégories",
@@ -854,21 +854,26 @@
   "finance": {
     "title": "Suivi Financier",
     "subtitle": "Surveillez vos dépenses et ventes",
+    
     "dashboard": {
       "title": "Tableau de Bord Financier",
       "subtitle": "Suivez vos performances financières"
     },
     "analytics": {
-      "total_sales": "Total des Ventes",
-      "total_expenses": "Total des Dépenses",
+      "total_sales": "Ventes totales",
+      "total_expenses": "Dépenses totales",
       "transactions": "Transactions",
-      "net_profit": "Bénéfice Net",
-      "this_month": "Ce Mois",
-      "profit_margin": "Marge Bénéficiaire",
+      "net_profit": "Bénéfice net",
+      "this_month": "Ce mois",
+      "profit_margin": "Marge bénéficiaire",
       "efficiency": "Efficacité",
-      "top_categories": "Principales Catégories",
-      "vs_last_month": "par rapport au mois dernier"
+      "top_categories": "Catégories principales",
+      "category": "Catégorie",
+      "spent": "Dépensé",
+      "vs_last_month": "par rapport au mois dernier",
+      "no_data": "Aucune donnée disponible"
     },
+    
     "months": {
       "january": "Janvier",
       "february": "Février",
@@ -895,20 +900,7 @@
       "download_data": "Télécharger données financières",
       "generate_report": "Générer Rapport"
     },
-    "analytics": {
-      "total_sales": "Ventes totales",
-      "total_expenses": "Dépenses totales",
-      "transactions": "Transactions",
-      "net_profit": "Bénéfice net",
-      "this_month": "Ce mois",
-      "profit_margin": "Marge bénéficiaire",
-      "efficiency": "Efficacité",
-      "top_categories": "Catégories principales",
-      "category": "Catégorie",
-      "spent": "Dépensé",
-      "vs_last_month": "par rapport au mois dernier",
-      "no_data": "Aucune donnée disponible"
-    },
+    
     "error": {
       "title": "Erreur",
       "load_data": "Échec du chargement des données financières",
@@ -969,7 +961,18 @@
       "insurance": "Assurance",
       "taxes": "Taxes",
       "marketing": "Marketing",
-      "other": "Autre"
+      "other": "Autre",
+      "WATER": "Eau",
+      "ELECTRICITY": "Électricité",
+      "TRANSPORT": "Transport",
+      "RENT": "Loyer",
+      "SUPPLIES": "Fournitures",
+      "MAINTENANCE": "Maintenance",
+      "SALARIES": "Salaires",
+      "INSURANCE": "Assurance",
+      "TAXES": "Taxes",
+      "MARKETING": "Marketing",
+      "OTHER": "Autre"
     },
     "month_selector": "Sélectionner un mois",
     "recent_sales": "Ventes récentes",
@@ -1046,10 +1049,7 @@
       "next": "Suivant",
       "page": "Page {current} sur {total}"
     },
-    "buttons": {
-      "add_expense": "Ajouter une dépense",
-      "add_income": "Ajouter un revenu"
-    },
+    
     "sort": {
       "date": "Date",
       "category": "Catégorie",
@@ -1086,6 +1086,8 @@
       "category_breakdown": "Répartition par Catégorie",
       "trend_analysis": "Analyse des Tendances",
       "forecasting": "Prévision des Revenus",
+      "total_sales":"Total Ventes",
+      "total_expenses":"Total expences",
       "efficiency_metrics": "Métriques d'Efficacité",
       "cost_analysis": "Analyse des Coûts",
       "roi_analysis": "Analyse du ROI",

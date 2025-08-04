@@ -49,22 +49,28 @@ function handlePluralization(key: string, params: any, lang: string): string {
 
 // Create a derived store for translations
 export const t = derived(currentLanguage, ($currentLanguage) => {
-  return (key: string, params?: any) => {
+  return (key: string, params?: any, fallback?: string) => {
     const value = key.split('.').reduce((obj, k) => obj?.[k], translations[$currentLanguage]);
     
     if (!value) {
       console.warn(`Translation key not found: ${key}`);
-      return key;
+      return fallback || key;
     }
 
     if (typeof value === 'string') {
       let result = value;
       
       // Handle parameter interpolation
-      if (params) {
+      if (params && typeof params === 'object') {
         Object.keys(params).forEach(param => {
-          const regex = new RegExp(`{${param}}`, 'g');
-          result = result.replace(regex, params[param]);
+          if (param && param.length > 0) {
+            try {
+              const regex = new RegExp(`{${param}}`, 'g');
+              result = result.replace(regex, params[param]);
+            } catch (e) {
+              console.warn(`Invalid regex parameter: ${param}`, e);
+            }
+          }
         });
       }
       

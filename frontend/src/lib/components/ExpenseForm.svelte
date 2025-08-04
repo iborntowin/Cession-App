@@ -59,7 +59,7 @@
     }
     
     const fallback = categoryId.charAt(0).toUpperCase() + categoryId.slice(1).toLowerCase().replace('_', ' ');
-    return $t(`finance.categories.${categoryId.toLowerCase()}`, fallback);
+    return $t(`finance.categories.${categoryId.toLowerCase()}`, {}, fallback);
   }
 
   function getCategoryColor(categoryId) {
@@ -124,7 +124,12 @@
     }
   }
 
-  function selectCategory(categoryId) {
+  function selectCategory(categoryId, event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     expense.category = categoryId;
     showCategoryDropdown = false;
     categorySearchQuery = '';
@@ -151,8 +156,29 @@
     }).format(amount);
   }
 
-  async function handleSubmit() {
+  function handleCancel() {
+    // Reset form state
+    expense = {
+      category: '',
+      label: '',
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      description: ''
+    };
+    currentStep = 1;
+    formErrors = {};
+    error = null;
+    
+    dispatch('cancel');
+  }
+
+  async function handleSubmit(event) {
     try {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      
       if (!validateForm()) {
         showAlert($t('finance.validation.fix_errors'), 'error');
         return;
@@ -190,7 +216,7 @@
           };
           currentStep = 1;
           formErrors = {};
-        }, 2000);
+        }, 1500);
       } else {
         throw new Error(response.error || $t('finance.expense.error'));
       }
@@ -205,7 +231,7 @@
 </script>
 
 <!-- 🌟 World-Class Expense Form with Glassmorphism Design -->
-<div class="bg-gradient-to-br from-red-50 via-pink-50 to-rose-50 rounded-2xl p-1" style="direction: {textDirection}">
+<div class="bg-gradient-to-br from-red-50 via-pink-50 to-rose-50 rounded-2xl p-1" style="direction: {textDirection}" on:click|stopPropagation>
   <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
     
     <!-- Success State -->
@@ -333,7 +359,7 @@
                 {#each categories.slice(0, 8) as category}
                   <button
                     type="button"
-                    on:click={() => selectCategory(category.id)}
+                    on:click={(e) => selectCategory(category.id, e)}
                     class="relative p-3 border-2 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-105 group {expense.category === category.id ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 shadow-lg ring-2 ring-red-200 scale-105' : 'border-gray-200 hover:border-red-300 hover:bg-red-50/30'}"
                   >
                     {#if expense.category === category.id}
@@ -387,7 +413,7 @@
                     {#each filteredCategories as category}
                       <button
                         type="button"
-                        on:click={() => selectCategory(category.id)}
+                        on:click={(e) => selectCategory(category.id, e)}
                         class="relative p-2 border rounded-lg transition-all duration-300 hover:shadow-sm hover:scale-105 group {expense.category === category.id ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 shadow-sm' : 'border-gray-200 hover:border-red-300 hover:bg-red-50/30'}"
                       >
                         <div class="text-center">
@@ -737,7 +763,7 @@
 
         <!-- Navigation Buttons -->
         <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
-          <!-- Back Button -->
+          <!-- Back/Cancel Button -->
           {#if currentStep > 1}
             <button
               type="button"
@@ -750,7 +776,16 @@
               {$t('common.actions.previous')}
             </button>
           {:else}
-            <div></div> <!-- Empty div to maintain flex layout -->
+            <button
+              type="button"
+              on:click={handleCancel}
+              class="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors font-medium flex items-center"
+            >
+              <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+              {$t('common.actions.cancel')}
+            </button>
           {/if}
 
           <!-- Next/Submit Button -->

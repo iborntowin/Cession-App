@@ -1057,7 +1057,18 @@
       "insurance": "التأمين",
       "taxes": "الضرائب",
       "marketing": "التسويق",
-      "other": "أخرى"
+      "other": "أخرى",
+      "WATER": "المياه",
+      "ELECTRICITY": "الكهرباء",
+      "TRANSPORT": "النقل",
+      "RENT": "الإيجار",
+      "SUPPLIES": "المستلزمات",
+      "MAINTENANCE": "الصيانة",
+      "SALARIES": "الرواتب",
+      "INSURANCE": "التأمين",
+      "TAXES": "الضرائب",
+      "MARKETING": "التسويق",
+      "OTHER": "أخرى"
     },
     
    
