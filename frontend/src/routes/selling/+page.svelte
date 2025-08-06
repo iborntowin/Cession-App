@@ -1,862 +1,1181 @@
-<script>
-  import { onMount, afterUpdate, onDestroy } from 'svelte';
+<script lang="ts">
   import { api } from '$lib/api';
-  import { showAlert, loading } from '$lib/stores';
-  import { goto } from '$app/navigation';
-  import Chart from 'chart.js/auto';
-  import { format, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+  import { onMount, tick } from 'svelte';
+  import { showAlert } from '$lib/stores';
+  import { sellingLoading, sellingLoadingManager } from '$lib/stores/pageLoading';
+  import { fade, fly, slide, scale, blur } from 'svelte/transition';
+  import { quintOut, cubicOut, elasticOut, backOut } from 'svelte/easing';
   import { t } from '$lib/i18n';
-  import { fade, fly, scale } from 'svelte/transition';
-  import { quintOut, cubicOut } from 'svelte/easing';
-
+  import { format } from 'date-fns';
+  import { page } from '$app/stores';
+  import { language } from '$lib/stores/language';
+  import { goto } from '$app/navigation';
+  
+  // RTL support
+  $: isRTL = $language.code === 'ar';
+  $: textDirection = isRTL ? 'rtl' : 'ltr';
+  $: textAlign = isRTL ? 'right' : 'left';
+  
+  // 🚀 Core Data & State Management
   let products = [];
+  let filteredProducts = [];
   let selectedProduct = null;
+  let isSearching = false;
+  let searchSuggestions = [];
+  let showSearchSuggestions = false;
+  
+  // 🎯 Advanced UI State
+  let viewMode = 'cards'; // cards, table, analytics, timeline
+  let showQuickActions = false;
+  let selectedProducts = new Set();
+  let showBulkActions = false;
+  let autoRefresh = false;
+  let refreshInterval = null;
+  let showInsights = true;
+  let compactMode = false;
+  let isDetailsModalOpen = false;
+  
+  // 🔍 Smart Search & Filtering
+  let searchQuery = '';
+  let smartFilters = {
+    highValue: false,
+    recentlyCreated: false,
+    lowStock: false,
+    inStock: true
+  };
+  let searchFields = {
+    productName: '',
+    category: '',
+    sku: '',
+    minPrice: '',
+    maxPrice: '',
+    minStock: '',
+    maxStock: '',
+    status: 'all'
+  };
+  
+  // Categories for dropdown
+  let categories = [];
+  let selectedCategoryId = '';
+  
+  // 📄 Pagination
+  let currentPage = 1;
+  let itemsPerPage = 12;
+  let totalPages = 1;
+  let paginatedProducts = [];
+  
+  // 📊 Enhanced Analytics & Insights
+  let analytics = {
+    totalValue: 0,
+    totalProducts: 0,
+    inStockCount: 0,
+    avgPrice: 0,
+    monthlyGrowth: 0,
+    profitMargin: 0,
+    turnoverRate: 0,
+    avgStock: 0,
+    totalRevenue: 0,
+    projectedRevenue: 0
+  };
+  
+  // 📈 Time-based analytics
+  let timeRange = 'month';
+  let trendData = [];
+  let monthlyData = [];
+  
+  // 📈 Sales analytics
+  let recentSales = [];
+  let topProducts = [];
+  let categoryDistribution = [];
+  
+  // 🚨 Stock alerts
+  let lowStockAlerts = [];
+  let outOfStockAlerts = [];
+  
+  // 🎨 View & Sorting Options
+  let sortOptions = {
+    field: 'name',
+    order: 'asc'
+  };
+  let isFiltersVisible = false;
+  let showAdvancedFilters = false;
+  
+  // 🚀 Smart Features
+  let recommendations = [];
+  
+  // 📊 Analytics UI State
+  let analyticsView = 'overview';
+  let chartType = 'line';
+  let selectedMetric = 'value';
+  
+  // Quick sell state
+  let showQuickSell = false;
   let quantityToSell = 1;
   let sellingPriceToSell = 0;
   let isSelling = false;
-  let recentSales = [];
-  let searchQuery = '';
-  let selectedTimeRange = 'today';
-  let profitStats = {
-    totalProfit: 0,
-    totalSales: 0,
-    averageProfit: 0
-  };
-  let filteredSales = [];
-  let showStats = true;
-  let chart;
-  let chartCanvas;
-  let chartType = 'line';
-  let exportFormat = 'csv';
-  let viewMode = 'grid';
-  let showQuickSell = false;
-  let cartItems = [];
-  let showCart = false;
-
+  
   onMount(async () => {
     await loadProducts();
+    await loadCategories();
     await loadRecentSales();
+    generateEnhancedAnalytics();
   });
-
+  
   async function loadProducts() {
-    $loading = true;
+    sellingLoadingManager.start();
     try {
       const response = await api.products.getAll();
       if (response.success) {
         products = response.data.filter(p => p.stock_quantity > 0);
+        applyAdvancedFilters();
+        generateEnhancedAnalytics();
       } else {
         showAlert(response.error || 'Failed to load products', 'error');
       }
-    } catch (err) {
-      console.error('Error loading products:', err);
-      showAlert(err.message || 'Failed to load products', 'error');
+    } catch (error) {
+      console.error('Error loading products:', error);
+      showAlert('Failed to load products', 'error');
     } finally {
-      $loading = false;
+      sellingLoadingManager.stop();
     }
   }
-
-  async function loadRecentSales() {
-    $loading = true;
+  
+  async function loadCategories() {
     try {
-      const response = await api.stockMovements.getRecent('OUTBOUND', 1000);
+      const response = await api.categories.getAll();
+      if (response.success) {
+        categories = response.data;
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  }
+  
+  async function loadRecentSales() {
+    try {
+      const response = await api.stockMovements.getRecent('OUTBOUND', 100);
       if (response.success) {
         recentSales = response.data.map(sale => ({
           ...sale,
           productName: sale.productName || sale.product?.name || 'Unknown Product',
-          profit: sale.profit || 0,
-          quantity: Math.abs(sale.quantity),
+          profit: calculateProfit(sale),
+          quantity: Math.abs(sale.quantity || 0),
           sellingPriceAtSale: sale.sellingPriceAtSale || 0,
-          purchasePriceAtSale: sale.purchasePrice || 0,
+          purchasePriceAtSale: sale.purchasePrice || sale.purchasePriceAtSale || 0,
           createdAt: sale.createdAt
         }));
-        console.log('Loaded sales:', recentSales); // Debug log
-        filterSalesByTimeRange();
-        calculateProfitStats();
-      } else {
-        showAlert(response.error || 'Failed to load recent sales', 'error');
       }
-    } catch (err) {
-      console.error('Error loading recent sales:', err);
-      showAlert(err.message || 'Failed to load recent sales', 'error');
-    } finally {
-      $loading = false;
+    } catch (error) {
+      console.error('Error loading recent sales:', error);
     }
   }
-
-  function getDateRange() {
+  
+  function calculateProfit(sale) {
+    const sellingPrice = Number(sale.sellingPriceAtSale) || 0;
+    const purchasePrice = Number(sale.purchasePrice || sale.purchasePriceAtSale) || 0;
+    const quantity = Math.abs(Number(sale.quantity)) || 0;
+    return (sellingPrice - purchasePrice) * quantity;
+  }
+  
+  function generateEnhancedAnalytics() {
+    const totalValue = products.reduce((sum, p) => sum + ((p.selling_price || 0) * (p.stock_quantity || 0)), 0);
+    const inStockCount = products.filter(p => (p.stock_quantity || 0) > 0).length;
+    const avgPrice = products.length > 0 ? products.reduce((sum, p) => sum + (p.selling_price || 0), 0) / products.length : 0;
+    const avgStock = products.length > 0 ? products.reduce((sum, p) => sum + (p.stock_quantity || 0), 0) / products.length : 0;
+    
     const now = new Date();
-    switch (selectedTimeRange) {
-      case 'today':
-        return {
-          start: startOfDay(now),
-          end: endOfDay(now)
-        };
-      case 'week':
-        return {
-          start: startOfWeek(now),
-          end: endOfWeek(now)
-        };
-      case 'month':
-        return {
-          start: startOfMonth(now),
-          end: endOfMonth(now)
-        };
-      case 'year':
-        return {
-          start: startOfYear(now),
-          end: endOfYear(now)
-        };
-      default:
-        return {
-          start: new Date(0),
-          end: now
-        };
-    }
-  }
-
-  function filterSalesByTimeRange() {
-    const { start, end } = getDateRange();
-    filteredSales = recentSales.filter(sale => {
-      const saleDate = parseISO(sale.createdAt);
-      return saleDate >= start && saleDate <= end;
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    
+    const currentMonthSales = recentSales.filter(s => {
+      const saleDate = s.createdAt ? new Date(s.createdAt) : null;
+      return saleDate && saleDate >= currentMonth;
     });
     
-    // Sort by date, most recent first
-    filteredSales.sort((a, b) => parseISO(b.createdAt) - parseISO(a.createdAt));
+    const lastMonthSales = recentSales.filter(s => {
+      const saleDate = s.createdAt ? new Date(s.createdAt) : null;
+      return saleDate && saleDate >= lastMonth && saleDate < currentMonth;
+    });
     
-    console.log('Filtered sales:', filteredSales); // Debug log
-    calculateProfitStats();
+    const monthlyGrowth = lastMonthSales.length > 0 
+      ? ((currentMonthSales.length - lastMonthSales.length) / lastMonthSales.length) * 100
+      : currentMonthSales.length > 0 ? 100 : 0;
+    
+    const totalRevenue = recentSales.reduce((sum, s) => sum + (s.sellingPriceAtSale * s.quantity), 0);
+    
+    analytics = {
+      totalValue,
+      totalProducts: products.length,
+      inStockCount,
+      avgPrice,
+      monthlyGrowth,
+      profitMargin: 0,
+      turnoverRate: 0,
+      avgStock,
+      totalRevenue,
+      projectedRevenue: totalValue * 0.1
+    };
+    
+    lowStockAlerts = products.filter(p => (p.stock_quantity || 0) < 10 && (p.stock_quantity || 0) > 0);
+    outOfStockAlerts = products.filter(p => (p.stock_quantity || 0) === 0);
+    
+    topProducts = products
+      .map(p => ({
+        ...p,
+        totalValue: (p.selling_price || 0) * (p.stock_quantity || 0)
+      }))
+      .sort((a, b) => b.totalValue - a.totalValue)
+      .slice(0, 10);
+    
+    const categoryStats = {};
+    products.forEach(p => {
+      const categoryName = categories.find(c => c.id === p.category_id)?.name || 'Uncategorized';
+      if (!categoryStats[categoryName]) {
+        categoryStats[categoryName] = { count: 0, value: 0 };
+      }
+      categoryStats[categoryName].count += 1;
+      categoryStats[categoryName].value += (p.selling_price || 0) * (p.stock_quantity || 0);
+    });
+    
+    categoryDistribution = Object.entries(categoryStats).map(([category, stats]) => ({
+      category,
+      count: stats.count,
+      value: stats.value,
+      percentage: products.length > 0 ? (stats.count / products.length) * 100 : 0
+    }));
+    
+    generateRecommendations();
   }
+  
 
-  function calculateProfitStats() {
-    if (!filteredSales.length) {
-      profitStats = { totalProfit: 0, totalSales: 0, averageProfit: 0 };
+  
+  function generateRecommendations() {
+    recommendations = [];
+    
+    if (lowStockAlerts.length > 0) {
+      recommendations.push({
+        type: 'stock',
+        title: 'Restock Low Inventory Items',
+        description: `${lowStockAlerts.length} products have low stock levels and need restocking.`,
+        action: 'Review and reorder low-stock products to prevent stockouts',
+        priority: lowStockAlerts.length > 10 ? 'high' : 'medium'
+      });
+    }
+    
+    const highValueProducts = products.filter(p => (p.selling_price || 0) > analytics.avgPrice * 2);
+    if (highValueProducts.length > 0) {
+      recommendations.push({
+        type: 'promotion',
+        title: 'Promote High-Value Products',
+        description: `${highValueProducts.length} high-value products could benefit from targeted marketing.`,
+        action: 'Create promotional campaigns for premium products',
+        priority: 'medium'
+      });
+    }
+  }
+  
+  function applyAdvancedFilters() {
+    let filtered = [...products];
+    
+    // Apply search query filter
+    if (searchQuery && searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(product => 
+        product.name?.toLowerCase().includes(query) ||
+        product.sku?.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query)
+      );
+    }
+    
+    if (smartFilters.highValue) {
+      const avgValue = analytics.avgPrice;
+      filtered = filtered.filter(p => (p.selling_price || 0) > avgValue * 1.5);
+    }
+    
+    if (smartFilters.lowStock) {
+      filtered = filtered.filter(p => (p.stock_quantity || 0) < 10 && (p.stock_quantity || 0) > 0);
+    }
+    
+    if (smartFilters.inStock) {
+      filtered = filtered.filter(p => (p.stock_quantity || 0) > 0);
+    }
+    
+    if (searchFields.productName) {
+      filtered = filtered.filter(p => p.name?.toLowerCase().includes(searchFields.productName.toLowerCase()));
+    }
+    
+    // Apply category filter
+    if (selectedCategoryId && selectedCategoryId !== '') {
+      filtered = filtered.filter(p => p.category_id == selectedCategoryId);
+    }
+    
+    if (searchFields.minPrice) {
+      filtered = filtered.filter(p => (p.selling_price || 0) >= Number(searchFields.minPrice));
+    }
+    
+    if (searchFields.maxPrice) {
+      filtered = filtered.filter(p => (p.selling_price || 0) <= Number(searchFields.maxPrice));
+    }
+    
+    if (searchFields.minStock) {
+      filtered = filtered.filter(p => (p.stock_quantity || 0) >= Number(searchFields.minStock));
+    }
+    
+    if (searchFields.maxStock) {
+      filtered = filtered.filter(p => (p.stock_quantity || 0) <= Number(searchFields.maxStock));
+    }
+    
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      switch (sortOptions.field) {
+        case 'name':
+          aVal = a.name || '';
+          bVal = b.name || '';
+          break;
+        case 'price':
+          aVal = a.selling_price || 0;
+          bVal = b.selling_price || 0;
+          break;
+        case 'stock':
+          aVal = a.stock_quantity || 0;
+          bVal = b.stock_quantity || 0;
+          break;
+        default:
+          aVal = a.name || '';
+          bVal = b.name || '';
+      }
+      
+      if (typeof aVal === 'string') {
+        return sortOptions.order === 'asc' 
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      } else {
+        return sortOptions.order === 'asc' 
+          ? aVal - bVal
+          : bVal - aVal;
+      }
+    });
+    
+    filteredProducts = filtered;
+    totalPages = Math.ceil(filtered.length / itemsPerPage);
+    currentPage = Math.min(currentPage, totalPages || 1);
+    updatePagination();
+  }
+  
+  function updatePagination() {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+  }
+  
+  function generateSearchSuggestions() {
+    if (!searchQuery.trim()) {
+      searchSuggestions = [];
+      showSearchSuggestions = false;
       return;
     }
     
-    const totalProfit = filteredSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
-    const totalSales = filteredSales.reduce((sum, sale) => sum + Math.abs(sale.quantity), 0);
-    const averageProfit = totalProfit / filteredSales.length;
+    const query = searchQuery.toLowerCase();
+    const suggestions = new Set();
     
-    console.log('Profit stats:', { totalProfit, totalSales, averageProfit }); // Debug log
+    products.forEach(product => {
+      if (product.name?.toLowerCase().includes(query)) {
+        suggestions.add(product.name);
+      }
+      if (product.category?.toLowerCase().includes(query)) {
+        suggestions.add(product.category);
+      }
+      if (product.sku?.toLowerCase().includes(query)) {
+        suggestions.add(product.sku);
+      }
+    });
     
-    profitStats = { 
-      totalProfit, 
-      totalSales, 
-      averageProfit 
-    };
+    searchSuggestions = Array.from(suggestions).slice(0, 5);
+    showSearchSuggestions = searchSuggestions.length > 0;
   }
-
-  function selectProduct(product) {
-    selectedProduct = product;
-    quantityToSell = 1;
-    sellingPriceToSell = product.selling_price;
-  }
-
+  
   async function handleSellProduct() {
     if (!selectedProduct) {
-      showAlert($t('selling.validation.select_product'), 'warning');
+      showAlert('Please select a product', 'warning');
       return;
     }
     if (quantityToSell <= 0 || quantityToSell > selectedProduct.stock_quantity) {
-      showAlert($t('selling.validation.invalid_quantity'), 'warning');
+      showAlert('Invalid quantity', 'warning');
       return;
     }
-    if (sellingPriceToSell === undefined || sellingPriceToSell === null || sellingPriceToSell < 0) {
-      showAlert($t('selling.validation.invalid_price'), 'warning');
+    if (sellingPriceToSell <= 0) {
+      showAlert('Invalid selling price', 'warning');
       return;
     }
-
+    
     isSelling = true;
     try {
       const stockMovementData = {
         productId: selectedProduct.id,
         quantity: -quantityToSell,
         sellingPrice: sellingPriceToSell,
-        notes: $t('selling.sell_product.success', { 
-          quantity: quantityToSell, 
-          product: selectedProduct.name 
-        }),
+        notes: `Sold ${quantityToSell} units of ${selectedProduct.name}`,
         previous_quantity: selectedProduct.stock_quantity,
         new_quantity: selectedProduct.stock_quantity - quantityToSell
       };
-
+      
       const result = await api.stockMovements.create(stockMovementData);
       if (result.success) {
-        showAlert($t('selling.sell_product.success', { 
-          quantity: quantityToSell, 
-          product: selectedProduct.name 
-        }), 'success');
-        await loadProducts();
-        await loadRecentSales();
+        showAlert(`Successfully sold ${quantityToSell} units of ${selectedProduct.name}`, 'success');
+        
         selectedProduct = null;
         quantityToSell = 1;
         sellingPriceToSell = 0;
+        showQuickSell = false;
+        
+        await loadProducts();
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
       console.error('Error selling product:', error);
-      showAlert($t('selling.sell_product.error', { error: error.message || 'Unknown error' }), 'error');
+      showAlert(`Failed to sell product: ${error.message}`, 'error');
     } finally {
       isSelling = false;
     }
   }
-
+  
+  function selectProduct(product) {
+    selectedProduct = product;
+    quantityToSell = 1;
+    sellingPriceToSell = product.selling_price || 0;
+    showQuickSell = true;
+  }
+  
   function formatCurrency(amount) {
     if (amount === null || amount === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numericAmount)) return 'N/A';
+    return new Intl.NumberFormat('fr-TN', {
+      style: 'decimal',
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3
+    }).format(numericAmount);
   }
-
-  $: filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  $: if (selectedTimeRange) {
-    filterSalesByTimeRange();
-  }
-
-  $: calculateProfitStats();
-
-  function getChartData() {
-    const { start, end } = getDateRange();
-    const dataMap = new Map();
-    const salesMap = new Map();
-    
-    // Initialize all dates in range
-    let currentDate = start;
-    while (currentDate <= end) {
-      const key = format(currentDate, 'MMM dd');
-      dataMap.set(key, 0);
-      salesMap.set(key, 0);
-      currentDate = new Date(currentDate.setDate(currentDate.getDate() + 1));
-    }
-
-    // Fill in actual data
-    filteredSales.forEach(sale => {
-      const date = parseISO(sale.createdAt);
-      const key = format(date, 'MMM dd');
-      dataMap.set(key, (dataMap.get(key) || 0) + (sale.profit || 0));
-      salesMap.set(key, (salesMap.get(key) || 0) + 1);
-    });
-
-    return {
-      labels: Array.from(dataMap.keys()),
-      profitData: Array.from(dataMap.values()),
-      salesData: Array.from(salesMap.values())
+  
+  function resetFilters() {
+    searchQuery = '';
+    smartFilters = {
+      highValue: false,
+      recentlyCreated: false,
+      lowStock: false,
+      inStock: true
     };
+    searchFields = {
+      productName: '',
+      category: '',
+      sku: '',
+      minPrice: '',
+      maxPrice: '',
+      minStock: '',
+      maxStock: '',
+      status: 'all'
+    };
+    selectedCategoryId = '';
+    currentPage = 1;
+    
+    // Force filter update
+    setTimeout(() => {
+      applyAdvancedFilters();
+    }, 100);
   }
-
-  function renderChart() {
-    if (!chartCanvas) return;
-    
-    const { labels, profitData, salesData } = getChartData();
-    
-    if (chart) {
-      chart.destroy();
-    }
-
-    const ctx = chartCanvas.getContext('2d');
-    chart = new Chart(ctx, {
-      type: chartType,
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Profit',
-            data: profitData,
-            borderColor: 'rgb(34, 197, 94)',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            yAxisID: 'y',
-            type: chartType === 'bar' ? 'bar' : 'line',
-            fill: chartType === 'line'
-          },
-          {
-            label: 'Sales Count',
-            data: salesData,
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            yAxisID: 'y1',
-            type: chartType === 'bar' ? 'bar' : 'line',
-            fill: chartType === 'line'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        plugins: {
-          title: {
-            display: true,
-            text: 'Sales and Profit Over Time'
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                let label = context.dataset.label || '';
-                if (label) {
-                  label += ': ';
-                }
-                if (context.dataset.yAxisID === 'y') {
-                  label += formatCurrency(context.parsed.y);
-                } else {
-                  label += context.parsed.y;
-                }
-                return label;
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            type: 'linear',
-            display: true,
-            position: 'left',
-            title: {
-              display: true,
-              text: 'Profit'
-            }
-          },
-          y1: {
-            type: 'linear',
-            display: true,
-            position: 'right',
-            title: {
-              display: true,
-              text: 'Sales Count'
-            },
-            grid: {
-              drawOnChartArea: false
-            }
-          }
-        }
+  
+  // Manual filter trigger function
+  function triggerFilterUpdate() {
+    applyAdvancedFilters();
+  }
+  
+  // Reactive statements with debouncing
+  let searchTimeout;
+  
+  // Watch for search query changes with debouncing
+  $: if (searchQuery !== undefined) {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      generateSearchSuggestions();
+      if (products.length > 0) {
+        applyAdvancedFilters();
       }
-    });
+    }, 300);
   }
-
-  function getTopProducts() {
-    const productMap = new Map();
-    filteredSales.forEach(sale => {
-      const key = sale.productName;
-      const current = productMap.get(key) || { quantity: 0, profit: 0 };
-      productMap.set(key, {
-        quantity: current.quantity + Math.abs(sale.quantity),
-        profit: current.profit + (sale.profit || 0)
-      });
-    });
-    
-    return Array.from(productMap.entries())
-      .map(([name, data]) => ({
-        name,
-        ...data
-      }))
-      .sort((a, b) => b.profit - a.profit)
-      .slice(0, 5);
-  }
-
-  function exportData() {
-    const data = filteredSales.map(sale => ({
-      Product: sale.productName,
-      Quantity: Math.abs(sale.quantity),
-      'Sale Price': sale.sellingPriceAtSale,
-      Profit: sale.profit,
-      Date: format(parseISO(sale.createdAt), 'yyyy-MM-dd HH:mm:ss')
-    }));
-
-    if (exportFormat === 'csv') {
-      const csv = [
-        Object.keys(data[0]).join(','),
-        ...data.map(row => Object.values(row).join(','))
-      ].join('\n');
-      
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sales-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      a.click();
-    } else {
-      const json = JSON.stringify(data, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sales-report-${format(new Date(), 'yyyy-MM-dd')}.json`;
-      a.click();
+  
+  // Watch for immediate filter changes (no debouncing needed)
+  $: if (selectedCategoryId !== undefined || smartFilters || searchFields || sortOptions) {
+    if (products.length > 0) {
+      applyAdvancedFilters();
     }
   }
-
-  onDestroy(() => {
-    if (chart) {
-      chart.destroy();
-    }
-  });
-
-  $: if (chartType || filteredSales) {
-    renderChart();
+  
+  // Watch for pagination changes
+  $: if (currentPage > 0 && filteredProducts) {
+    updatePagination();
   }
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-emerald-50">
-  <!-- Modern Header with Glassmorphism -->
+<svelte:head>
+  <title>🛒 {$t('selling.title')} | Cession sur Salaire</title>
+</svelte:head>
+
+<!-- 🌟 Modern Glassmorphism Layout -->
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" style="direction: {textDirection}">
+  <!-- 🎯 Glassmorphism Header with Real-time Stats -->
   <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
     <div class="max-w-7xl mx-auto px-6 py-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-              </svg>
+      <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+        <!-- 🎨 Brand & Title Section -->
+        <div class="flex items-center space-x-4" class:space-x-reverse={isRTL}>
+          <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+            <div class="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/25">
+              <span class="text-2xl">🛒</span>
             </div>
             <div>
-              <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent" style="text-align: {textAlign}">
                 {$t('selling.title')}
               </h1>
-              <p class="text-sm text-gray-500 font-medium">{$t('selling.subtitle')}</p>
+              <p class="text-gray-600 font-medium" style="text-align: {textAlign}">
+                {$t('selling.subtitle')}
+              </p>
+            </div>
+          </div>
+          
+          <!-- Real-time Stats Pills -->
+          <div class="hidden lg:flex items-center space-x-3 ml-8" class:space-x-reverse={isRTL}>
+            <div class="flex items-center px-3 py-1.5 bg-green-100 rounded-full border border-green-200">
+              <div class="w-2 h-2 bg-green-500 rounded-full {isRTL ? 'ml-2' : 'mr-2'} animate-pulse"></div>
+              <span class="text-xs font-semibold text-green-800">{analytics.inStockCount} In Stock</span>
+            </div>
+            <div class="flex items-center px-3 py-1.5 bg-blue-100 rounded-full border border-blue-200">
+              <div class="w-2 h-2 bg-blue-500 rounded-full {isRTL ? 'ml-2' : 'mr-2'}"></div>
+              <span class="text-xs font-semibold text-blue-800">{formatCurrency(analytics.totalValue)}</span>
+            </div>
+            <div class="flex items-center px-3 py-1.5 bg-purple-100 rounded-full border border-purple-200">
+              <div class="w-2 h-2 bg-purple-500 rounded-full {isRTL ? 'ml-2' : 'mr-2'}"></div>
+              <span class="text-xs font-semibold text-purple-800">{analytics.totalProducts} Products</span>
             </div>
           </div>
         </div>
         
-        <div class="flex items-center space-x-3">
-          <!-- Quick Stats -->
-          <div class="hidden md:flex items-center space-x-4 px-4 py-2 bg-white/60 rounded-xl backdrop-blur-sm">
-            <div class="text-center">
-              <div class="text-lg font-bold text-green-600">{formatCurrency(profitStats.totalProfit)}</div>
-              <div class="text-xs text-gray-500">{$t('selling.stats.profit')}</div>
-            </div>
-            <div class="w-px h-8 bg-gray-300"></div>
-            <div class="text-center">
-              <div class="text-lg font-bold text-blue-600">{profitStats.totalSales}</div>
-              <div class="text-xs text-gray-500">{$t('selling.stats.sales')}</div>
-            </div>
+        <!-- 🎛️ Action Center -->
+        <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+          <!-- View Mode Toggle -->
+          <div class="flex bg-gray-100 rounded-xl p-1 border border-gray-200">
+            <button 
+              on:click={() => viewMode = 'cards'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {viewMode === 'cards' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              <span class="text-lg {isRTL ? 'ml-2' : 'mr-2'}">🎴</span>
+              Cards
+            </button>
+            <button 
+              on:click={() => viewMode = 'table'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {viewMode === 'table' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              <span class="text-lg {isRTL ? 'ml-2' : 'mr-2'}">📊</span>
+              Table
+            </button>
+            <button 
+              on:click={() => viewMode = 'analytics'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {viewMode === 'analytics' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              <span class="text-lg {isRTL ? 'ml-2' : 'mr-2'}">📈</span>
+              Analytics
+            </button>
           </div>
-
-          <!-- Quick Sell Button -->
-          <button
-            on:click={() => showQuickSell = !showQuickSell}
-            class="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+          
+          <!-- Auto Refresh Toggle -->
+          <button 
+            class="p-2 bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl {autoRefresh ? 'ring-2 ring-blue-500/20' : ''}"
+            on:click={() => autoRefresh = !autoRefresh}
           >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            <svg class="w-5 h-5 {autoRefresh ? 'text-blue-600 animate-spin' : 'text-gray-600'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
-            {$t('selling.actions.quick_sell')}
-          </button>
-
-          <!-- Cart Button -->
-          <button
-            on:click={() => showCart = !showCart}
-            class="relative p-2 bg-white/60 rounded-xl backdrop-blur-sm hover:bg-white/80 transition-colors"
-          >
-            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.293 2.293A1 1 0 005 16h12M7 13v4a2 2 0 002 2h6a2 2 0 002-2v-4"/>
-            </svg>
-            {#if cartItems.length > 0}
-              <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {cartItems.length}
-              </span>
-            {/if}
           </button>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Main Content -->
-  <div class="max-w-7xl mx-auto px-6 py-8">
-    <!-- Enhanced Search and Filters -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <!-- Search Bar -->
-        <div class="flex-1 max-w-md">
+  
+  <!-- 🔍 Advanced Search & Filter Bar -->
+  <div class="max-w-7xl mx-auto px-6 py-6">
+    <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl shadow-black/5 p-6">
+      <div class="flex flex-col lg:flex-row gap-6">
+        <!-- 🔍 Smart Search -->
+        <div class="flex-1 relative">
           <div class="relative">
-            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
+            <div class="absolute inset-y-0 {isRTL ? 'right-0 pr-4' : 'left-0 pl-4'} flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
             <input
               type="text"
               bind:value={searchQuery}
-              placeholder={$t('selling.search.placeholder')}
-              class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+              on:input={triggerFilterUpdate}
+              placeholder="{$t('selling.search_placeholder')}"
+              class="w-full {isRTL ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-3 bg-white/80 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500"
+              style="text-align: {textAlign}"
             />
-          </div>
-        </div>
-
-        <!-- Filters and View Toggle -->
-        <div class="flex items-center space-x-3">
-          <!-- Time Range Filter -->
-          <select
-            bind:value={selectedTimeRange}
-            class="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="today">{$t('selling.time_range.today')}</option>
-            <option value="week">{$t('selling.time_range.week')}</option>
-            <option value="month">{$t('selling.time_range.month')}</option>
-            <option value="year">{$t('selling.time_range.year')}</option>
-            <option value="all">{$t('selling.time_range.all')}</option>
-          </select>
-
-          <!-- View Mode Toggle -->
-          <button
-            on:click={() => viewMode = viewMode === 'grid' ? 'list' : 'grid'}
-            class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2"
-          >
-            {#if viewMode === 'grid'}
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-              </svg>
-              <span>{$t('selling.view_modes.list')}</span>
-            {:else}
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-              </svg>
-              <span>{$t('selling.view_modes.grid')}</span>
+            {#if isSearching}
+              <div class="absolute inset-y-0 {isRTL ? 'left-0 pl-4' : 'right-0 pr-4'} flex items-center">
+                <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
             {/if}
+          </div>
+          
+          <!-- Search Suggestions -->
+          {#if showSearchSuggestions && searchSuggestions.length > 0}
+            <div class="absolute top-full {isRTL ? 'right-0' : 'left-0'} w-full mt-2 bg-white rounded-xl border border-gray-200 shadow-xl z-50" 
+                 transition:slide={{ duration: 200, easing: quintOut }}>
+              {#each searchSuggestions as suggestion}
+                <button
+                  class="w-full px-4 py-3 text-left hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl transition-colors duration-150"
+                  style="text-align: {textAlign}"
+                  on:click={() => {
+                    searchQuery = suggestion;
+                    showSearchSuggestions = false;
+                  }}
+                >
+                  <span class="text-gray-900">{suggestion}</span>
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+        
+        <!-- 📂 Category Dropdown -->
+        <div class="w-full lg:w-64">
+          <select
+            bind:value={selectedCategoryId}
+            on:change={triggerFilterUpdate}
+            class="w-full px-4 py-3 bg-white/80 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-gray-900"
+            style="text-align: {textAlign}"
+          >
+            <option value="">{$t('selling.all_categories')}</option>
+            {#each categories as category}
+              <option value={category.id}>{category.name}</option>
+            {/each}
+          </select>
+        </div>
+        
+        <!-- 🎛️ Filter Controls -->
+        <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+          <!-- Smart Filters Toggle -->
+          <button
+            on:click={() => isFiltersVisible = !isFiltersVisible}
+            class="flex items-center px-4 py-3 bg-white/80 border border-gray-200 rounded-xl hover:bg-white/90 transition-all duration-200 text-gray-700 font-medium"
+          >
+            <svg class="w-5 h-5 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z"/>
+            </svg>
+            Filters
+            {#if Object.values(smartFilters).some(v => v) || Object.values(searchFields).some(v => v && v !== 'all')}
+              <span class="w-2 h-2 bg-blue-500 rounded-full {isRTL ? 'mr-2' : 'ml-2'}"></span>
+            {/if}
+          </button>
+          
+          <!-- Reset Filters -->
+          <button
+            on:click={resetFilters}
+            class="p-3 bg-white/80 border border-gray-200 rounded-xl hover:bg-white/90 transition-all duration-200 text-gray-600 hover:text-gray-900"
+            title="Reset Filters"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
           </button>
         </div>
       </div>
+      
+      <!-- 🎯 Advanced Filters Panel -->
+      {#if isFiltersVisible}
+        <div class="mt-6 pt-6 border-t border-gray-200" transition:slide={{ duration: 300, easing: quintOut }}>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Smart Filters -->
+            <div class="space-y-3">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">Smart Filters</h4>
+              <label class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                <input type="checkbox" bind:checked={smartFilters.highValue} on:change={triggerFilterUpdate} class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                <span class="text-sm text-gray-700">High Value Products</span>
+              </label>
+              <label class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                <input type="checkbox" bind:checked={smartFilters.lowStock} on:change={triggerFilterUpdate} class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                <span class="text-sm text-gray-700">Low Stock Alert</span>
+              </label>
+              <label class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                <input type="checkbox" bind:checked={smartFilters.inStock} on:change={triggerFilterUpdate} class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                <span class="text-sm text-gray-700">In Stock Only</span>
+              </label>
+            </div>
+            
+            <!-- Price Range -->
+            <div class="space-y-3">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">Price Range</h4>
+              <input
+                type="number"
+                bind:value={searchFields.minPrice}
+                on:input={triggerFilterUpdate}
+                placeholder="Min Price"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              />
+              <input
+                type="number"
+                bind:value={searchFields.maxPrice}
+                on:input={triggerFilterUpdate}
+                placeholder="Max Price"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              />
+            </div>
+            
+            <!-- Stock Range -->
+            <div class="space-y-3">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">Stock Range</h4>
+              <input
+                type="number"
+                bind:value={searchFields.minStock}
+                on:input={triggerFilterUpdate}
+                placeholder="Min Stock"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              />
+              <input
+                type="number"
+                bind:value={searchFields.maxStock}
+                on:input={triggerFilterUpdate}
+                placeholder="Max Stock"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              />
+            </div>
+            
+            <!-- Sort Options -->
+            <div class="space-y-3">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">Sort By</h4>
+              <select
+                bind:value={sortOptions.field}
+                on:change={triggerFilterUpdate}
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              >
+                <option value="name">Name</option>
+                <option value="price">Price</option>
+                <option value="stock">Stock</option>
+                <option value="category">Category</option>
+              </select>
+              <select
+                bind:value={sortOptions.order}
+                on:change={triggerFilterUpdate}
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
-
-    <!-- Enhanced Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">{$t('selling.stats.total_profit')}</p>
-            <p class="text-3xl font-bold text-green-600 mt-2">{formatCurrency(profitStats.totalProfit)}</p>
-          </div>
-          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">{$t('selling.stats.total_sales')}</p>
-            <p class="text-3xl font-bold text-blue-600 mt-2">{profitStats.totalSales}</p>
-          </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
+  </div>
+  
+  <!-- 📊 Main Content Area -->
+  <div class="max-w-7xl mx-auto px-6 pb-8">
+    {#if viewMode === 'analytics'}
+      <!-- 📈 Analytics Dashboard -->
+      <div class="space-y-6">
+        <!-- Analytics Header -->
+        <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+          <h2 class="text-2xl font-bold text-gray-900" style="text-align: {textAlign}">
+            📈 Sales Analytics
+          </h2>
+          <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+            <select
+              bind:value={timeRange}
+              class="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            >
+              <option value="month">This Month</option>
+              <option value="quarter">This Quarter</option>
+              <option value="year">This Year</option>
+            </select>
           </div>
         </div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">{$t('selling.stats.average_profit')}</p>
-            <p class="text-3xl font-bold text-purple-600 mt-2">{formatCurrency(profitStats.averageProfit)}</p>
+        
+        <!-- Key Metrics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
+            <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+              <div>
+                <p class="text-sm font-medium text-gray-600" style="text-align: {textAlign}">Total Value</p>
+                <p class="text-2xl font-bold text-gray-900" style="text-align: {textAlign}">
+                  {formatCurrency(analytics.totalValue)}
+                </p>
+              </div>
+              <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                <span class="text-xl">💰</span>
+              </div>
+            </div>
           </div>
-          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-            </svg>
+          
+          <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
+            <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+              <div>
+                <p class="text-sm font-medium text-gray-600" style="text-align: {textAlign}">Products</p>
+                <p class="text-2xl font-bold text-gray-900" style="text-align: {textAlign}">
+                  {analytics.totalProducts}
+                </p>
+              </div>
+              <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                <span class="text-xl">📦</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
+            <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+              <div>
+                <p class="text-sm font-medium text-gray-600" style="text-align: {textAlign}">In Stock</p>
+                <p class="text-2xl font-bold text-gray-900" style="text-align: {textAlign}">
+                  {analytics.inStockCount}
+                </p>
+              </div>
+              <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                <span class="text-xl">✅</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
+            <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+              <div>
+                <p class="text-sm font-medium text-gray-600" style="text-align: {textAlign}">Avg Price</p>
+                <p class="text-2xl font-bold text-gray-900" style="text-align: {textAlign}">
+                  {formatCurrency(analytics.avgPrice)}
+                </p>
+              </div>
+              <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                <span class="text-xl">📊</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+        
 
-      <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-        <div class="flex items-center justify-between">
+      </div>
+    {:else}
+      <!-- 🎴 Products Grid/Table View -->
+      <div class="space-y-6">
+        <!-- Results Header -->
+        <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
           <div>
-            <p class="text-sm font-medium text-gray-600">{$t('selling.stats.available_products')}</p>
-            <p class="text-3xl font-bold text-orange-600 mt-2">{filteredProducts.length}</p>
+            <h2 class="text-xl font-semibold text-gray-900" style="text-align: {textAlign}">
+              {filteredProducts.length} Products Found
+            </h2>
+            <p class="text-sm text-gray-600" style="text-align: {textAlign}">
+              Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredProducts.length)} of {filteredProducts.length}
+            </p>
           </div>
-          <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-            </svg>
-          </div>
+          
+          <!-- Pagination Info -->
+          {#if totalPages > 1}
+            <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
+              <button
+                on:click={() => currentPage = Math.max(1, currentPage - 1)}
+                disabled={currentPage === 1}
+                class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg class="w-4 h-4 {isRTL ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              
+              <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
+                {currentPage} / {totalPages}
+              </span>
+              
+              <button
+                on:click={() => currentPage = Math.min(totalPages, currentPage + 1)}
+                disabled={currentPage === totalPages}
+                class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg class="w-4 h-4 {isRTL ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          {/if}
         </div>
+        
+        <!-- Products Grid -->
+        {#if viewMode === 'cards'}
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {#each paginatedProducts as product (product.id)}
+              <div 
+                class="group bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden"
+                in:scale={{ duration: 300, delay: 50, easing: backOut }}
+                out:scale={{ duration: 200, easing: quintOut }}
+              >
+                <!-- Product Image/Icon -->
+                <div class="h-48 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center relative overflow-hidden">
+                  <span class="text-6xl opacity-80">📦</span>
+                  <div class="absolute top-3 right-3">
+                    <span class="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium {(product.stock_quantity || 0) > 10 ? 'text-green-700 bg-green-100' : (product.stock_quantity || 0) > 0 ? 'text-yellow-700 bg-yellow-100' : 'text-red-700 bg-red-100'}">
+                      {product.stock_quantity || 0} in stock
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Product Info -->
+                <div class="p-6">
+                  <div class="mb-4">
+                    <h3 class="font-bold text-gray-900 text-lg mb-2 line-clamp-2" style="text-align: {textAlign}">
+                      {product.name || 'Unnamed Product'}
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-2" style="text-align: {textAlign}">
+                      SKU: {product.sku || 'N/A'}
+                    </p>
+                    <p class="text-sm text-gray-600" style="text-align: {textAlign}">
+                      Category: {categories.find(c => c.id === product.category_id)?.name || 'Uncategorized'}
+                    </p>
+                  </div>
+                  
+                  <!-- Price & Actions -->
+                  <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+                    <div>
+                      <p class="text-2xl font-bold text-blue-600" style="text-align: {textAlign}">
+                        {formatCurrency(product.selling_price)}
+                      </p>
+                      {#if product.purchase_price}
+                        <p class="text-sm text-gray-500 line-through" style="text-align: {textAlign}">
+                          {formatCurrency(product.purchase_price)}
+                        </p>
+                      {/if}
+                    </div>
+                    
+                    <button
+                      on:click={() => selectProduct(product)}
+                      class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                      disabled={!product.stock_quantity || product.stock_quantity <= 0}
+                    >
+                      🛒 Sell
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {:else if viewMode === 'table'}
+          <!-- Table View -->
+          <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50/80 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      Product
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      Category
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      Price
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      Stock
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  {#each paginatedProducts as product (product.id)}
+                    <tr class="hover:bg-gray-50/50 transition-colors duration-150">
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center" class:flex-row-reverse={isRTL}>
+                          <div class="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center {isRTL ? 'ml-4' : 'mr-4'}">
+                            <span class="text-lg">📦</span>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900" style="text-align: {textAlign}">
+                              {product.name || 'Unnamed Product'}
+                            </div>
+                            <div class="text-sm text-gray-500" style="text-align: {textAlign}">
+                              SKU: {product.sku || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="text-align: {textAlign}">
+                        {categories.find(c => c.id === product.category_id)?.name || 'Uncategorized'}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600" style="text-align: {textAlign}">
+                        {formatCurrency(product.selling_price)}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full {(product.stock_quantity || 0) > 10 ? 'bg-green-100 text-green-800' : (product.stock_quantity || 0) > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
+                          {product.stock_quantity || 0}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          on:click={() => selectProduct(product)}
+                          class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150"
+                          disabled={!product.stock_quantity || product.stock_quantity <= 0}
+                        >
+                          Sell
+                        </button>
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {/if}
+        
+        <!-- Empty State -->
+        {#if paginatedProducts.length === 0}
+          <div class="text-center py-12">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-4xl">🔍</span>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
+            <p class="text-gray-600 mb-4">Try adjusting your search criteria or filters</p>
+            <button
+              on:click={resetFilters}
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150"
+            >
+              Reset Filters
+            </button>
+          </div>
+        {/if}
       </div>
-    </div>
-
-    <!-- Quick Sell Panel -->
-    {#if showQuickSell}
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8" transition:fly={{ y: -20, duration: 300 }}>
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-            <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-            </svg>
-{$t('selling.actions.quick_sell')}
+    {/if}
+  </div>
+  
+  <!-- 🚀 Quick Sell Modal -->
+  {#if showQuickSell && selectedProduct}
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+         transition:fade={{ duration: 200 }}
+         on:click|self={() => showQuickSell = false}>
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+           transition:scale={{ duration: 300, easing: backOut }}>
+        <div class="flex items-center justify-between mb-6" class:flex-row-reverse={isRTL}>
+          <h3 class="text-xl font-bold text-gray-900" style="text-align: {textAlign}">
+            🛒 Quick Sell
           </h3>
           <button
             on:click={() => showQuickSell = false}
-            class="text-gray-400 hover:text-gray-600 transition-colors"
+            class="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-150"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">{$t('selling.sell_product.select_product')}</label>
-            <select
-              bind:value={selectedProduct}
-              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
-            >
-              <option value={null}>{$t('selling.sell_product.select_product_placeholder')}</option>
-              {#each filteredProducts as product}
-                <option value={product}>{product.name} (Stock: {product.stock_quantity})</option>
-              {/each}
-            </select>
+        <!-- Product Info -->
+        <div class="bg-gray-50 rounded-xl p-4 mb-6">
+          <div class="flex items-center" class:flex-row-reverse={isRTL}>
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center {isRTL ? 'ml-4' : 'mr-4'}">
+              <span class="text-xl">📦</span>
+            </div>
+            <div class="flex-1">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">
+                {selectedProduct.name}
+              </h4>
+              <p class="text-sm text-gray-600" style="text-align: {textAlign}">
+                Available: {selectedProduct.stock_quantity} units
+              </p>
+              <p class="text-sm text-blue-600 font-medium" style="text-align: {textAlign}">
+                Price: {formatCurrency(selectedProduct.selling_price)}
+              </p>
+            </div>
           </div>
-          
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">{$t('selling.sell_product.quantity')}</label>
+        </div>
+        
+        <!-- Sell Form -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
+              Quantity to Sell
+            </label>
             <input
               type="number"
               bind:value={quantityToSell}
               min="1"
-              max={selectedProduct?.stock_quantity || 1}
-              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+              max={selectedProduct.stock_quantity}
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              style="text-align: {textAlign}"
             />
           </div>
           
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">{$t('selling.sell_product.selling_price')}</label>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
+              Selling Price (per unit)
+            </label>
             <input
               type="number"
               bind:value={sellingPriceToSell}
               min="0"
-              step="0.01"
-              class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+              step="0.001"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              style="text-align: {textAlign}"
             />
           </div>
           
-          <div class="flex items-end">
-            <button
-              on:click={handleSellProduct}
-              disabled={isSelling || !selectedProduct}
-              class="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {#if isSelling}
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-{$t('selling.sell_product.selling')}
-              {:else}
-{$t('selling.sell_product.submit')}
-              {/if}
-            </button>
-          </div>
-        </div>
-
-        {#if selectedProduct}
-          <div class="mt-6 p-4 bg-gray-50 rounded-xl">
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-gray-600">{$t('selling.sell_product.expected_profit')}:</span>
-              <span class="font-semibold text-green-600">
-                {formatCurrency((sellingPriceToSell - (selectedProduct.purchase_price || 0)) * quantityToSell)}
+          <!-- Total Calculation -->
+          <div class="bg-blue-50 rounded-xl p-4">
+            <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+              <span class="font-medium text-gray-900">Total Amount:</span>
+              <span class="text-xl font-bold text-blue-600">
+                {formatCurrency(quantityToSell * sellingPriceToSell)}
               </span>
             </div>
           </div>
-        {/if}
-      </div>
-    {/if}
-
-    <!-- Products Grid/List -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
-      <div class="p-6 border-b border-gray-100">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-gray-900">{$t('selling.products.title')}</h2>
-          <div class="text-sm text-gray-500">
-            {$t('selling.products.count', { count: filteredProducts.length })}
-          </div>
         </div>
-      </div>
-
-      {#if $loading}
-        <div class="flex flex-col items-center justify-center h-96 space-y-4">
-          <div class="relative">
-            <div class="w-16 h-16 border-4 border-green-200 rounded-full animate-spin"></div>
-            <div class="absolute top-0 left-0 w-16 h-16 border-4 border-green-600 rounded-full animate-spin border-t-transparent"></div>
-          </div>
-          <p class="text-gray-600 font-medium">{$t('selling.products.loading')}</p>
-        </div>
-      {:else if filteredProducts.length === 0}
-        <div class="text-center py-16">
-          <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-            <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">{$t('selling.products.no_products')}</h3>
-          <p class="text-gray-500 mb-6">{$t('selling.products.add_products_message')}</p>
-          <a
-            href="/inventory"
-            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+        
+        <!-- Actions -->
+        <div class="flex items-center space-x-3 mt-6" class:space-x-reverse={isRTL}>
+          <button
+            on:click={() => showQuickSell = false}
+            class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors duration-150 font-medium"
           >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-            </svg>
-            {$t('selling.products.add_products')}
-          </a>
-        </div>
-      {:else}
-        <div class="p-6">
-          <div class={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
-            {#each filteredProducts as product, i (product.id)}
-              <div 
-                class="group bg-gradient-to-br from-white to-gray-50 rounded-2xl border border-gray-100 p-6 hover:shadow-xl hover:border-green-200 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-                transition:fly={{ y: 20, delay: i * 50, duration: 300 }}
-                on:click={() => selectProduct(product)}
-              >
-                <!-- Product Header -->
-                <div class="flex items-start justify-between mb-4">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
-                      {product.name ? product.name.charAt(0).toUpperCase() : 'P'}
-                    </div>
-                    <div>
-                      <h3 class="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
-                        {product.name}
-                      </h3>
-                      <p class="text-sm text-gray-500 font-medium">SKU: {product.sku}</p>
-                    </div>
-                  </div>
-                  
-                  <!-- Stock Status -->
-                  <div class="flex items-center space-x-1">
-                    <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span class="text-xs text-gray-500">{$t('selling.products.stock_count', { count: product.stock_quantity })}</span>
-                  </div>
-                </div>
-
-                <!-- Product Details -->
-                <div class="space-y-3 mb-6">
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-600">{$t('selling.products.purchase_price')}:</span>
-                    <span class="font-semibold">{formatCurrency(product.purchase_price)}</span>
-                  </div>
-                  
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-600">{$t('selling.products.selling_price')}:</span>
-                    <span class="font-semibold text-green-600">{formatCurrency(product.selling_price)}</span>
-                  </div>
-                  
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-600">{$t('selling.products.profit_per_unit')}:</span>
-                    <span class="font-semibold text-blue-600">
-                      {formatCurrency(product.selling_price - product.purchase_price)}
-                    </span>
-                  </div>
-
-                  <!-- Stock Level Indicator -->
-                  <div class="mt-4">
-                    <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
-                      <span>{$t('selling.products.stock_level')}</span>
-                      <span>{product.stock_quantity} units</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        class="h-2 rounded-full transition-all duration-300 {product.stock_quantity > 10 ? 'bg-green-500' : product.stock_quantity > 5 ? 'bg-yellow-500' : 'bg-red-500'}"
-                        style="width: {Math.min((product.stock_quantity / 20) * 100, 100)}%"
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Action Button -->
-                <button
-                  on:click|stopPropagation={() => {
-                    selectProduct(product);
-                    showQuickSell = true;
-                  }}
-                  class="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl group-hover:scale-105"
-                >
-                  <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                  </svg>
-                  {$t('selling.products.select_to_sell')}
-                </button>
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/if}
-    </div>
-
-    <!-- Sales Analytics Chart -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
-      <div class="p-6 border-b border-gray-100">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-gray-900">{$t('selling.chart.title')}</h2>
-          <div class="flex items-center space-x-3">
-            <select
-              bind:value={chartType}
-              class="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value="line">{$t('selling.chart.type.line')}</option>
-              <option value="bar">{$t('selling.chart.type.bar')}</option>
-            </select>
-            <button
-              on:click={exportData}
-              class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium"
-            >
-              <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-              {$t('selling.chart.export.csv')}
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="p-6">
-        <div class="h-96">
-          <canvas bind:this={chartCanvas}></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-
-    <!-- Recent Sales Section -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-      <div class="p-6 border-b border-gray-100">
-        <h2 class="text-xl font-semibold text-gray-900">{$t('selling.recent_sales.title')}</h2>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.date')}</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.product')}</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.quantity')}</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.price')}</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{$t('selling.recent_sales.columns.profit')}</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            {#if filteredSales.length === 0}
-              <tr>
-                <td colspan="5" class="px-6 py-4 text-center text-gray-500">{$t('selling.recent_sales.no_sales')}</td>
-              </tr>
+            Cancel
+          </button>
+          <button
+            on:click={handleSellProduct}
+            disabled={isSelling || quantityToSell <= 0 || quantityToSell > selectedProduct.stock_quantity || sellingPriceToSell <= 0}
+            class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {#if isSelling}
+              <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin {isRTL ? 'ml-2' : 'mr-2'}"></div>
+              Selling...
             {:else}
-              {#each filteredSales as sale}
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{format(parseISO(sale.createdAt), 'PPp')}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.productName}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{sale.quantity}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(sale.sellingPriceAtSale)}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold text-green-600">{formatCurrency(sale.profit)}</td>
-                </tr>
-              {/each}
+              🛒 Sell Product
             {/if}
-          </tbody>
-        </table>
+          </button>
+        </div>
       </div>
     </div>
+  {/if}
+</div>
+
+<!-- Loading Overlay -->
+{#if $sellingLoading}
+  <div class="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50"
+       transition:fade={{ duration: 200 }}>
+    <div class="text-center">
+      <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-lg font-medium text-gray-900">Loading products...</p>
+    </div>
   </div>
+{/if}

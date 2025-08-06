@@ -730,6 +730,7 @@
     "title": "Ventes",
     "subtitle": "Gérez vos ventes",
     "new": "Nouvelle vente",
+    "all_categories":"Toutes les catégories",
     "count": "{count} {count, plural, one=vente other=ventes}",
     "details": {
       "title": "Détails de la vente",

@@ -642,45 +642,7 @@
 
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-6 py-8">
-    <!-- Debug Info -->
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 {isDataLoading ? 'animate-pulse' : ''}">
-      <h4 class="font-semibold text-blue-800 mb-2 flex items-center">
-        Debug Info (Month: {selectedMonth})
-        {#if isDataLoading}
-          <span class="ml-2 text-sm animate-spin">🔄</span>
-        {/if}
-      </h4>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-blue-700">
-        <div>Expenses: {expenses.length}</div>
-        <div>Sales: {sales.length}</div>
-        <div class="font-semibold {isDataLoading ? 'text-orange-600' : 'text-green-600'}">
-          Loading: {isDataLoading ? 'Yes' : 'No'}
-        </div>
-        <div>Categories: {Object.keys(chartData.expensesByCategory).length}</div>
-      </div>
-      {#if expenses.length > 0}
-        <div class="mt-2 text-xs text-blue-600">
-          <p class="font-semibold">Sample expense:</p>
-          <p>Date: {expenses[0].date}</p>
-          <p>Amount: {expenses[0].amount}</p>
-          <p>Category: {expenses[0].category}</p>
-          <p>Full: {JSON.stringify(expenses[0])}</p>
-        </div>
-      {:else}
-        <div class="mt-2 text-xs text-red-600 font-medium">
-          No expenses found for {selectedMonth}
-        </div>
-      {/if}
-      {#if isDataLoading}
-        <div class="mt-2 text-xs text-orange-600 font-medium">
-          🔄 Loading data for {selectedMonth}...
-        </div>
-      {/if}
-      <div class="mt-2 text-xs text-gray-600">
-        <p>Selected Month: {selectedMonth}</p>
-        <p>Current Time: {new Date().toISOString()}</p>
-      </div>
-    </div>
+
 
     <!-- Analytics Dashboard -->
     {#if viewMode === 'analytics'}
