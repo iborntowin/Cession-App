@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTranslation } from '../hooks/useTranslation';
+import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
 
 const ClientCard = ({ client, onPress }) => {
   // Translation hook
@@ -126,10 +127,10 @@ const ClientCard = ({ client, onPress }) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginVertical: 8,
-    marginHorizontal: 16,
+    borderRadius: RESPONSIVE_STYLES.card.borderRadius,
+    padding: RESPONSIVE_STYLES.card.padding,
+    marginVertical: RESPONSIVE_STYLES.card.marginVertical,
+    marginHorizontal: RESPONSIVE_STYLES.card.marginHorizontal,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -138,92 +139,110 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+    minHeight: hp(12),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: hp(1),
+    flexWrap: 'wrap',
   },
   name: {
-    fontSize: 18,
+    fontSize: RESPONSIVE_STYLES.title.fontSize,
     fontWeight: 'bold',
     color: '#333',
     flex: 1,
+    minWidth: wp(60),
   },
   clientNumber: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#666',
     fontWeight: '500',
+    marginLeft: wp(2),
   },
   details: {
-    marginBottom: 8,
+    marginBottom: hp(1),
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: hp(0.5),
+    minHeight: hp(3),
+    alignItems: 'center',
   },
   label: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#666',
     flex: 1,
+    flexShrink: 1,
   },
   value: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#333',
     fontWeight: '500',
     textAlign: 'right',
     flex: 1,
+    flexShrink: 1,
   },
   labelRTL: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#666',
     flex: 1,
     textAlign: 'right',
     writingDirection: 'rtl',
+    flexShrink: 1,
   },
   valueRTL: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#333',
     fontWeight: '500',
     textAlign: 'left',
     flex: 1,
     writingDirection: 'ltr', // Keep numbers LTR
+    flexShrink: 1,
   },
   cessionInfo: {
     borderTopWidth: 1,
     borderTopColor: '#eee',
-    paddingTop: 8,
+    paddingTop: hp(1),
+    marginTop: hp(1),
   },
   cessionSummary: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   cessionStats: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    flexWrap: 'wrap',
   },
   cessionCount: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#007AFF',
     fontWeight: '500',
-    marginRight: 8,
+    marginRight: wp(2),
   },
   activeCessions: {
-    fontSize: 12,
+    fontSize: RESPONSIVE_STYLES.caption.fontSize,
     color: '#4CAF50',
     fontWeight: '500',
     backgroundColor: '#E8F5E8',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: wp(1.5),
+    paddingVertical: hp(0.3),
+    borderRadius: wp(2.5),
+    marginTop: hp(0.5),
   },
   totalBalance: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#FF9800',
     fontWeight: '600',
+    textAlign: 'right',
+    flexShrink: 0,
+    marginTop: hp(0.5),
   },
 });
 

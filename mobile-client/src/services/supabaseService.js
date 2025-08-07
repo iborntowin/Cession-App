@@ -580,18 +580,38 @@ class SupabaseService {
           transformedData = {
             clients: data.clients || [],
             cessions: this.extractCessionsFromClients(data.clients || []),
-            exportTimestamp: data.metadata.exportTimestamp || new Date().toISOString(),
+            exportTimestamp: data.metadata.exportTimestamp || data.metadata.exportTime || new Date().toISOString(),
             recordCount: data.metadata.recordCount || {},
             fileName: fileName
           };
-        } else {
-          // Legacy format or direct format
+        } else if (data.clients) {
+          // Direct format with clients array
           transformedData = {
-            ...data,
+            clients: data.clients || [],
+            cessions: this.extractCessionsFromClients(data.clients || []),
+            exportTimestamp: data.exportTimestamp || data.exportTime || new Date().toISOString(),
+            fileName: fileName
+          };
+        } else {
+          // Legacy format or unknown format
+          transformedData = {
+            clients: Array.isArray(data) ? data : [],
+            cessions: [],
+            exportTimestamp: new Date().toISOString(),
             fileName: fileName
           };
         }
 
+        // Validate that we have usable data
+        if (!transformedData.clients || !Array.isArray(transformedData.clients)) {
+          throw new Error(`Invalid data format in ${fileName}: clients is not an array`);
+        }
+
+        if (transformedData.clients.length === 0) {
+          console.warn(`Warning: ${fileName} contains no client data`);
+        }
+
+        console.log(`Successfully loaded ${transformedData.clients.length} clients from ${fileName}`);
         return transformedData;
       } else {
         throw new Error(`Failed to fetch data from ${fileName}: HTTP ${response.status}`);
@@ -617,13 +637,7 @@ class SupabaseService {
         }
 
         // Return empty data structure if no cache
-        return {
-          clients: [],
-          cessions: [],
-          exportTimestamp: new Date().toISOString(),
-          message: 'No data files available. Please check connection or trigger an export.',
-          fileName: null
-        };
+        throw new Error('No data files available. Please check connection or trigger an export from the backend.');
       }
 
       const data = await this.getDataFromFile(selectedFile);
@@ -642,15 +656,8 @@ class SupabaseService {
         return cachedData;
       }
 
-      // Return empty data structure as last resort
-      return {
-        clients: [],
-        cessions: [],
-        exportTimestamp: new Date().toISOString(),
-        message: 'Unable to fetch data. Please check your connection and try again.',
-        error: error.message,
-        fileName: null
-      };
+      // Throw error as last resort to trigger proper error handling
+      throw new Error(`Unable to fetch data: ${error.message}. Please check your connection and try again.`);
     }
   }
 

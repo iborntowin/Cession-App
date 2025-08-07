@@ -9,6 +9,7 @@ import {
   Modal,
   Alert
 } from 'react-native';
+import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
 import LoadingSpinner from '../components/LoadingSpinner';
 import DataSourceSelector from '../components/DataSourceSelector';
 import ErrorDisplay, { useErrorDisplay, ErrorStack } from '../components/ErrorDisplay';
@@ -347,9 +348,10 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     backgroundColor: '#fff',
-    margin: 16,
-    borderRadius: 12,
-    padding: 20,
+    marginHorizontal: wp(4),
+    marginVertical: hp(2),
+    borderRadius: RESPONSIVE_STYLES.card.borderRadius,
+    padding: wp(5),
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -363,18 +365,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: RESPONSIVE_STYLES.title.fontSize,
     fontWeight: '600',
     color: '#333',
     flex: 1,
+    minWidth: wp(70),
   },
   refreshButton: {
-    padding: 8,
+    padding: wp(2),
   },
   refreshIcon: {
-    fontSize: 16,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
   },
   errorCard: {
     backgroundColor: '#FEF2F2',

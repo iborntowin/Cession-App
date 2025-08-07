@@ -17,15 +17,21 @@ export const useTranslation = () => {
   }, []);
 
   const t = (key, params = {}) => {
-    return languageService.t(key, params);
+    const translation = languageService.t(key, params);
+    // Ensure we always return a string
+    return typeof translation === 'string' ? translation : String(translation || key);
   };
 
   const formatCurrency = (amount, currency = 'TND') => {
-    return languageService.formatCurrency(amount, currency);
+    const formatted = languageService.formatCurrency(amount, currency);
+    // Ensure we always return a string
+    return typeof formatted === 'string' ? formatted : String(formatted || '0.00 ' + currency);
   };
 
   const formatDate = (date, options = {}) => {
-    return languageService.formatDate(date, options);
+    const formatted = languageService.formatDate(date, options);
+    // Ensure we always return a string
+    return typeof formatted === 'string' ? formatted : String(formatted || 'N/A');
   };
 
   const isRTL = () => {

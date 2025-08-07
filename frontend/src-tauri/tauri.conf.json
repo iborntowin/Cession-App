@@ -77,6 +77,17 @@
       "appimage": {
         "bundleMediaFramework": false
       }
+    },
+    "android": {
+      "minSdkVersion": 24,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     }
   },
   "plugins": {}

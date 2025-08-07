@@ -44,6 +44,54 @@ class ClientService {
   }
 
   /**
+   * Safely cache data without throwing errors
+   */
+  async safeCacheData(result) {
+    try {
+      // Validate input data
+      if (!result || typeof result !== 'object') {
+        ErrorHandler.logError(
+          new CacheError('Invalid data structure for caching'), 
+          'safeCacheData - invalid input'
+        );
+        return false;
+      }
+
+      // Ensure the data has the expected structure for caching
+      const dataToCache = {
+        metadata: result.metadata || {
+          exportTime: result.exportTimestamp || new Date().toISOString(),
+          version: "1.0",
+          recordCount: {
+            clients: result.clients?.length || 0,
+            cessions: result.cessions?.length || 0
+          }
+        },
+        clients: result.clients || []
+      };
+      
+      // Only cache if we have valid data
+      if (dataToCache.clients && Array.isArray(dataToCache.clients)) {
+        await dataService.cacheData(dataToCache);
+        return true;
+      } else {
+        ErrorHandler.logError(
+          new CacheError('No valid client data to cache'), 
+          'safeCacheData - no valid data'
+        );
+        return false;
+      }
+    } catch (error) {
+      // Log the error but don't throw it - this is supposed to be "safe"
+      ErrorHandler.logError(
+        new CacheError('Failed to cache client data', error), 
+        'safeCacheData - cache operation failed'
+      );
+      return false;
+    }
+  }
+
+  /**
    * Set the Supabase public URL for data fetching (legacy method for backward compatibility)
    */
   setPublicUrl(publicUrl) {
@@ -76,23 +124,11 @@ class ClientService {
 
                 // Cache the data for offline use - but don't fail if caching fails
                 try {
-                  // Ensure the data has the expected structure for caching
-                  const dataToCache = {
-                    metadata: result.metadata || {
-                      exportTime: result.exportTimestamp || new Date().toISOString(),
-                      version: "1.0",
-                      recordCount: {
-                        clients: result.clients?.length || 0,
-                        cessions: result.cessions?.length || 0
-                      }
-                    },
-                    clients: result.clients || []
-                  };
-                  await dataService.cacheData(dataToCache);
+                  await this.safeCacheData(result);
                 } catch (cacheError) {
-                  ErrorHandler.logError(new CacheError('Failed to cache client data', cacheError), 
-                    'getAllClients - caching');
-                  // Don't fail the operation if caching fails
+                  // This should not happen since safeCacheData is supposed to be safe
+                  // but we'll handle it just in case
+                  ErrorHandler.logError(cacheError, 'getAllClients - unexpected cache error');
                 }
 
                 return result.clients;
@@ -202,22 +238,11 @@ class ClientService {
 
       // Cache the data for offline use - but don't fail if caching fails
       try {
-        // Ensure the data has the expected structure for caching
-        const dataToCache = {
-          metadata: result.metadata || {
-            exportTime: result.exportTimestamp || new Date().toISOString(),
-            version: "1.0",
-            recordCount: {
-              clients: result.clients?.length || 0,
-              cessions: result.cessions?.length || 0
-            }
-          },
-          clients: result.clients || []
-        };
-        await dataService.cacheData(dataToCache);
+        await this.safeCacheData(result);
       } catch (cacheError) {
-        ErrorHandler.logError(cacheError, 'Failed to cache client data');
-        // Don't fail the operation if caching fails
+        // This should not happen since safeCacheData is supposed to be safe
+        // but we'll handle it just in case
+        ErrorHandler.logError(cacheError, 'getClientById - unexpected cache error');
       }
 
       return client;

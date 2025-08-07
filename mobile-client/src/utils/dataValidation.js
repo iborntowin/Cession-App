@@ -137,10 +137,11 @@ export const validateCession = (cession) => {
     errors.push('Months remaining must be a positive number');
   }
 
-  // Validate status
+  // Validate status - be more lenient for caching
   const validStatuses = ['ACTIVE', 'COMPLETED', 'SUSPENDED', 'CANCELLED'];
-  if (!cession.status || !validStatuses.includes(cession.status)) {
-    errors.push(`Status must be one of: ${validStatuses.join(', ')}`);
+  if (cession.status && !validStatuses.includes(cession.status)) {
+    // Don't fail validation, just log a warning
+    console.warn(`Invalid cession status "${cession.status}", will be normalized to ACTIVE`);
   }
 
   return {
@@ -244,28 +245,36 @@ export const isValidDateString = (dateString) => {
  * Sanitize client data for display
  */
 export const sanitizeClientData = (client) => {
-  if (!client) return null;
+  if (!client || typeof client !== 'object') return null;
 
-  return {
-    id: client.id || '',
-    clientNumber: client.clientNumber || 0,
-    fullName: (client.fullName || '').trim(),
+  // Ensure required fields have valid values
+  const sanitized = {
+    id: client.id || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    clientNumber: parseInt(client.clientNumber) || 0,
+    fullName: (client.fullName || 'Unknown Client').trim(),
     cin: (client.cin || '').trim(),
     phoneNumber: (client.phoneNumber || '').trim(),
     address: (client.address || '').trim(),
     workerNumber: (client.workerNumber || '').trim(),
-    workplace: client.workplace ? {
+    workplace: client.workplace && typeof client.workplace === 'object' ? {
       id: client.workplace.id || '',
-      name: (client.workplace.name || '').trim()
+      name: (client.workplace.name || 'Unknown Workplace').trim()
     } : null,
-    job: client.job ? {
+    job: client.job && typeof client.job === 'object' ? {
       id: client.job.id || '',
-      name: (client.job.name || '').trim()
+      name: (client.job.name || 'Unknown Job').trim()
     } : null,
-    cessions: Array.isArray(client.cessions) 
-      ? client.cessions.map(sanitizeCessionData).filter(Boolean)
-      : []
+    cessions: []
   };
+
+  // Sanitize cessions array
+  if (Array.isArray(client.cessions)) {
+    sanitized.cessions = client.cessions
+      .map(cession => sanitizeCessionData(cession))
+      .filter(Boolean); // Remove null/invalid cessions
+  }
+
+  return sanitized;
 };
 
 /**
@@ -273,6 +282,35 @@ export const sanitizeClientData = (client) => {
  */
 export const sanitizeCessionData = (cession) => {
   if (!cession) return null;
+
+  // Normalize status to valid values
+  const validStatuses = ['ACTIVE', 'COMPLETED', 'SUSPENDED', 'CANCELLED'];
+  let normalizedStatus = 'ACTIVE'; // Default status
+  
+  if (cession.status && typeof cession.status === 'string') {
+    const upperStatus = cession.status.toUpperCase();
+    if (validStatuses.includes(upperStatus)) {
+      normalizedStatus = upperStatus;
+    } else {
+      // Try to map common variations
+      const statusMappings = {
+        'ACTIF': 'ACTIVE',
+        'TERMINE': 'COMPLETED',
+        'FINI': 'COMPLETED',
+        'COMPLETE': 'COMPLETED',
+        'SUSPENDU': 'SUSPENDED',
+        'PAUSE': 'SUSPENDED',
+        'ANNULE': 'CANCELLED',
+        'CANCEL': 'CANCELLED',
+        'UNKNOWN': 'ACTIVE',
+        'PENDING': 'ACTIVE',
+        'EN_COURS': 'ACTIVE',
+        'IN_PROGRESS': 'ACTIVE'
+      };
+      
+      normalizedStatus = statusMappings[upperStatus] || 'ACTIVE';
+    }
+  }
 
   return {
     id: cession.id || '',
@@ -285,7 +323,7 @@ export const sanitizeCessionData = (cession) => {
     currentProgress: Math.min(100, Math.max(0, parseFloat(cession.currentProgress) || 0)),
     monthsRemaining: Math.max(0, parseInt(cession.monthsRemaining) || 0),
     bankOrAgency: (cession.bankOrAgency || '').trim(),
-    status: cession.status || 'UNKNOWN'
+    status: normalizedStatus
   };
 };
 

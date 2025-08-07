@@ -7,13 +7,14 @@ import {
   Text,
   TouchableOpacity 
 } from 'react-native';
+import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
 import CessionCard from '../components/CessionCard';
 import SearchBar from '../components/SearchBar';
 import FilterModal from '../components/FilterModal';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import ConnectivityIndicator from '../components/ConnectivityIndicator';
-import DatabaseStatusCard from '../components/DatabaseStatusCard';
+
 import { cessionService } from '../services/cessionService';
 import { clientService } from '../services/clientService';
 
@@ -26,12 +27,32 @@ const CessionListScreen = ({ navigation }) => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showStatusCard, setShowStatusCard] = useState(false);
+
   const [filters, setFilters] = useState({
     status: 'ALL',
     sortBy: 'id',
     sortOrder: 'desc'
   });
+
+  // Helper function to determine if a cession is completed
+  const isCessionCompleted = (cession) => {
+    const status = cession.status?.toUpperCase();
+    return status === 'COMPLETED' || status === 'TERMINE' || status === 'FINI' || 
+           status === 'COMPLETE' || status === 'FINISHED' || cession.currentProgress >= 100;
+  };
+
+  // Helper function to determine if a cession is active
+  const isCessionActive = (cession) => {
+    const status = cession.status?.toUpperCase();
+    return status === 'ACTIVE' || status === 'ACTIF' || status === 'EN_COURS' || 
+           status === 'IN_PROGRESS' || (!status && cession.currentProgress < 100);
+  };
+
+  // Helper function to determine if a cession is overdue
+  const isCessionOverdue = (cession) => {
+    const status = cession.status?.toUpperCase();
+    return status === 'OVERDUE' || cessionService.isCessionOverdue(cession);
+  };
 
   useEffect(() => {
     loadData();
@@ -53,6 +74,23 @@ const CessionListScreen = ({ navigation }) => {
       
       setCessions(cessionsData);
       setClients(clientsData);
+      
+      // Debug: Log unique statuses to understand the data
+      if (cessionsData && cessionsData.length > 0) {
+        const uniqueStatuses = [...new Set(cessionsData.map(c => c.status))];
+        console.log('🔍 Unique cession statuses found:', uniqueStatuses);
+        console.log('📊 Cession status breakdown:', {
+          total: cessionsData.length,
+          statusCounts: uniqueStatuses.reduce((acc, status) => {
+            acc[status] = cessionsData.filter(c => c.status === status).length;
+            return acc;
+          }, {}),
+          progressCounts: {
+            completed100: cessionsData.filter(c => c.currentProgress >= 100).length,
+            active: cessionsData.filter(c => c.currentProgress < 100).length
+          }
+        });
+      }
     } catch (err) {
       setError(err.message || 'Failed to load cessions');
     } finally {
@@ -82,9 +120,30 @@ const CessionListScreen = ({ navigation }) => {
       });
     }
 
-    // Apply status filter
+    // Apply status filter with improved logic
     if (filters.status !== 'ALL') {
-      filtered = filtered.filter(cession => cession.status === filters.status);
+      filtered = filtered.filter(cession => {
+        const filterStatus = filters.status?.toUpperCase();
+        
+        switch (filterStatus) {
+          case 'COMPLETED':
+            return isCessionCompleted(cession);
+          case 'FINISHED': // Handle FINISHED as completed
+            return isCessionCompleted(cession);
+          case 'ACTIVE':
+            return isCessionActive(cession);
+          case 'OVERDUE':
+            return isCessionOverdue(cession);
+          case 'SUSPENDED':
+            const status = cession.status?.toUpperCase();
+            return status === 'SUSPENDED' || status === 'SUSPENDU' || status === 'PAUSE';
+          case 'CANCELLED':
+            const cancelStatus = cession.status?.toUpperCase();
+            return cancelStatus === 'CANCELLED' || cancelStatus === 'ANNULE' || cancelStatus === 'CANCEL';
+          default:
+            return cession.status?.toUpperCase() === filterStatus;
+        }
+      });
     }
 
     // Apply sorting
@@ -154,9 +213,7 @@ const CessionListScreen = ({ navigation }) => {
     });
   };
 
-  const handleStatusCardRefresh = async () => {
-    await loadData();
-  };
+
 
   const renderCession = ({ item }) => {
     // Find the client for this cession
@@ -183,35 +240,21 @@ const CessionListScreen = ({ navigation }) => {
     <>
       <ConnectivityIndicator />
       
-      {showStatusCard && (
-        <DatabaseStatusCard onRefresh={handleStatusCardRefresh} />
-      )}
-      
       <View style={styles.searchContainer}>
         <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search cessions..."
-          style={styles.searchBar}
+          placeholder="Search cessions, clients, banks..."
+          onFilterPress={handleShowFilters}
+          hasActiveFilters={filters.status !== 'ALL' || filters.sortBy !== 'id' || filters.sortOrder !== 'desc'}
         />
-        <TouchableOpacity style={styles.filterButton} onPress={handleShowFilters}>
-          <Text style={styles.filterButtonText}>🔽</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.statusButton} 
-          onPress={() => setShowStatusCard(!showStatusCard)}
-        >
-          <Text style={styles.statusButtonText}>📊</Text>
-        </TouchableOpacity>
       </View>
       
       {/* Active filters indicator */}
       {(filters.status !== 'ALL' || filters.sortBy !== 'id' || filters.sortOrder !== 'desc') && (
         <View style={styles.activeFiltersContainer}>
           <Text style={styles.activeFiltersText}>
-            Filters: {filters.status !== 'ALL' ? `Status: ${filters.status}` : ''} 
-            {filters.sortBy !== 'id' ? ` | Sort: ${filters.sortBy}` : ''}
-            {filters.sortOrder !== 'desc' ? ` (${filters.sortOrder})` : ''}
+            {`Filters: ${filters.status !== 'ALL' ? `Status: ${filters.status || 'Unknown'}` : ''}${filters.sortBy !== 'id' ? ` | Sort: ${filters.sortBy || 'Unknown'}` : ''}${filters.sortOrder !== 'desc' ? ` (${filters.sortOrder || 'Unknown'})` : ''}`}
           </Text>
           <TouchableOpacity 
             onPress={() => handleApplyFilters({ status: 'ALL', sortBy: 'id', sortOrder: 'desc' })}
@@ -225,24 +268,24 @@ const CessionListScreen = ({ navigation }) => {
       {/* Statistics */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{filteredCessions.length}</Text>
+          <Text style={styles.statNumber}>{String(filteredCessions.length || 0)}</Text>
           <Text style={styles.statLabel}>Total</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {filteredCessions.filter(c => c.status === 'ACTIVE').length}
+            {String(filteredCessions.filter(isCessionActive).length || 0)}
           </Text>
           <Text style={styles.statLabel}>Active</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {filteredCessions.filter(c => c.status === 'COMPLETED').length}
+            {String(filteredCessions.filter(isCessionCompleted).length || 0)}
           </Text>
           <Text style={styles.statLabel}>Completed</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>
-            {filteredCessions.filter(c => c.status === 'OVERDUE').length}
+            {String(filteredCessions.filter(isCessionOverdue).length || 0)}
           </Text>
           <Text style={styles.statLabel}>Overdue</Text>
         </View>
@@ -298,104 +341,79 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  searchBar: {
-    flex: 1,
-    marginRight: 8,
-  },
-  filterButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  filterButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  statusButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+
   activeFiltersContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1),
     backgroundColor: '#e3f2fd',
     borderBottomWidth: 1,
     borderBottomColor: '#bbdefb',
+    flexWrap: 'wrap',
   },
   activeFiltersText: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#1976d2',
     flex: 1,
+    minWidth: wp(60),
   },
   clearFiltersButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(0.5),
+    marginLeft: wp(2),
   },
   clearFiltersText: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#1976d2',
     fontWeight: '600',
   },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    paddingVertical: hp(2),
+    paddingHorizontal: wp(4),
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
+    minWidth: wp(20),
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: rf(18),
     fontWeight: 'bold',
     color: '#333',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: RESPONSIVE_STYLES.caption.fontSize,
     color: '#666',
-    marginTop: 4,
+    marginTop: hp(0.5),
+    textAlign: 'center',
   },
   emptyContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: wp(5),
+    paddingVertical: hp(5),
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: RESPONSIVE_STYLES.subtitle.fontSize,
     color: '#666',
     textAlign: 'center',
+    lineHeight: hp(3),
   },
 });
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
 
 const SearchBar = ({ 
   value, 
@@ -79,57 +80,63 @@ const SearchBar = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    backgroundColor: 'transparent', // Remove background to let parent handle it
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(1),
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: '100%',
   },
   inputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: wp(2),
     borderWidth: 1,
     borderColor: '#ddd',
+    minHeight: hp(6), // Increased height
   },
   searchInput: {
     flex: 1,
-    height: 40,
-    paddingHorizontal: 16,
-    fontSize: 16,
+    height: hp(6), // Increased height
+    paddingHorizontal: wp(4),
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
+    minWidth: wp(50), // Increased minimum width
   },
   clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: wp(3),
+    paddingVertical: hp(1),
     justifyContent: 'center',
     alignItems: 'center',
+    minWidth: wp(8),
   },
   clearText: {
-    fontSize: 16,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#999',
     fontWeight: 'bold',
   },
   filterButton: {
-    marginLeft: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    marginLeft: wp(2),
+    paddingHorizontal: wp(3),
+    paddingVertical: hp(1.5), // Increased to match input height
+    borderRadius: wp(2),
     borderWidth: 1,
     borderColor: '#007AFF',
     backgroundColor: '#fff',
+    minWidth: wp(16),
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: hp(6), // Match input height
   },
   filterButtonActive: {
     backgroundColor: '#007AFF',
   },
   filterText: {
     color: '#007AFF',
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     fontWeight: '500',
   },
   filterTextActive: {

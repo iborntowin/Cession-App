@@ -1,8 +1,10 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
 
 // Screens
 import ClientListScreen from '../screens/ClientListScreen';
@@ -16,6 +18,25 @@ const Tab = createBottomTabNavigator();
 
 // Tab Navigator for main screens
 const MainTabNavigator = () => {
+  const insets = useSafeAreaInsets();
+  
+  // Calculate tab bar height based on platform and safe area
+  const getTabBarHeight = () => {
+    const baseHeight = RESPONSIVE_STYLES.tabBar.height;
+    const androidHeight = RESPONSIVE_STYLES.tabBar.androidHeight;
+    const safeAreaBottom = insets.bottom || 0;
+    
+    if (Platform.OS === 'android') {
+      // For Android, use the larger height to accommodate navigation area
+      return Math.max(androidHeight + safeAreaBottom, androidHeight);
+    }
+    
+    // For iOS, use base height plus safe area
+    return baseHeight + safeAreaBottom;
+  };
+
+  const tabBarHeight = getTabBarHeight();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -24,13 +45,27 @@ const MainTabNavigator = () => {
         tabBarStyle: {
           backgroundColor: '#F8F9FA',
           borderTopColor: '#E5E5EA',
-          paddingBottom: 5,
-          paddingTop: 5,
-          height: 60,
+          borderTopWidth: 1,
+          paddingBottom: Math.max(insets.bottom, RESPONSIVE_STYLES.tabBar.paddingBottom),
+          paddingTop: RESPONSIVE_STYLES.tabBar.paddingTop,
+          height: tabBarHeight,
+          // Add shadow for better visual separation
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 8, // Android shadow
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: RESPONSIVE_STYLES.caption.fontSize,
           fontWeight: '500',
+          marginBottom: Platform.OS === 'android' ? hp(0.5) : 0,
+        },
+        tabBarIconStyle: {
+          marginTop: hp(0.5),
         },
         headerStyle: {
           backgroundColor: '#007AFF',
@@ -75,10 +110,17 @@ const MainTabNavigator = () => {
   );
 };
 
-// Simple icon component using emoji
+// Simple icon component using emoji with better sizing for taller tab bar
 const TabIcon = ({ name, color, size }) => {
+  const iconSize = Platform.OS === 'android' ? rf(size * 0.9) : rf(size * 0.8);
+  
   return (
-    <Text style={{ fontSize: size * 0.8, color }}>
+    <Text style={{ 
+      fontSize: iconSize, 
+      color,
+      textAlign: 'center',
+      lineHeight: iconSize * 1.2, // Better vertical alignment
+    }}>
       {name}
     </Text>
   );

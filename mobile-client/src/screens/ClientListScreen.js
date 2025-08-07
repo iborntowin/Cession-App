@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity 
 } from 'react-native';
+import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
 import ClientCard from '../components/ClientCard';
 import SearchBar from '../components/SearchBar';
 import FilterModal from '../components/FilterModal';
@@ -48,7 +49,21 @@ const ClientListScreen = ({ navigation }) => {
       const data = await clientService.getAllClients();
       setClients(data);
     } catch (err) {
-      setError(err.message || 'Failed to load clients');
+      // Handle different types of errors appropriately
+      if (err.name === 'CacheError') {
+        // Cache errors should not prevent the app from working
+        console.warn('Cache error occurred but continuing:', err.message);
+        // Try to get data without caching
+        try {
+          const data = await clientService.getAllClients();
+          setClients(data);
+          return;
+        } catch (fallbackErr) {
+          setError('Unable to load client data. Please check your connection.');
+        }
+      } else {
+        setError(err.message || 'Failed to load clients');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -147,8 +162,21 @@ const ClientListScreen = ({ navigation }) => {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={[styles.emptyText, { textAlign: getTextAlign() }]}>
-        {searchQuery ? t('client.no_clients') : t('client.no_clients')}
+        {searchQuery ? t('client.no_clients_search') : t('client.no_clients_available')}
       </Text>
+      {!searchQuery && (
+        <View style={styles.emptyStateActions}>
+          <Text style={[styles.emptySubText, { textAlign: 'center' }]}>
+            {t('client.check_connection_or_sync')}
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={handleRefresh}
+          >
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 
@@ -161,6 +189,8 @@ const ClientListScreen = ({ navigation }) => {
       <ErrorMessage 
         message={error} 
         onRetry={loadClients}
+        showDetails={true}
+        details={`Error details: ${error}\n\nThis usually happens when:\n1. No data has been exported yet\n2. Network connection issues\n3. Supabase storage is not accessible\n\nTry refreshing from the Export tab.`}
       />
     );
   }
@@ -223,44 +253,72 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-
   activeFiltersContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1),
     backgroundColor: '#e3f2fd',
     borderBottomWidth: 1,
     borderBottomColor: '#bbdefb',
+    flexWrap: 'wrap',
   },
   activeFiltersText: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#1976d2',
     flex: 1,
+    minWidth: wp(60),
   },
   clearFiltersButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(0.5),
+    marginLeft: wp(2),
   },
   clearFiltersText: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#1976d2',
     fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: wp(5),
+    paddingVertical: hp(5),
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: RESPONSIVE_STYLES.subtitle.fontSize,
     color: '#666',
     textAlign: 'center',
+    lineHeight: hp(3),
+    marginBottom: hp(2),
+  },
+  emptyStateActions: {
+    alignItems: 'center',
+    marginTop: hp(2),
+  },
+  emptySubText: {
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
+    color: '#999',
+    marginBottom: hp(2),
+    paddingHorizontal: wp(4),
+  },
+  retryButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: wp(6),
+    paddingVertical: hp(1.5),
+    borderRadius: RESPONSIVE_STYLES.card.borderRadius,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
+    fontWeight: '600',
   },
 });
 

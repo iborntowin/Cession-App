@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from '../hooks/useTranslation';
+import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
 
 const CessionCard = ({ cession, client, onPress }) => {
   // Translation hook
@@ -12,6 +13,8 @@ const CessionCard = ({ cession, client, onPress }) => {
         return '#4CAF50';
       case 'COMPLETED':
         return '#2196F3';
+      case 'FINISHED':
+        return '#2196F3'; // Same color as completed
       case 'OVERDUE':
         return '#FF5722';
       default:
@@ -22,13 +25,15 @@ const CessionCard = ({ cession, client, onPress }) => {
   const getStatusText = (status) => {
     switch (status) {
       case 'ACTIVE':
-        return t('cession.status.active');
+        return t('cession.status.active') || 'Active';
       case 'COMPLETED':
-        return t('cession.status.completed');
+        return t('cession.status.completed') || 'Completed';
+      case 'FINISHED':
+        return t('cession.status.completed') || 'Completed'; // Treat FINISHED as completed
       case 'OVERDUE':
-        return t('cession.status.overdue');
+        return t('cession.status.overdue') || 'Overdue';
       default:
-        return status;
+        return status || 'Unknown'; // Ensure we always return a string
     }
   };
 
@@ -51,40 +56,57 @@ const CessionCard = ({ cession, client, onPress }) => {
     }
   };
 
+  // Safe text rendering helper with debugging
+  const safeText = (text, fallback = '', debugLabel = '') => {
+    if (text === null || text === undefined || text === '') {
+      if (debugLabel) console.log(`SafeText fallback used for ${debugLabel}:`, text);
+      return fallback;
+    }
+    const result = String(text);
+    if (debugLabel && (!result || result === 'null' || result === 'undefined')) {
+      console.log(`SafeText potential issue for ${debugLabel}:`, text, 'result:', result);
+    }
+    return result;
+  };
+
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
       {/* Client Info Header (when available) */}
-      {client && (
+              {client && (
         <View style={styles.clientHeader}>
-          <Text style={styles.clientName}>{client.fullName}</Text>
-          <Text style={styles.clientNumber}>#{client.clientNumber}</Text>
+          <Text style={styles.clientName}>{safeText(client.fullName, 'Unknown Client', 'clientName')}</Text>
+          <Text style={styles.clientNumber}>#{safeText(client.clientNumber, 'N/A', 'clientNumber')}</Text>
         </View>
       )}
-      
+
       <View style={styles.header}>
         <View style={styles.statusContainer}>
           <View style={[styles.statusDot, { backgroundColor: getStatusColor(cession.status) }]} />
           <Text style={styles.status}>{getStatusText(cession.status)}</Text>
         </View>
-        <Text style={styles.monthlyPayment}>{formatCurrency(cession.monthlyPayment)}/{t('common.month')}</Text>
+        <Text style={styles.monthlyPayment}>
+          {safeText(formatCurrency(cession.monthlyPayment || 0), '0', 'monthlyPayment')}/{safeText(t('common.month'), 'month', 'common.month')}
+        </Text>
       </View>
-      
+
       <View style={styles.progressContainer}>
         <View style={styles.progressHeader}>
-          <Text style={styles.progressText}>{t('cession.progress')}: {cession.currentProgress?.toFixed(1) || 0}%</Text>
+          <Text style={styles.progressText}>
+            {safeText(t('cession.progress'), 'Progress', 'cession.progress')}: {safeText((cession.currentProgress || 0).toFixed(1), '0.0', 'currentProgress')}%
+          </Text>
           {isOverdue() && (
-            <Text style={styles.overdueText}>{t('cession.status.overdue')}</Text>
+            <Text style={styles.overdueText}>{safeText(t('cession.status.overdue'), 'Overdue')}</Text>
           )}
         </View>
         <View style={styles.progressBar}>
-          <View 
+          <View
             style={[
-              styles.progressFill, 
-              { 
+              styles.progressFill,
+              {
                 width: `${Math.min(cession.currentProgress || 0, 100)}%`,
                 backgroundColor: getProgressColor(cession.currentProgress || 0)
               }
-            ]} 
+            ]}
           />
         </View>
       </View>
@@ -93,85 +115,85 @@ const CessionCard = ({ cession, client, onPress }) => {
         <View style={styles.detailRow}>
           {isRTL() ? (
             <>
-              <Text style={styles.valueRTL}>{formatCurrency(cession.remainingBalance || 0)}</Text>
-              <Text style={styles.labelRTL}>{t('cession.remaining_balance')}</Text>
+              <Text style={styles.valueRTL}>{safeText(formatCurrency(cession.remainingBalance || 0))}</Text>
+              <Text style={styles.labelRTL}>{safeText(t('cession.remaining_balance'), 'Remaining Balance')}</Text>
             </>
           ) : (
             <>
-              <Text style={styles.label}>{t('cession.remaining_balance')}:</Text>
-              <Text style={styles.value}>{formatCurrency(cession.remainingBalance || 0)}</Text>
+              <Text style={styles.label}>{safeText(t('cession.remaining_balance'), 'Remaining Balance')}:</Text>
+              <Text style={styles.value}>{safeText(formatCurrency(cession.remainingBalance || 0))}</Text>
             </>
           )}
         </View>
         <View style={styles.detailRow}>
           {isRTL() ? (
             <>
-              <Text style={styles.valueRTL}>{formatCurrency(cession.totalLoanAmount || 0)}</Text>
-              <Text style={styles.labelRTL}>{t('cession.total_loan')}</Text>
+              <Text style={styles.valueRTL}>{safeText(formatCurrency(cession.totalLoanAmount || 0))}</Text>
+              <Text style={styles.labelRTL}>{safeText(t('cession.total_loan'), 'Total Loan')}</Text>
             </>
           ) : (
             <>
-              <Text style={styles.label}>{t('cession.total_loan')}:</Text>
-              <Text style={styles.value}>{formatCurrency(cession.totalLoanAmount || 0)}</Text>
+              <Text style={styles.label}>{safeText(t('cession.total_loan'), 'Total Loan')}:</Text>
+              <Text style={styles.value}>{safeText(formatCurrency(cession.totalLoanAmount || 0))}</Text>
             </>
           )}
         </View>
         <View style={styles.detailRow}>
           {isRTL() ? (
             <>
-              <Text style={styles.valueRTL}>{formatDate(cession.startDate) || 'N/A'}</Text>
-              <Text style={styles.labelRTL}>{t('cession.start_date')}</Text>
+              <Text style={styles.valueRTL}>{safeText(formatDate(cession.startDate), 'N/A')}</Text>
+              <Text style={styles.labelRTL}>{safeText(t('cession.start_date'), 'Start Date')}</Text>
             </>
           ) : (
             <>
-              <Text style={styles.label}>{t('cession.start_date')}:</Text>
-              <Text style={styles.value}>{formatDate(cession.startDate) || 'N/A'}</Text>
+              <Text style={styles.label}>{safeText(t('cession.start_date'), 'Start Date')}:</Text>
+              <Text style={styles.value}>{safeText(formatDate(cession.startDate), 'N/A')}</Text>
             </>
           )}
         </View>
         <View style={styles.detailRow}>
           {isRTL() ? (
             <>
-              <Text style={styles.valueRTL}>{formatDate(cession.expectedPayoffDate) || 'N/A'}</Text>
-              <Text style={styles.labelRTL}>{t('cession.expected_payoff')}</Text>
+              <Text style={styles.valueRTL}>{safeText(formatDate(cession.expectedPayoffDate), 'N/A')}</Text>
+              <Text style={styles.labelRTL}>{safeText(t('cession.expected_payoff'), 'Expected Payoff')}</Text>
             </>
           ) : (
             <>
-              <Text style={styles.label}>{t('cession.expected_payoff')}:</Text>
-              <Text style={styles.value}>{formatDate(cession.expectedPayoffDate) || 'N/A'}</Text>
+              <Text style={styles.label}>{safeText(t('cession.expected_payoff'), 'Expected Payoff')}:</Text>
+              <Text style={styles.value}>{safeText(formatDate(cession.expectedPayoffDate), 'N/A')}</Text>
             </>
           )}
         </View>
-        {cession.bankOrAgency && (
+        {cession.bankOrAgency ? (
           <View style={styles.detailRow}>
             {isRTL() ? (
               <>
-                <Text style={styles.valueRTL}>{cession.bankOrAgency}</Text>
-                <Text style={styles.labelRTL}>{t('cession.bank_agency')}</Text>
+                <Text style={styles.valueRTL}>{safeText(cession.bankOrAgency, '', 'bankOrAgency')}</Text>
+                <Text style={styles.labelRTL}>{safeText(t('cession.bank_agency'), 'Bank/Agency', 'bank_agency')}</Text>
               </>
             ) : (
               <>
-                <Text style={styles.label}>{t('cession.bank_agency')}:</Text>
-                <Text style={styles.value}>{cession.bankOrAgency}</Text>
+                <Text style={styles.label}>{safeText(t('cession.bank_agency'), 'Bank/Agency', 'bank_agency')}:</Text>
+                <Text style={styles.value}>{safeText(cession.bankOrAgency, '', 'bankOrAgency')}</Text>
               </>
             )}
           </View>
-        )}
-        {cession.monthsRemaining && (
+        ) : null}
+        {cession.monthsRemaining ? (
           <View style={styles.detailRow}>
             {isRTL() ? (
               <>
-                <Text style={styles.valueRTL}>{cession.monthsRemaining}</Text>
-                <Text style={styles.labelRTL}>{t('cession.months_remaining')}</Text>
+                <Text style={styles.valueRTL}>{safeText(cession.monthsRemaining, '', 'monthsRemaining')}</Text>
+                <Text style={styles.labelRTL}>{safeText(t('cession.months_remaining'), 'Months Remaining', 'months_remaining')}</Text>
               </>
             ) : (
               <>
-                <Text style={styles.label}>{t('cession.months_remaining')}:</Text>
-                <Text style={styles.value}>{cession.monthsRemaining}</Text>
+                <Text style={styles.label}>{safeText(t('cession.months_remaining'), 'Months Remaining', 'months_remaining')}:</Text>
+                <Text style={styles.value}>{safeText(cession.monthsRemaining, '', 'monthsRemaining')}</Text>
               </>
             )}
           </View>
-        )}
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -180,10 +202,10 @@ const CessionCard = ({ cession, client, onPress }) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginVertical: 8,
-    marginHorizontal: 16,
+    borderRadius: RESPONSIVE_STYLES.card.borderRadius,
+    padding: RESPONSIVE_STYLES.card.padding,
+    marginVertical: RESPONSIVE_STYLES.card.marginVertical,
+    marginHorizontal: RESPONSIVE_STYLES.card.marginHorizontal,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -192,122 +214,139 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+    minHeight: hp(15),
   },
   clientHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 8,
+    marginBottom: hp(1.5),
+    paddingBottom: hp(1),
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    flexWrap: 'wrap',
   },
   clientName: {
-    fontSize: 16,
+    fontSize: RESPONSIVE_STYLES.subtitle.fontSize,
     fontWeight: '600',
     color: '#333',
     flex: 1,
+    minWidth: wp(60),
   },
   clientNumber: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#666',
     fontWeight: '500',
+    marginLeft: wp(2),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp(1.5),
+    flexWrap: 'wrap',
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+    width: wp(2),
+    height: wp(2),
+    borderRadius: wp(1),
+    marginRight: wp(1.5),
   },
   status: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     fontWeight: '500',
     color: '#333',
   },
   monthlyPayment: {
-    fontSize: 16,
+    fontSize: RESPONSIVE_STYLES.subtitle.fontSize,
     fontWeight: 'bold',
     color: '#007AFF',
+    textAlign: 'right',
+    marginLeft: wp(2),
   },
   progressContainer: {
-    marginBottom: 12,
+    marginBottom: hp(1.5),
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: hp(0.5),
+    flexWrap: 'wrap',
   },
   progressText: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#666',
+    flex: 1,
   },
   overdueText: {
-    fontSize: 12,
+    fontSize: RESPONSIVE_STYLES.caption.fontSize,
     color: '#FF5722',
     fontWeight: 'bold',
     backgroundColor: '#FFEBEE',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: wp(1.5),
+    paddingVertical: hp(0.3),
+    borderRadius: wp(2),
+    marginLeft: wp(2),
   },
   progressBar: {
-    height: 6,
+    height: hp(0.8),
     backgroundColor: '#E0E0E0',
-    borderRadius: 3,
+    borderRadius: hp(0.4),
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#4CAF50',
-    borderRadius: 3,
+    borderRadius: hp(0.4),
   },
   details: {
     borderTopWidth: 1,
     borderTopColor: '#eee',
-    paddingTop: 12,
+    paddingTop: hp(1.5),
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: hp(0.5),
+    minHeight: hp(3),
+    alignItems: 'center',
   },
   label: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#666',
     flex: 1,
+    flexShrink: 1,
   },
   value: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#333',
     fontWeight: '500',
     textAlign: 'right',
     flex: 1,
+    flexShrink: 1,
   },
   labelRTL: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#666',
     flex: 1,
     textAlign: 'right',
     writingDirection: 'rtl',
+    flexShrink: 1,
   },
   valueRTL: {
-    fontSize: 14,
+    fontSize: RESPONSIVE_STYLES.body.fontSize,
     color: '#333',
     fontWeight: '500',
     textAlign: 'left',
     flex: 1,
     writingDirection: 'ltr', // Keep numbers LTR
+    flexShrink: 1,
   },
 });
 
