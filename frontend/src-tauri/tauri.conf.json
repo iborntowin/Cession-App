@@ -24,10 +24,6 @@
     ],
     "security": {
       "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:8082 http://localhost:8083 http://localhost:8084 http://localhost:8085;"
-    },
-    "trayIcon": {
-      "iconPath": "icons/32x32.png",
-      "iconAsTemplate": true
     }
   },
   "bundle": {
@@ -42,10 +38,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "backend/cession-app-backend-0.0.1-SNAPSHOT.jar",
-      "backend/app.jar"
-    ],
+    "resources": [],
     "copyright": "Copyright © 2025 Nassim Maaoui. All rights reserved.",
     "category": "Business",
     "shortDescription": "Professional cession management application",
@@ -59,7 +52,9 @@
       "nsis": {
         "installerIcon": "icons/icon.ico",
         "installMode": "perMachine",
-        "languages": ["English"],
+        "languages": [
+          "English"
+        ],
         "displayLanguageSelector": false
       }
     },
@@ -77,17 +72,6 @@
       "appimage": {
         "bundleMediaFramework": false
       }
-    },
-    "android": {
-      "minSdkVersion": 24,
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
-      "permissions": [
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_EXTERNAL_STORAGE"
-      ]
     }
   },
   "plugins": {}
