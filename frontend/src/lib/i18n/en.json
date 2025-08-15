@@ -1253,6 +1253,54 @@
       "no_payments_recorded": "No payments recorded",
       "requires_attention": "Requires immediate attention"
     },
+    "danger_clients": {
+      "title": "Danger Clients",
+      "subtitle": "Clients with significant payment delays",
+      "summary": {
+        "total_clients": "Clients at Risk",
+        "total_cessions": "Overdue Cessions",
+        "average_missed": "Average Delay (months)",
+        "total_missed_amount": "Total Missing Amount"
+      },
+      "table": {
+        "client": "Client",
+        "cession_id": "Cession ID",
+        "start_date": "Start Date",
+        "monthly_amount": "Monthly Amount",
+        "due_months": "Due Months",
+        "paid_months": "Paid Months",
+        "missed_months": "Missed Months",
+        "last_payment": "Last Payment",
+        "severity": "Severity"
+      },
+      "severity": {
+        "warning": "Warning",
+        "danger": "Danger",
+        "critical": "Critical"
+      },
+      "filters": {
+        "severity": "Severity",
+        "all_severities": "All severities",
+        "threshold_months": "Threshold (months)",
+        "date_range": "Date Range",
+        "coach": "Coach",
+        "business_unit": "Business Unit"
+      },
+      "actions": {
+        "view_client": "View Client",
+        "view_cession": "View Cession",
+        "send_reminder": "Send Reminder",
+        "export_csv": "Export CSV"
+      },
+      "empty_state": {
+        "title": "No Clients at Risk",
+        "description": "No clients have significant payment delays according to current criteria.",
+        "explanation": "Clients are considered at risk when they have missed 2 or more monthly payments.",
+        "link_text": "View all payments"
+      },
+      "loading": "Loading danger clients analysis...",
+      "error": "Error loading danger clients data"
+    },
     "alerts": {
       "critical_alerts": "Critical Alerts",
       "overdue_message": "{count} clients with overdue payments (>3 months)",

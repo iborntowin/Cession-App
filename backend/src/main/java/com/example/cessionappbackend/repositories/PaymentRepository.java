@@ -23,4 +23,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.cession.id = :cessionId")
     BigDecimal getTotalPaymentsByCession(@Param("cessionId") UUID cessionId);
+    
+    @Query("SELECT MAX(p.paymentDate) FROM Payment p WHERE p.cession.id = :cessionId")
+    LocalDate findLastPaymentDateByCession(@Param("cessionId") UUID cessionId);
 }

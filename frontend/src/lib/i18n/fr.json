@@ -1276,6 +1276,54 @@
       "no_payments_recorded": "Aucun paiement enregistré",
       "requires_attention": "Nécessite une attention immédiate"
     },
+    "danger_clients": {
+      "title": "Clients à Risque",
+      "subtitle": "Clients avec des retards de paiement significatifs",
+      "summary": {
+        "total_clients": "Clients à Risque",
+        "total_cessions": "Cessions en Retard",
+        "average_missed": "Retard Moyen (mois)",
+        "total_missed_amount": "Montant Total Manquant"
+      },
+      "table": {
+        "client": "Client",
+        "cession_id": "ID Cession",
+        "start_date": "Date de Début",
+        "monthly_amount": "Montant Mensuel",
+        "due_months": "Mois Échus",
+        "paid_months": "Mois Réglés",
+        "missed_months": "Mois Manqués",
+        "last_payment": "Dernier Paiement",
+        "severity": "Gravité"
+      },
+      "severity": {
+        "warning": "Avertissement",
+        "danger": "Dangereux",
+        "critical": "Critique"
+      },
+      "filters": {
+        "severity": "Gravité",
+        "all_severities": "Toutes les gravités",
+        "threshold_months": "Seuil (mois)",
+        "date_range": "Période",
+        "coach": "Coach",
+        "business_unit": "Unité d'Affaires"
+      },
+      "actions": {
+        "view_client": "Voir Client",
+        "view_cession": "Voir Cession",
+        "send_reminder": "Envoyer Rappel",
+        "export_csv": "Exporter CSV"
+      },
+      "empty_state": {
+        "title": "Aucun Client à Risque",
+        "description": "Aucun client n'a de retard de paiement significatif selon les critères actuels.",
+        "explanation": "Les clients sont considérés à risque lorsqu'ils ont manqué 2 mois ou plus de paiements mensuels.",
+        "link_text": "Voir tous les paiements"
+      },
+      "loading": "Chargement de l'analyse des clients à risque...",
+      "error": "Erreur lors du chargement des données des clients à risque"
+    },
     "alerts": {
       "critical_alerts": "Alertes Critiques",
       "overdue_message": "{count} clients avec des paiements en retard (>3 mois)",

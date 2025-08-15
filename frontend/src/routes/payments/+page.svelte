@@ -8,6 +8,7 @@
   import { quintOut, cubicOut } from 'svelte/easing';
   import { t } from '$lib/i18n';
   import { language } from '$lib/stores/language';
+  import DangerClients from '$lib/components/DangerClients.svelte';
 
   // RTL support
   $: isRTL = $language.code === 'ar';
@@ -1135,6 +1136,9 @@
               </div>
             </div>
           {/if}
+
+          <!-- Danger Clients Analysis -->
+          <DangerClients />
         </div>
       {:else}
         <!-- Table View -->

@@ -630,6 +630,22 @@ export const paymentsApi = {
       console.error('Payment API - getAllPayments error:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  getDangerClientsAnalysis: async (thresholdMonths = 2) => {
+    try {
+      const params = new URLSearchParams();
+      if (thresholdMonths) params.append('thresholdMonths', thresholdMonths.toString());
+      
+      const response = await fetch(`${BACKEND_URL}/api/v1/payments/danger-clients-analysis?${params.toString()}`, {
+        headers: getAuthHeaders()
+      });
+      const data = await handleResponse(response);
+      return { success: true, data };
+    } catch (error) {
+      console.error('Payment API - getDangerClientsAnalysis error:', error);
+      return { success: false, error: error.message };
+    }
   }
 };
 

@@ -51,4 +51,11 @@ public class PaymentController {
     public ResponseEntity<List<PaymentDTO>> getAllPayments() {
         return ResponseEntity.ok(paymentService.getAllPayments());
     }
+
+    @GetMapping("/danger-clients-analysis")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<com.example.cessionappbackend.dto.DangerClientsAnalysisDTO> getDangerClientsAnalysis(
+            @RequestParam(required = false, defaultValue = "2") Integer thresholdMonths) {
+        return ResponseEntity.ok(paymentService.getDangerClientsAnalysis(thresholdMonths));
+    }
 }

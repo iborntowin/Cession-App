@@ -18,6 +18,7 @@ public interface CessionRepository extends JpaRepository<Cession, UUID> {
 
     List<Cession> findByClientId(UUID clientId);
     List<Cession> findByStatus(String status);
+    List<Cession> findByStatusIn(List<String> statuses);
     List<Cession> findByClientIdAndStatus(UUID clientId, String status);
     List<Cession> findByStartDateBetween(LocalDate start, LocalDate end);
 
