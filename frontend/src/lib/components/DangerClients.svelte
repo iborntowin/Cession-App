@@ -29,6 +29,7 @@
   let currentPage = 1;
   let itemsPerPage = 10;
   let totalPages = 1;
+  let filteredCount = 0; // Track filtered results count
 
   onMount(async () => {
     await loadDangerClients();
@@ -56,6 +57,7 @@
   function applyFilters() {
     if (!analysis || !analysis.dangerClients) {
       filteredClients = [];
+      filteredCount = 0;
       return;
     }
 
@@ -75,6 +77,9 @@
         client.cessionId?.toString().toLowerCase().includes(query)
       );
     }
+
+    // Store filtered count before pagination
+    filteredCount = clients.length;
 
     // Apply sorting
     clients.sort((a, b) => {
@@ -218,6 +223,28 @@
       <p class="text-sm text-gray-600 mt-1">{$t('payments.danger_clients.subtitle')}</p>
     </div>
     <div class="flex items-center space-x-3">
+      <!-- Info button for threshold explanation -->
+      <div class="relative group">
+        <button class="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </button>
+        <!-- Tooltip explaining threshold -->
+        <div class="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+          <h4 class="font-semibold text-gray-900 mb-2">📊 What is "Seuil Mois" (Threshold Months)?</h4>
+          <div class="text-sm text-gray-700 space-y-2">
+            <p><strong>Threshold Months</strong> determines the minimum number of missed monthly payments before a client appears in the danger clients list.</p>
+            <div class="bg-gray-50 rounded p-2 space-y-1">
+              <p>• <span class="font-medium">1 month</span>: Shows clients who missed 1+ payments (⚠️ Warning)</p>
+              <p>• <span class="font-medium">2 months</span>: Shows clients who missed 2+ payments (🔶 Danger)</p>
+              <p>• <span class="font-medium">3+ months</span>: Shows clients who missed 3+ payments (🔴 Critical)</p>
+            </div>
+            <p class="italic">Example: If threshold = 2, only clients with 2 or more missed payments will be displayed.</p>
+          </div>
+        </div>
+      </div>
+      
       <button
         on:click={exportCSV}
         disabled={!analysis || !analysis.dangerClients || analysis.dangerClients.length === 0}
@@ -266,13 +293,18 @@
       </button>
     </div>
   {:else}
-    <!-- Summary KPIs -->
+    <!-- Summary KPIs with filtering -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" transition:fade>
-      <div class="bg-gradient-to-r from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
+      <!-- Total Clients (clickable filter) -->
+      <button
+        on:click={() => { selectedSeverity = 'all'; handleFilterChange(); }}
+        class="bg-gradient-to-r from-red-50 to-red-100 rounded-lg p-4 border border-red-200 hover:shadow-md transition-all text-left {selectedSeverity === 'all' ? 'ring-2 ring-red-400' : ''}"
+      >
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-red-700">{$t('payments.danger_clients.summary.total_clients')}</p>
             <p class="text-2xl font-bold text-red-900">{analysis.totalDangerClients || 0}</p>
+            <p class="text-xs text-red-600 mt-1">Click to show all</p>
           </div>
           <div class="w-10 h-10 bg-red-200 rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,47 +312,88 @@
             </svg>
           </div>
         </div>
-      </div>
+      </button>
 
-      <div class="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+      <!-- Critical Clients (clickable filter) -->
+      <button
+        on:click={() => { selectedSeverity = 'critical'; handleFilterChange(); }}
+        class="bg-gradient-to-r from-red-100 to-red-200 rounded-lg p-4 border border-red-300 hover:shadow-md transition-all text-left {selectedSeverity === 'critical' ? 'ring-2 ring-red-500' : ''}"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-orange-700">{$t('payments.danger_clients.summary.total_cessions')}</p>
-            <p class="text-2xl font-bold text-orange-900">{analysis.totalOverdueCessions || 0}</p>
+            <p class="text-sm font-medium text-red-800">🔴 Critical (3+ months)</p>
+            <p class="text-2xl font-bold text-red-900">{analysis.criticalCount || 0}</p>
+            <p class="text-xs text-red-700 mt-1">Click to filter</p>
+          </div>
+          <div class="w-10 h-10 bg-red-300 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      </button>
+
+      <!-- Danger Clients (clickable filter) -->
+      <button
+        on:click={() => { selectedSeverity = 'danger'; handleFilterChange(); }}
+        class="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200 hover:shadow-md transition-all text-left {selectedSeverity === 'danger' ? 'ring-2 ring-orange-400' : ''}"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-orange-700">🔶 Danger (2 months)</p>
+            <p class="text-2xl font-bold text-orange-900">{analysis.dangerCount || 0}</p>
+            <p class="text-xs text-orange-600 mt-1">Click to filter</p>
           </div>
           <div class="w-10 h-10 bg-orange-200 rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
           </div>
         </div>
-      </div>
+      </button>
 
-      <div class="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
+      <!-- Warning Clients (clickable filter) -->
+      <button
+        on:click={() => { selectedSeverity = 'warning'; handleFilterChange(); }}
+        class="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200 hover:shadow-md transition-all text-left {selectedSeverity === 'warning' ? 'ring-2 ring-yellow-400' : ''}"
+      >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-yellow-700">{$t('payments.danger_clients.summary.average_missed')}</p>
-            <p class="text-2xl font-bold text-yellow-900">{analysis.averageMissedMonths ? analysis.averageMissedMonths.toFixed(1) : '0.0'}</p>
+            <p class="text-sm font-medium text-yellow-700">⚠️ Warning (1 month)</p>
+            <p class="text-2xl font-bold text-yellow-900">{analysis.warningCount || 0}</p>
+            <p class="text-xs text-yellow-600 mt-1">Click to filter</p>
           </div>
           <div class="w-10 h-10 bg-yellow-200 rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
             </svg>
           </div>
         </div>
-      </div>
+      </button>
+    </div>
 
-      <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-purple-700">{$t('payments.danger_clients.summary.total_missed_amount')}</p>
-            <p class="text-2xl font-bold text-purple-900">{formatCurrency(analysis.totalMissedAmount || 0)}</p>
-          </div>
-          <div class="w-10 h-10 bg-purple-200 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-            </svg>
-          </div>
+    <!-- Additional Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-700">💰 Total Missed Amount</p>
+          <p class="text-xl font-bold text-gray-900">{formatCurrency(analysis.totalMissedAmount || 0)}</p>
+        </div>
+        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/>
+          </svg>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-700">📊 Average Missed Months</p>
+          <p class="text-xl font-bold text-gray-900">{analysis.averageMissedMonths ? analysis.averageMissedMonths.toFixed(1) : '0.0'} months</p>
+        </div>
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
         </div>
       </div>
     </div>
@@ -354,23 +427,60 @@
           <option value="warning">{$t('payments.danger_clients.severity.warning')}</option>
         </select>
 
-        <!-- Threshold -->
+        <!-- Items per page -->
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.threshold_months')}:</label>
+          <label class="text-sm font-medium text-gray-700">Show:</label>
+          <select 
+            bind:value={itemsPerPage} 
+            on:change={handleFilterChange}
+            class="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={20}>20</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+
+        <!-- Threshold with explanation -->
+        <div class="flex items-center space-x-2">
+          <label class="text-sm font-medium text-gray-700" title="Minimum number of missed months to be considered 'at risk'. For example, setting to 2 will only show clients who have missed 2+ payments.">{$t('payments.danger_clients.filters.threshold_months')}:</label>
           <select 
             bind:value={thresholdMonths} 
             on:change={handleThresholdChange}
             class="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            title="Seuil Mois (Threshold Months): Determines the minimum number of missed monthly payments before a client is considered 'at risk' and appears in this danger clients list."
           >
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-            <option value={3}>3</option>
-            <option value={4}>4</option>
-            <option value={5}>5</option>
+            <option value={1}>1 month</option>
+            <option value={2}>2 months</option>
+            <option value={3}>3 months</option>
+            <option value={4}>4 months</option>
+            <option value={5}>5+ months</option>
           </select>
         </div>
       </div>
     </div>
+
+    <!-- Results Summary -->
+    {#if filteredCount !== analysis.dangerClients.length}
+      <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-center space-x-2">
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span class="text-sm text-blue-800">
+            Showing <strong>{filteredCount}</strong> of <strong>{analysis.dangerClients.length}</strong> clients
+            {#if selectedSeverity !== 'all'}
+              with <strong>{$t(`payments.danger_clients.severity.${selectedSeverity}`)}</strong> severity
+            {/if}
+            {#if searchQuery}
+              matching "<strong>{searchQuery}</strong>"
+            {/if}
+          </span>
+        </div>
+      </div>
+    {/if}
 
     <!-- Table -->
     <div class="overflow-x-auto">
@@ -489,36 +599,102 @@
       </table>
     </div>
 
-    <!-- Pagination -->
+    <!-- Enhanced Pagination -->
     {#if totalPages > 1}
-      <div class="flex items-center justify-between mt-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 space-y-4 sm:space-y-0">
+        <!-- Results info -->
         <div class="text-sm text-gray-700">
-          Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, analysis.dangerClients.length)} of {analysis.dangerClients.length} results
+          Showing 
+          <span class="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span>
+          to 
+          <span class="font-medium">{Math.min(currentPage * itemsPerPage, filteredCount)}</span>
+          of 
+          <span class="font-medium">{filteredCount}</span>
+          {filteredCount === 1 ? 'client' : 'clients'}
         </div>
+        
+        <!-- Pagination controls -->
         <div class="flex items-center space-x-2">
+          <!-- First page button -->
+          <button
+            on:click={() => handlePageChange(1)}
+            disabled={currentPage === 1}
+            class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="First page"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+            </svg>
+          </button>
+          
+          <!-- Previous button -->
           <button
             on:click={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            class="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Previous page"
           >
-            Previous
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
           </button>
-          {#each Array.from({length: totalPages}, (_, i) => i + 1) as page}
+
+          <!-- Page numbers (show max 5 pages) -->
+          {#each Array.from({length: Math.min(5, totalPages)}, (_, i) => {
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            const actualStartPage = Math.max(1, endPage - 4);
+            return actualStartPage + i;
+          }).filter(page => page <= totalPages) as page}
             <button
               on:click={() => handlePageChange(page)}
-              class="px-3 py-2 border rounded-lg {page === currentPage ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 hover:bg-gray-50'}"
+              class="px-3 py-2 text-sm border rounded-lg transition-colors {page === currentPage ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 hover:bg-gray-50'}"
             >
               {page}
             </button>
           {/each}
+
+          <!-- Show ellipsis if there are more pages -->
+          {#if totalPages > 5 && currentPage < totalPages - 2}
+            <span class="text-gray-500">...</span>
+            <button
+              on:click={() => handlePageChange(totalPages)}
+              class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              {totalPages}
+            </button>
+          {/if}
+          
+          <!-- Next button -->
           <button
             on:click={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            class="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Next page"
           >
-            Next
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+          
+          <!-- Last page button -->
+          <button
+            on:click={() => handlePageChange(totalPages)}
+            disabled={currentPage === totalPages}
+            class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Last page"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+            </svg>
           </button>
         </div>
+      </div>
+    {:else if filteredCount > 0}
+      <!-- Show results info even when there's only one page -->
+      <div class="mt-6 text-sm text-gray-700">
+        Showing <span class="font-medium">{filteredCount}</span> 
+        {filteredCount === 1 ? 'client' : 'clients'}
       </div>
     {/if}
   {/if}
