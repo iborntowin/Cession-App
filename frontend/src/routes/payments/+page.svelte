@@ -30,12 +30,36 @@
 
   /* ---------- filters & search ---------- */
   let searchQuery = '';
-  let selectedTimeRange = '30d';
-  let selectedStatus = 'all';
+  let selectedTimeRange = 'all';
+  let selectedStatus = '';
   let selectedClient = '';
+  let selectedPaymentMethod = '';
   let minAmount = '';
   let maxAmount = '';
   let showAdvancedFilters = false;
+
+  // Enhanced table features
+  let tableDensity = 'normal'; // compact, normal, comfortable
+  let showColumnSettings = false;
+  let showExportOptions = false;
+  let sortBy = 'paymentDate';
+
+  // Column visibility configuration
+  let columnVisibility = {
+    id: true,
+    date: true,
+    client: true,
+    amount: true,
+    method: true,
+    status: true,
+    analytics: true
+  };
+
+  // Computed variables
+  $: paginatedPayments = filteredPayments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   /* ---------- views & modals ---------- */
   let currentView = 'table'; // table, cards, analytics
@@ -56,6 +80,7 @@
   let monthsData = [];
   let autoSlideInterval;
   let clientPerformance = [];
+  let dangerClientsData = { clients: [] };
   let showInsights = true;
 
   /* ---------- notifications & alerts ---------- */
@@ -365,6 +390,15 @@
       .sort((a, b) => b.riskScore - a.riskScore)
       .slice(0, 20);
 
+    // Update danger clients data for KPI dashboard
+    dangerClientsData = {
+      clients: riskClients,
+      totalCount: riskClients.length,
+      criticalCount: riskClients.filter(c => c.riskScore > 8).length,
+      highCount: riskClients.filter(c => c.riskScore > 6 && c.riskScore <= 8).length,
+      mediumCount: riskClients.filter(c => c.riskScore <= 6).length
+    };
+
     // Critical alerts
     criticalAlerts = [];
     if (overdueClients.length > 0) {
@@ -496,17 +530,21 @@
     currentMonthIndex = index;
   }
 
-  // Auto-slide functionality
-  function startAutoSlide() {
-    if (autoSlideInterval) clearInterval(autoSlideInterval);
-    autoSlideInterval = setInterval(nextMonth, 5000); // Change every 5 seconds
+  // Helper function for short currency format in charts
+  function formatCurrencyShort(amount) {
+    if (amount >= 1000000) {
+      return formatCurrency(amount / 1000000) + 'M';
+    } else if (amount >= 1000) {
+      return formatCurrency(amount / 1000) + 'K';
+    }
+    return formatCurrency(amount);
   }
 
-  function stopAutoSlide() {
-    if (autoSlideInterval) {
-      clearInterval(autoSlideInterval);
-      autoSlideInterval = null;
-    }
+  // Calendar view state
+  let showCalendarView = false;
+  
+  function toggleCalendarView() {
+    showCalendarView = !showCalendarView;
   }
 
   function calculateRiskLevel(cession, now) {
@@ -575,6 +613,16 @@
       list = list.filter(p => p.cessionClientName === selectedClient);
     }
 
+    // Apply payment method filter
+    if (selectedPaymentMethod) {
+      list = list.filter(p => p.paymentMethod === selectedPaymentMethod);
+    }
+
+    // Apply status filter
+    if (selectedStatus) {
+      list = list.filter(p => (p.status || 'completed') === selectedStatus);
+    }
+
     // Apply sorting
     if (sortField) {
       list.sort((a, b) => {
@@ -596,8 +644,9 @@
 
     totalPages = Math.max(1, Math.ceil(list.length / itemsPerPage));
     currentPage = Math.min(currentPage, totalPages);
-    const start = (currentPage - 1) * itemsPerPage;
-    filteredPayments = list.slice(start, start + itemsPerPage);
+    
+    // Update filteredPayments with all filtered results (not paginated)
+    filteredPayments = list;
   }
 
   function handleSort(field) {
@@ -605,6 +654,7 @@
       sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     } else {
       sortField = field;
+      sortBy = field; // Keep both in sync
       sortOrder = 'asc';
     }
     applyFilters();
@@ -681,6 +731,109 @@
     a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
+  }
+
+  // Enhanced table functions
+  function toggleAllPayments() {
+    if (selectedPayments.size === paginatedPayments.length && paginatedPayments.length > 0) {
+      selectedPayments.clear();
+    } else {
+      paginatedPayments.forEach(payment => {
+        selectedPayments.add(payment.id);
+      });
+    }
+    selectedPayments = selectedPayments; // Trigger reactivity
+  }
+
+  function clearAllFilters() {
+    searchQuery = '';
+    selectedTimeRange = 'all';
+    selectedStatus = '';
+    selectedClient = '';
+    selectedPaymentMethod = '';
+    minAmount = '';
+    maxAmount = '';
+    handleSearch();
+  }
+
+  // Export functions
+  function exportData(format, selectedOnly = false) {
+    showExportOptions = false;
+    const dataToExport = selectedOnly 
+      ? filteredPayments.filter(p => selectedPayments.has(p.id))
+      : filteredPayments;
+    
+    switch (format) {
+      case 'csv':
+        exportAsCSV(dataToExport);
+        break;
+      case 'excel':
+        exportAsExcel(dataToExport);
+        break;
+      case 'pdf':
+        exportAsPDF(dataToExport);
+        break;
+    }
+  }
+
+  function exportAsCSV(data) {
+    const headers = ['ID', 'Date', 'Client', 'Amount', 'Method', 'Status'];
+    const rows = data.map(p => [
+      p.id,
+      new Date(p.paymentDate).toLocaleDateString(),
+      p.cessionClientName,
+      p.amount,
+      p.paymentMethod || 'N/A',
+      p.status || 'completed'
+    ]);
+    
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+    
+    downloadFile(csvContent, 'payments-export.csv', 'text/csv');
+  }
+
+  function exportAsExcel(data) {
+    // Simplified Excel export - in a real app, use a library like SheetJS
+    exportAsCSV(data); // Fallback to CSV for now
+    showAlert('Excel export feature coming soon! CSV exported instead.', 'info');
+  }
+
+  function exportAsPDF(data) {
+    // Simplified PDF export - in a real app, use a library like jsPDF
+    showAlert('PDF export feature coming soon!', 'info');
+  }
+
+  function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showAlert(`${filename} downloaded successfully!`, 'success');
+  }
+
+  // Table action functions
+  function viewPaymentDetails(payment) {
+    selectedPayment = payment;
+    modalMode = 'view';
+    showModal = true;
+  }
+
+  function editPayment(payment) {
+    selectedPayment = payment;
+    modalMode = 'edit';
+    showModal = true;
+  }
+
+  function duplicatePayment(payment) {
+    showAlert('Duplicate payment feature coming soon!', 'info');
   }
 </script>
 
@@ -894,18 +1047,26 @@
             </div>
           </div>
 
-          <!-- Charts Row -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Monthly Trend Carousel -->
-            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <!-- Enhanced Business Intelligence Dashboard -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Advanced Monthly Analytics with AI-like Insights -->
+            <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div class="flex items-center justify-between mb-6">
-                <h3 class="text-lg font-semibold text-gray-900">Monthly Analytics</h3>
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Business Intelligence Dashboard</h3>
+                    <p class="text-sm text-gray-500">Monthly Performance & Predictive Analytics</p>
+                  </div>
+                </div>
                 <div class="flex items-center space-x-2">
                   <button 
                     on:click={prevMonth}
                     class="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    on:mouseenter={stopAutoSlide}
-                    on:mouseleave={startAutoSlide}
                   >
                     <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -914,64 +1075,175 @@
                   <button 
                     on:click={nextMonth}
                     class="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    on:mouseenter={stopAutoSlide}
-                    on:mouseleave={startAutoSlide}
                   >
                     <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                     </svg>
                   </button>
+                  <button 
+                    on:click={toggleCalendarView}
+                    class="p-2 rounded-lg hover:bg-blue-100 transition-colors {showCalendarView ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}"
+                    title="Toggle Calendar View"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              <!-- Current Month Display -->
+              <!-- Current Month Display with Enhanced Business Metrics -->
               {#if monthsData[currentMonthIndex]}
                 {@const currentMonth = monthsData[currentMonthIndex]}
                 {@const maxValue = Math.max(currentMonth.paymentAmount, currentMonth.expectedPayments)}
+                {@const previousMonth = monthsData[Math.max(0, currentMonthIndex - 1)]}
+                {@const monthGrowth = previousMonth ? ((currentMonth.paymentAmount - previousMonth.paymentAmount) / previousMonth.paymentAmount * 100) : 0}
+                {@const efficiencyScore = currentMonth.expectedPayments > 0 ? (currentMonth.paymentAmount / currentMonth.expectedPayments * 100) : 0}
+                {@const cashFlowTrend = monthGrowth > 0 ? 'positive' : monthGrowth < 0 ? 'negative' : 'stable'}
+                {@const riskLevel = efficiencyScore >= 90 ? 'low' : efficiencyScore >= 70 ? 'medium' : 'high'}
+                
                 <div class="mb-6" transition:fade={{ duration: 300 }}>
-                  <div class="text-center mb-4">
-                    <h4 class="text-2xl font-bold text-gray-900">{currentMonth.name}</h4>
-                    <p class="text-sm text-gray-500">Monthly Performance Overview</p>
-                  </div>
-                  
-                  <!-- Month Stats Cards -->
-                  <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
-                      <div class="flex items-center justify-between">
-                        <div>
-                          <p class="text-sm font-medium text-blue-700">Actual Payments</p>
-                          <p class="text-2xl font-bold text-blue-900">{formatCurrency(currentMonth.paymentAmount)}</p>
-                          <p class="text-xs text-blue-600 mt-1">{currentMonth.paymentCount} transactions</p>
+                  <!-- Month Header with Smart Insights -->
+                  <div class="mb-6 p-4 bg-gradient-to-r from-gray-50 via-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                    <div class="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 class="text-2xl font-bold text-gray-900">{currentMonth.name}</h4>
+                        <div class="flex items-center space-x-4 mt-1">
+                          <span class="text-sm text-gray-600">Business Health Score:</span>
+                          <div class="flex items-center space-x-2">
+                            <div class="w-16 bg-gray-200 rounded-full h-2">
+                              <div class="h-2 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full transition-all duration-1000" style="width: {Math.min(efficiencyScore, 100)}%"></div>
+                            </div>
+                            <span class="text-sm font-semibold {efficiencyScore >= 90 ? 'text-green-600' : efficiencyScore >= 70 ? 'text-yellow-600' : 'text-red-600'}">{efficiencyScore.toFixed(0)}/100</span>
+                          </div>
                         </div>
-                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/>
-                          </svg>
+                      </div>
+                      <div class="text-right">
+                        <div class="flex items-center space-x-2">
+                          {#if cashFlowTrend === 'positive'}
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                              </svg>
+                            </div>
+                            <span class="text-sm font-medium text-green-600">+{Math.abs(monthGrowth).toFixed(1)}% vs last month</span>
+                          {:else if cashFlowTrend === 'negative'}
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                              <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+                              </svg>
+                            </div>
+                            <span class="text-sm font-medium text-red-600">-{Math.abs(monthGrowth).toFixed(1)}% vs last month</span>
+                          {:else}
+                            <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14"/>
+                              </svg>
+                            </div>
+                            <span class="text-sm font-medium text-gray-600">Stable performance</span>
+                          {/if}
                         </div>
                       </div>
                     </div>
                     
-                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
-                      <div class="flex items-center justify-between">
-                        <div>
-                          <p class="text-sm font-medium text-green-700">Expected Payments</p>
-                          <p class="text-2xl font-bold text-green-900">{formatCurrency(currentMonth.expectedPayments)}</p>
-                          <p class="text-xs text-green-600 mt-1">{currentMonth.activeCessionCount} active cessions</p>
-                        </div>
-                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10"/>
+                    <!-- AI-like Business Insights -->
+                    <div class="flex items-start space-x-2 bg-white rounded-lg p-3 border border-blue-200">
+                      <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg class="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-blue-900 mb-1">Smart Insights</p>
+                        <p class="text-xs text-blue-700">
+                          {#if efficiencyScore >= 90}
+                            🎉 Exceptional month! Collection efficiency at {efficiencyScore.toFixed(0)}%. Your payment collection strategy is performing optimally.
+                          {:else if efficiencyScore >= 70}
+                            💪 Good performance with room for improvement. Consider focusing on clients with {currentMonth.activeCessionCount - currentMonth.paymentCount} unpaid cessions.
+                          {:else if currentMonth.expectedPayments > 0}
+                            ⚠️ Collection efficiency at {efficiencyScore.toFixed(0)}% - {Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount) > 0 ? `${formatCurrency(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))} shortfall` : 'needs attention'}. Review client follow-up processes.
+                          {:else}
+                            📊 No active cessions for this month. Consider business development opportunities.
+                          {/if}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Enhanced Performance Metrics Grid -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <!-- Revenue Performance -->
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                      <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                           </svg>
                         </div>
+                        <div class="text-right">
+                          <div class="text-2xl font-bold text-blue-900">{formatCurrency(currentMonth.paymentAmount)}</div>
+                          <div class="text-xs text-blue-600">Collected Revenue</div>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-blue-700">Transactions: {currentMonth.paymentCount}</span>
+                        <span class="text-blue-700">Avg: {currentMonth.paymentCount > 0 ? formatCurrency(currentMonth.paymentAmount / currentMonth.paymentCount) : formatCurrency(0)}</span>
+                      </div>
+                      <div class="mt-2 bg-blue-200 rounded-full h-1.5">
+                        <div class="h-1.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000" style="width: {maxValue ? (currentMonth.paymentAmount / maxValue * 100) : 0}%"></div>
+                      </div>
+                    </div>
+
+                    <!-- Efficiency Metrics -->
+                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                      <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                        </div>
+                        <div class="text-right">
+                          <div class="text-2xl font-bold text-green-900">{efficiencyScore.toFixed(1)}%</div>
+                          <div class="text-xs text-green-600">Collection Rate</div>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-green-700">Target: {formatCurrency(currentMonth.expectedPayments)}</span>
+                        <span class="text-green-700">Gap: {formatCurrency(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))}</span>
+                      </div>
+                      <div class="mt-2 bg-green-200 rounded-full h-1.5">
+                        <div class="h-1.5 bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000" style="width: {Math.min(efficiencyScore, 100)}%"></div>
+                      </div>
+                    </div>
+
+                    <!-- Business Growth -->
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+                      <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                          </svg>
+                        </div>
+                        <div class="text-right">
+                          <div class="text-2xl font-bold text-purple-900">{currentMonth.cessionCount}</div>
+                          <div class="text-xs text-purple-600">New Cessions</div>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-purple-700">Volume: {formatCurrency(currentMonth.cessionAmount)}</span>
+                        <span class="text-purple-700">Active: {currentMonth.activeCessionCount}</span>
+                      </div>
+                      <div class="mt-2 bg-purple-200 rounded-full h-1.5">
+                        <div class="h-1.5 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full transition-all duration-1000" style="width: {currentMonth.cessionCount > 0 ? Math.min((currentMonth.cessionCount / 10) * 100, 100) : 0}%"></div>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Visual Chart with Arrows -->
-                  <div class="relative bg-gray-50 rounded-xl p-4">
+                  <!-- Advanced Visualization: Cash Flow Waterfall -->
+                  <div class="bg-gray-50 rounded-xl p-5 mb-4">
                     <div class="flex items-center justify-between mb-4">
-                      <span class="text-sm font-medium text-gray-700">Payment Collection Analysis</span>
-                      <div class="flex items-center space-x-2">
+                      <h5 class="text-sm font-semibold text-gray-900">💧 Cash Flow Analysis</h5>
+                      <div class="flex items-center space-x-3">
                         <div class="flex items-center space-x-1">
                           <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
                           <span class="text-xs text-gray-600">Actual</span>
@@ -980,109 +1252,311 @@
                           <div class="w-3 h-3 bg-green-500 rounded-full"></div>
                           <span class="text-xs text-gray-600">Expected</span>
                         </div>
+                        <div class="flex items-center space-x-1">
+                          <div class="w-3 h-3 bg-gray-400 rounded-full"></div>
+                          <span class="text-xs text-gray-600">Gap</span>
+                        </div>
                       </div>
                     </div>
                     
-                    <!-- Chart Bars with Arrows -->
+                    <!-- Interactive Cash Flow Bars -->
                     <div class="space-y-3">
                       <div class="flex items-center space-x-3">
-                        <span class="w-16 text-xs font-medium text-gray-600">Actual</span>
+                        <span class="w-20 text-xs font-medium text-gray-700">Collected</span>
                         <div class="flex-1 relative">
-                          <div class="bg-gray-200 rounded-full h-6 overflow-hidden">
-                            <div 
-                              class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-2"
-                              style="width: {maxValue ? (currentMonth.paymentAmount / maxValue * 100) : 0}%"
-                            >
+                          <div class="bg-gray-200 rounded-full h-8 overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000 ease-out flex items-center justify-between px-3"
+                                 style="width: {maxValue ? (currentMonth.paymentAmount / maxValue * 100) : 0}%">
+                              <span class="text-xs font-semibold text-white">{formatCurrency(currentMonth.paymentAmount)}</span>
                               {#if currentMonth.paymentAmount > 0}
-                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
-                                </svg>
+                                <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                  <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd"/>
+                                  </svg>
+                                </div>
                               {/if}
                             </div>
                           </div>
-                          <span class="absolute right-0 top-7 text-xs font-semibold text-blue-700">
-                            {formatCurrency(currentMonth.paymentAmount)}
-                          </span>
                         </div>
                       </div>
                       
                       <div class="flex items-center space-x-3">
-                        <span class="w-16 text-xs font-medium text-gray-600">Expected</span>
+                        <span class="w-20 text-xs font-medium text-gray-700">Expected</span>
                         <div class="flex-1 relative">
-                          <div class="bg-gray-200 rounded-full h-6 overflow-hidden">
-                            <div 
-                              class="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-2"
-                              style="width: {maxValue ? (currentMonth.expectedPayments / maxValue * 100) : 0}%"
-                            >
+                          <div class="bg-gray-200 rounded-full h-8 overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000 ease-out flex items-center justify-between px-3"
+                                 style="width: {maxValue ? (currentMonth.expectedPayments / maxValue * 100) : 0}%">
+                              <span class="text-xs font-semibold text-white">{formatCurrency(currentMonth.expectedPayments)}</span>
                               {#if currentMonth.expectedPayments > 0}
-                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
-                                </svg>
+                                <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                  <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                                  </svg>
+                                </div>
                               {/if}
                             </div>
                           </div>
-                          <span class="absolute right-0 top-7 text-xs font-semibold text-green-700">
-                            {formatCurrency(currentMonth.expectedPayments)}
+                        </div>
+                      </div>
+
+                      <!-- Performance Gap Visualization -->
+                      {#if Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount) > 0}
+                        <div class="flex items-center space-x-3">
+                          <span class="w-20 text-xs font-medium text-gray-700">
+                            {currentMonth.paymentAmount > currentMonth.expectedPayments ? 'Surplus' : 'Shortfall'}
                           </span>
+                          <div class="flex-1 relative">
+                            <div class="bg-gray-200 rounded-full h-6 overflow-hidden">
+                              <div class="h-full rounded-full transition-all duration-1000 ease-out flex items-center px-2 {currentMonth.paymentAmount > currentMonth.expectedPayments ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-red-400 to-red-600'}"
+                                   style="width: {maxValue ? (Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount) / maxValue * 100) : 0}%">
+                                <span class="text-xs font-semibold text-white">{formatCurrency(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+
+                  <!-- Business Intelligence Recommendations -->
+                  <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
+                    <div class="flex items-start space-x-3">
+                      <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                      </div>
+                      <div class="flex-1">
+                        <h6 class="text-sm font-semibold text-indigo-900 mb-2">🚀 Strategic Recommendations</h6>
+                        <div class="space-y-2 text-xs">
+                          {#if efficiencyScore >= 90}
+                            <div class="flex items-start space-x-2">
+                              <div class="w-1.5 h-1.5 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                              <span class="text-gray-700">Maintain current collection processes - performance is excellent</span>
+                            </div>
+                            <div class="flex items-start space-x-2">
+                              <div class="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                              <span class="text-gray-700">Consider expanding client base or increasing cession volumes</span>
+                            </div>
+                          {:else if efficiencyScore >= 70}
+                            <div class="flex items-start space-x-2">
+                              <div class="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                              <span class="text-gray-700">Focus on clients with missed payments to improve efficiency</span>
+                            </div>
+                            <div class="flex items-start space-x-2">
+                              <div class="w-1.5 h-1.5 bg-orange-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                              <span class="text-gray-700">Review payment reminder systems and follow-up processes</span>
+                            </div>
+                          {:else}
+                            <div class="flex items-start space-x-2">
+                              <div class="w-1.5 h-1.5 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                              <span class="text-gray-700">Urgent: Implement aggressive collection strategies</span>
+                            </div>
+                            <div class="flex items-start space-x-2">
+                              <div class="w-1.5 h-1.5 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                              <span class="text-gray-700">Review client creditworthiness and risk assessment processes</span>
+                            </div>
+                          {/if}
+                          {#if currentMonth.cessionCount > 0}
+                            <div class="flex items-start space-x-2">
+                              <div class="w-1.5 h-1.5 bg-purple-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                              <span class="text-gray-700">New business growth: {currentMonth.cessionCount} cessions worth {formatCurrency(currentMonth.cessionAmount)}</span>
+                            </div>
+                          {/if}
                         </div>
                       </div>
                     </div>
-
-                    <!-- Performance Indicator -->
-                    <div class="mt-4 p-3 bg-white rounded-lg border">
-                      <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-700">Collection Rate</span>
-                        <span class="text-lg font-bold {currentMonth.collectionRate >= 80 ? 'text-green-600' : currentMonth.collectionRate >= 50 ? 'text-yellow-600' : 'text-red-600'}">
-                          {currentMonth.collectionRate.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div class="mt-2 bg-gray-200 rounded-full h-2">
-                        <div 
-                          class="h-full rounded-full transition-all duration-1000 {currentMonth.collectionRate >= 80 ? 'bg-green-500' : currentMonth.collectionRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}"
-                          style="width: {Math.min(currentMonth.collectionRate, 100)}%"
-                        ></div>
-                      </div>
-                      <p class="text-xs text-gray-500 mt-2">
-                        {#if currentMonth.collectionRate >= 80}
-                          Excellent collection performance
-                        {:else if currentMonth.collectionRate >= 50}
-                          Moderate collection performance - room for improvement
-                        {:else if currentMonth.expectedPayments > 0}
-                          Poor collection performance - immediate attention needed
-                        {:else}
-                          No expected payments for this month
-                        {/if}
-                      </p>
-                    </div>
-
-                    <!-- Additional Info -->
-                    {#if currentMonth.cessionAmount > 0}
-                      <div class="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-100">
-                        <div class="flex items-center justify-between text-sm">
-                          <span class="text-blue-700 font-medium">New Cessions Created:</span>
-                          <span class="text-blue-900 font-bold">{formatCurrency(currentMonth.cessionAmount)}</span>
-                        </div>
-                        <p class="text-xs text-blue-600 mt-1">{currentMonth.cessionCount} new cessions this month</p>
-                      </div>
-                    {/if}
                   </div>
                 </div>
               {/if}
 
-              <!-- Navigation Dots -->
-              <div class="flex justify-center space-x-2 mt-4">
-                {#each monthsData as month, index}
-                  <button
-                    on:click={() => goToMonth(index)}
-                    class="w-2 h-2 rounded-full transition-all duration-200 {index === currentMonthIndex ? 'bg-blue-600 w-6' : 'bg-gray-300 hover:bg-gray-400'}"
-                    on:mouseenter={stopAutoSlide}
-                    on:mouseleave={startAutoSlide}
-                  ></button>
-                {/each}
+              <!-- Enhanced Navigation with Timeline -->
+              <div class="flex items-center justify-between mt-6">
+                <div class="flex space-x-1">
+                  {#each monthsData as month, index}
+                    <button
+                      on:click={() => goToMonth(index)}
+                      class="relative transition-all duration-200 {index === currentMonthIndex ? 'w-8' : 'w-2'}"
+                    >
+                      <div class="h-2 rounded-full {index === currentMonthIndex ? 'bg-gradient-to-r from-blue-500 to-indigo-500' : 'bg-gray-300 hover:bg-gray-400'}"></div>
+                      {#if index === currentMonthIndex}
+                        <span class="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs font-medium text-gray-700 whitespace-nowrap">
+                          {month.shortName}
+                        </span>
+                      {/if}
+                    </button>
+                  {/each}
+                </div>
+                <div class="text-xs text-gray-500">
+                  {currentMonthIndex + 1} of {monthsData.length} months
+                </div>
               </div>
+
+              <!-- Calendar/Chart View Toggle -->
+              {#if showCalendarView}
+                <div class="mt-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-5 border border-blue-100" transition:slide={{ duration: 300 }}>
+                  <h5 class="text-sm font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <span>📊 Monthly Performance Chart</span>
+                  </h5>
+                  
+                  <!-- Interactive Monthly Chart -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {#each monthsData as month, index}
+                      {@const maxAmount = Math.max(...monthsData.map(m => Math.max(m.paymentAmount, m.expectedPayments)))}
+                      {@const efficiency = month.expectedPayments > 0 ? (month.paymentAmount / month.expectedPayments * 100) : 0}
+                      <button
+                        on:click={() => goToMonth(index)}
+                        class="p-3 rounded-lg border transition-all duration-200 hover:shadow-md {index === currentMonthIndex ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-gray-200 bg-white hover:border-gray-300'}"
+                      >
+                        <div class="text-center mb-2">
+                          <div class="text-xs font-medium text-gray-700 mb-1">{month.name}</div>
+                          <div class="text-sm font-bold {efficiency >= 80 ? 'text-green-600' : efficiency >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                            {efficiency.toFixed(0)}%
+                          </div>
+                        </div>
+                        
+                        <!-- Mini chart bars -->
+                        <div class="space-y-1">
+                          <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <div class="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                              <div class="h-full bg-blue-500 rounded-full transition-all duration-500"
+                                   style="width: {maxAmount ? (month.paymentAmount / maxAmount * 100) : 0}%"></div>
+                            </div>
+                            <span class="text-xs text-gray-600">{formatCurrencyShort(month.paymentAmount)}</span>
+                          </div>
+                          <div class="flex items-center space-x-1">
+                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div class="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                              <div class="h-full bg-green-500 rounded-full transition-all duration-500"
+                                   style="width: {maxAmount ? (month.expectedPayments / maxAmount * 100) : 0}%"></div>
+                            </div>
+                            <span class="text-xs text-gray-600">{formatCurrencyShort(month.expectedPayments)}</span>
+                          </div>
+                        </div>
+                        
+                        <!-- Quick stats -->
+                        <div class="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
+                          <div class="flex justify-between">
+                            <span>Payments: {month.paymentCount}</span>
+                            <span>Cessions: {month.cessionCount}</span>
+                          </div>
+                        </div>
+                      </button>
+                    {/each}
+                  </div>
+                  
+                  <!-- Chart Legend -->
+                  <div class="flex items-center justify-center space-x-6 mt-4 pt-4 border-t border-gray-200">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span class="text-xs text-gray-600">Actual Payments</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span class="text-xs text-gray-600">Expected Payments</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <span class="text-xs text-gray-600">Efficiency %</span>
+                    </div>
+                  </div>
+                </div>
+              {/if}
             </div>
 
-            <!-- Top Clients -->
+            <!-- KPI Dashboard & Predictive Analytics -->
+            <div class="space-y-6">
+              {#if monthsData.length > 0}
+                {@const totalRevenue = monthsData.reduce((sum, month) => sum + month.paymentAmount, 0)}
+                {@const totalExpected = monthsData.reduce((sum, month) => sum + month.expectedPayments, 0)}
+                {@const overallEfficiency = totalExpected > 0 ? (totalRevenue / totalExpected * 100) : 0}
+                {@const recentMonths = monthsData.slice(-3)}
+                {@const avgRecentEfficiency = recentMonths.length > 0 ? recentMonths.reduce((sum, month) => sum + (month.expectedPayments > 0 ? (month.paymentAmount / month.expectedPayments * 100) : 0), 0) / recentMonths.length : 0}
+                {@const totalCessions = monthsData.reduce((sum, month) => sum + month.cessionCount, 0)}
+                {@const totalCessionAmount = monthsData.reduce((sum, month) => sum + month.cessionAmount, 0)}
+                
+                <!-- Real-time Business Health Score -->
+                <div class="bg-white rounded-2xl p-5 shadow-lg border border-gray-100">
+                  <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-lg font-semibold text-gray-900">🎯 Business Health</h4>
+                    <div class="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full animate-pulse"></div>
+                  </div>
+                  
+                  <!-- Overall Health Score -->
+                  <div class="text-center mb-4">
+                    <div class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                      {overallEfficiency.toFixed(0)}
+                    </div>
+                    <div class="text-sm text-gray-600 mb-3">Overall Health Score</div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-red-400 via-yellow-400 via-blue-400 to-green-500 rounded-full transition-all duration-2000"
+                           style="width: {Math.min(overallEfficiency, 100)}%"></div>
+                    </div>
+                  </div>
+
+                  <!-- Key Metrics Grid -->
+                  <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                      <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-blue-900">Total Revenue</div>
+                          <div class="text-xs text-blue-600">{monthsData.length} months tracked</div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-lg font-bold text-blue-900">{formatCurrency(totalRevenue)}</div>
+                        <div class="text-xs text-blue-600">Collected</div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                      <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-green-900">3-Month Avg</div>
+                          <div class="text-xs text-green-600">Recent efficiency</div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-lg font-bold text-green-900">{avgRecentEfficiency.toFixed(1)}%</div>
+                        <div class="text-xs text-green-600">Collection Rate</div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
+                      <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="text-sm font-medium text-purple-900">Portfolio Growth</div>
+                          <div class="text-xs text-purple-600">{totalCessions} total cessions</div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-lg font-bold text-purple-900">{formatCurrency(totalCessionAmount)}</div>
+                        <div class="text-xs text-purple-600">Total Volume</div>
+                      </div>
+                    </div>
+                </div>
+              </div>
+            {/if}
+          </div>            <!-- Top Clients -->
             <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Performing Clients</h3>
               <div class="space-y-4">
@@ -1142,224 +1616,631 @@
           <DangerClients />
         </div>
       {:else}
-        <!-- Table View -->
+        <!-- Enterprise-Grade Table View -->
         <div class="space-y-6" transition:fade={{ duration: 300 }}>
-          <!-- Advanced Search & Filters -->
+          <!-- Advanced Control Panel -->
           <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-              <!-- Search Bar -->
-              <div class="flex-1 max-w-md">
-                <div class="relative">
-                  <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                  </svg>
+            <div class="flex flex-col space-y-6">
+              <!-- Top Controls Row -->
+              <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                <!-- Search with AI-like suggestions -->
+                <div class="flex-1 max-w-2xl">
+                  <div class="relative">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input
+                      type="text"
+                      bind:value={searchQuery}
+                      on:input={handleSearch}
+                      placeholder="🔍 Search by client name, amount, date, transaction ID..."
+                      class="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
+                    />
+                    {#if searchQuery}
+                      <button
+                        on:click={() => { searchQuery = ''; handleSearch(); }}
+                        class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
+                      >
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    {/if}
+                  </div>
+                </div>
+
+                <!-- View Controls -->
+                <div class="flex items-center space-x-3">
+                  <!-- Density Control -->
+                  <div class="flex items-center space-x-1 bg-gray-50 rounded-lg p-1">
+                    <button
+                      on:click={() => tableDensity = 'compact'}
+                      class="px-3 py-1 text-xs rounded-md transition-all {tableDensity === 'compact' ? 'bg-white shadow-sm font-medium' : 'text-gray-600 hover:text-gray-900'}"
+                    >
+                      Compact
+                    </button>
+                    <button
+                      on:click={() => tableDensity = 'normal'}
+                      class="px-3 py-1 text-xs rounded-md transition-all {tableDensity === 'normal' ? 'bg-white shadow-sm font-medium' : 'text-gray-600 hover:text-gray-900'}"
+                    >
+                      Normal
+                    </button>
+                    <button
+                      on:click={() => tableDensity = 'comfortable'}
+                      class="px-3 py-1 text-xs rounded-md transition-all {tableDensity === 'comfortable' ? 'bg-white shadow-sm font-medium' : 'text-gray-600 hover:text-gray-900'}"
+                    >
+                      Comfortable
+                    </button>
+                  </div>
+
+                  <!-- Column Visibility -->
+                  <div class="relative">
+                    <button
+                      on:click={() => showColumnSettings = !showColumnSettings}
+                      class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2z"/>
+                      </svg>
+                      <span>Columns</span>
+                    </button>
+                    
+                    {#if showColumnSettings}
+                      <div class="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-4" transition:scale>
+                        <h4 class="font-semibold text-gray-900 mb-3">Show/Hide Columns</h4>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                          {#each Object.entries(columnVisibility) as [column, visible]}
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                bind:checked={columnVisibility[column]}
+                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span class="text-sm capitalize">{column.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
+                            </label>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
+                  </div>
+
+                  <!-- Export Options -->
+                  <div class="relative">
+                    <button
+                      on:click={() => showExportOptions = !showExportOptions}
+                      class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                      </svg>
+                      <span>Export</span>
+                    </button>
+                    
+                    {#if showExportOptions}
+                      <div class="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2" transition:scale>
+                        <button
+                          on:click={() => exportData('csv')}
+                          class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
+                        >
+                          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                          <span>Export as CSV</span>
+                        </button>
+                        <button
+                          on:click={() => exportData('excel')}
+                          class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
+                        >
+                          <svg class="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                          <span>Export as Excel</span>
+                        </button>
+                        <button
+                          on:click={() => exportData('pdf')}
+                          class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
+                        >
+                          <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                          </svg>
+                          <span>Export as PDF</span>
+                        </button>
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Advanced Filters Row -->
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                <!-- Date Range Filter -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Date Range</label>
+                  <select 
+                    bind:value={selectedTimeRange} 
+                    on:change={handleTimeRangeChange}
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="today">Today</option>
+                    <option value="7d">Last 7 days</option>
+                    <option value="30d">Last 30 days</option>
+                    <option value="90d">Last 3 months</option>
+                    <option value="6m">Last 6 months</option>
+                    <option value="1y">Last year</option>
+                    <option value="all">All time</option>
+                  </select>
+                </div>
+
+                <!-- Amount Range -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Min Amount</label>
                   <input
-                    type="text"
-                    bind:value={searchQuery}
+                    type="number"
+                    bind:value={minAmount}
                     on:input={handleSearch}
-                    placeholder="Search payments, clients, amounts..."
-                    class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    placeholder="0"
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-              </div>
 
-              <!-- Quick Filters -->
-              <div class="flex items-center space-x-3">
-                <select 
-                  bind:value={selectedTimeRange} 
-                  on:change={handleTimeRangeChange}
-                  class="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="7d">Last 7 days</option>
-                  <option value="30d">Last 30 days</option>
-                  <option value="90d">Last 3 months</option>
-                  <option value="1y">Last year</option>
-                  <option value="all">All time</option>
-                </select>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Max Amount</label>
+                  <input
+                    type="number"
+                    bind:value={maxAmount}
+                    on:input={handleSearch}
+                    placeholder="No limit"
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
 
-                <button
-                  on:click={() => showAdvancedFilters = !showAdvancedFilters}
-                  class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-2a2 2 0 011-1.732M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-2a2 2 0 011-1.732"/>
-                  </svg>
-                  <span>Filters</span>
-                </button>
-              </div>
-            </div>
+                <!-- Client Filter -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Client</label>
+                  <select 
+                    bind:value={selectedClient}
+                    on:change={handleSearch}
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All clients</option>
+                    {#each [...new Set(payments.map(p => p.cessionClientName))].sort() as client}
+                      <option value={client}>{client}</option>
+                    {/each}
+                  </select>
+                </div>
 
-            <!-- Advanced Filters Panel -->
-            {#if showAdvancedFilters}
-              <div class="mt-6 pt-6 border-t border-gray-100" transition:slide={{ duration: 200 }}>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Min Amount</label>
-                    <input
-                      type="number"
-                      bind:value={minAmount}
-                      on:input={handleSearch}
-                      placeholder="0"
-                      class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Max Amount</label>
-                    <input
-                      type="number"
-                      bind:value={maxAmount}
-                      on:input={handleSearch}
-                      placeholder="No limit"
-                      class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Client</label>
-                    <select 
-                      bind:value={selectedClient}
-                      on:change={handleSearch}
-                      class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">All clients</option>
-                      {#each [...new Set(payments.map(p => p.cessionClientName))].sort() as client}
-                        <option value={client}>{client}</option>
-                      {/each}
-                    </select>
-                  </div>
+                <!-- Payment Method Filter -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Method</label>
+                  <select 
+                    bind:value={selectedPaymentMethod}
+                    on:change={handleSearch}
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All methods</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cash">Cash</option>
+                    <option value="check">Check</option>
+                    <option value="online">Online Payment</option>
+                  </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Status</label>
+                  <select 
+                    bind:value={selectedStatus}
+                    on:change={handleSearch}
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All status</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="refunded">Refunded</option>
+                  </select>
                 </div>
               </div>
-            {/if}
+
+              <!-- Filter Summary & Clear -->
+              {#if searchQuery || selectedTimeRange !== 'all' || minAmount || maxAmount || selectedClient || selectedPaymentMethod || selectedStatus}
+                <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"/>
+                    </svg>
+                    <span class="text-sm font-medium text-blue-900">
+                      {filteredPayments.length} of {payments.length} payments shown
+                      {#if searchQuery}• Search: "{searchQuery}"{/if}
+                      {#if selectedTimeRange !== 'all'}• {selectedTimeRange}{/if}
+                      {#if minAmount || maxAmount}• Amount: {minAmount || '0'} - {maxAmount || '∞'}{/if}
+                    </span>
+                  </div>
+                  <button
+                    on:click={clearAllFilters}
+                    class="text-sm text-blue-700 hover:text-blue-900 font-medium"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
+              {/if}
+            </div>
           </div>
 
-          <!-- Bulk Actions Bar -->
-          {#if showBulkActions}
-            <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4" transition:slide={{ duration: 200 }}>
+          <!-- Advanced Data Table with Real-time Analytics -->
+          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <!-- Table Header with Summary Stats -->
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
               <div class="flex items-center justify-between">
-                <span class="text-blue-800 font-medium">{selectedPayments.size} payments selected</span>
+                <div class="flex items-center space-x-6">
+                  <h3 class="text-lg font-semibold text-gray-900">Payment Transactions</h3>
+                  <div class="flex items-center space-x-4 text-sm text-gray-600">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span>Total: ${(filteredPayments.reduce((sum, p) => sum + p.amount, 0)).toLocaleString()}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span>Average: ${(filteredPayments.reduce((sum, p) => sum + p.amount, 0) / Math.max(filteredPayments.length, 1)).toLocaleString()}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+                      <span>Count: {filteredPayments.length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Selection and Bulk Actions -->
                 <div class="flex items-center space-x-3">
-                  <button
-                    on:click={exportPayments}
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  {#if selectedPayments.size > 0}
+                    <div class="flex items-center space-x-2 px-3 py-1 bg-blue-100 rounded-lg">
+                      <span class="text-sm font-medium text-blue-900">{selectedPayments.size} selected</span>
+                      <button
+                        on:click={() => { selectedPayments.clear(); selectedPayments = selectedPayments; }}
+                        class="text-blue-700 hover:text-blue-900"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <button
+                      on:click={() => exportData('csv', true)}
+                      class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Export Selected
+                    </button>
+                  {/if}
+
+                  <!-- Pagination Controls -->
+                  <div class="flex items-center space-x-1">
+                    <button
+                      on:click={() => currentPage = Math.max(1, currentPage - 1)}
+                      disabled={currentPage === 1}
+                      class="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                      </svg>
+                    </button>
+                    <span class="px-3 py-2 text-sm text-gray-700">
+                      Page {currentPage} of {Math.ceil(filteredPayments.length / itemsPerPage)}
+                    </span>
+                    <button
+                      on:click={() => currentPage = Math.min(Math.ceil(filteredPayments.length / itemsPerPage), currentPage + 1)}
+                      disabled={currentPage === Math.ceil(filteredPayments.length / itemsPerPage)}
+                      class="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Rows Per Page -->
+                  <select 
+                    bind:value={itemsPerPage}
+                    on:change={() => currentPage = 1}
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    Export Selected
-                  </button>
-                  <button
-                    on:click={() => { selectedPayments.clear(); selectedPayments = selectedPayments; showBulkActions = false; }}
-                    class="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    Clear Selection
-                  </button>
+                    <option value={10}>10 / page</option>
+                    <option value={25}>25 / page</option>
+                    <option value={50}>50 / page</option>
+                    <option value={100}>100 / page</option>
+                  </select>
                 </div>
               </div>
             </div>
-          {/if}
 
-          <!-- Enhanced Payment Table -->
-          <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <!-- Table Container with Horizontal Scroll -->
             <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead class="bg-gray-50 border-b border-gray-200">
+              <table class="w-full min-w-[1200px]" class:compact={tableDensity === 'compact'} class:comfortable={tableDensity === 'comfortable'}>
+                <!-- Table Header -->
+                <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-6 py-4 text-left">
+                    <!-- Select All Checkbox -->
+                    <th class="w-12 px-4 py-3">
                       <input
                         type="checkbox"
-                        on:change={selectAllPayments}
-                        checked={selectedPayments.size === filteredPayments.length && filteredPayments.length > 0}
+                        checked={selectedPayments.size === paginatedPayments.length && paginatedPayments.length > 0}
+                        on:change={toggleAllPayments}
                         class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
                     </th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900 transition-colors"
-                        on:click={() => handleSort('cessionClientName')}>
-                      <div class="flex items-center space-x-1">
-                        <span>Client</span>
-                        {#if sortField === 'cessionClientName'}
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === 'asc' ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"}/>
+
+                    <!-- Sortable Columns -->
+                    {#if columnVisibility.id}
+                      <th class="px-6 py-3 text-left">
+                        <button
+                          on:click={() => handleSort('id')}
+                          class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
+                        >
+                          <span>ID</span>
+                          <svg class="w-3 h-3 {sortBy === 'id' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'id' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'id' || sortOrder !== 'asc'}/>
+                            <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'id' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'id' || sortOrder !== 'desc'}/>
                           </svg>
-                        {/if}
-                      </div>
-                    </th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900 transition-colors"
-                        on:click={() => handleSort('amount')}>
-                      <div class="flex items-center space-x-1">
-                        <span>Amount</span>
-                        {#if sortField === 'amount'}
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === 'asc' ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"}/>
+                        </button>
+                      </th>
+                    {/if}
+
+                    {#if columnVisibility.date}
+                      <th class="px-6 py-3 text-left">
+                        <button
+                          on:click={() => handleSort('paymentDate')}
+                          class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
+                        >
+                          <span>Date</span>
+                          <svg class="w-3 h-3 {sortBy === 'paymentDate' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'paymentDate' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'paymentDate' || sortOrder !== 'asc'}/>
+                            <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'paymentDate' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'paymentDate' || sortOrder !== 'desc'}/>
                           </svg>
-                        {/if}
-                      </div>
-                    </th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-900 transition-colors"
-                        on:click={() => handleSort('paymentDate')}>
-                      <div class="flex items-center space-x-1">
-                        <span>Date</span>
-                        {#if sortField === 'paymentDate'}
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={sortOrder === 'asc' ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"}/>
+                        </button>
+                      </th>
+                    {/if}
+
+                    {#if columnVisibility.client}
+                      <th class="px-6 py-3 text-left">
+                        <button
+                          on:click={() => handleSort('cessionClientName')}
+                          class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
+                        >
+                          <span>Client</span>
+                          <svg class="w-3 h-3 {sortBy === 'cessionClientName' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'cessionClientName' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'cessionClientName' || sortOrder !== 'asc'}/>
+                            <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'cessionClientName' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'cessionClientName' || sortOrder !== 'desc'}/>
                           </svg>
-                        {/if}
-                      </div>
+                        </button>
+                      </th>
+                    {/if}
+
+                    {#if columnVisibility.amount}
+                      <th class="px-6 py-3 text-left">
+                        <button
+                          on:click={() => handleSort('amount')}
+                          class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
+                        >
+                          <span>Amount</span>
+                          <svg class="w-3 h-3 {sortBy === 'amount' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'amount' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'amount' || sortOrder !== 'asc'}/>
+                            <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'amount' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'amount' || sortOrder !== 'desc'}/>
+                          </svg>
+                        </button>
+                      </th>
+                    {/if}
+
+                    {#if columnVisibility.method}
+                      <th class="px-6 py-3 text-left">
+                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Method</span>
+                      </th>
+                    {/if}
+
+                    {#if columnVisibility.status}
+                      <th class="px-6 py-3 text-left">
+                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
+                      </th>
+                    {/if}
+
+                    {#if columnVisibility.analytics}
+                      <th class="px-6 py-3 text-left">
+                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Analytics</span>
+                      </th>
+                    {/if}
+
+                    <th class="px-6 py-3 text-left">
+                      <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</span>
                     </th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Notes</th>
-                    <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
-                  {#each filteredPayments as payment, i}
-                    <tr class="hover:bg-gray-50 transition-colors group" transition:fade={{ delay: i * 50, duration: 200 }}>
-                      <td class="px-6 py-4">
+
+                <!-- Table Body -->
+                <tbody class="bg-white divide-y divide-gray-200">
+                  {#each paginatedPayments as payment, index}
+                    <tr 
+                      class="hover:bg-gray-50 transition-colors cursor-pointer {selectedPayments.has(payment.id) ? 'bg-blue-50' : ''}"
+                      on:click={() => togglePaymentSelection(payment.id)}
+                    >
+                      <!-- Checkbox -->
+                      <td class="px-4 py-4">
                         <input
                           type="checkbox"
                           checked={selectedPayments.has(payment.id)}
                           on:change={() => togglePaymentSelection(payment.id)}
+                          on:click|stopPropagation
                           class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
                       </td>
-                      <td class="px-6 py-4">
-                        <div class="flex items-center space-x-3">
-                          <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                            {payment.cessionClientName?.charAt(0) || 'U'}
+
+                      {#if columnVisibility.id}
+                        <td class="px-6 py-4 text-sm text-gray-900 font-mono">
+                          #{payment.id}
+                        </td>
+                      {/if}
+
+                      {#if columnVisibility.date}
+                        <td class="px-6 py-4">
+                          <div class="flex flex-col">
+                            <span class="text-sm font-medium text-gray-900">
+                              {new Date(payment.paymentDate).toLocaleDateString()}
+                            </span>
+                            <span class="text-xs text-gray-500">
+                              {new Date(payment.paymentDate).toLocaleTimeString()}
+                            </span>
                           </div>
-                          <div>
-                            <p class="font-medium text-gray-900">{payment.cessionClientName || 'Unknown'}</p>
-                            <p class="text-sm text-gray-500">ID: {payment.cessionId || 'N/A'}</p>
+                        </td>
+                      {/if}
+
+                      {#if columnVisibility.client}
+                        <td class="px-6 py-4">
+                          <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                              {payment.cessionClientName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div class="text-sm font-medium text-gray-900">{payment.cessionClientName}</div>
+                              <div class="text-xs text-gray-500">Cession #{payment.cessionId}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
+                      {/if}
+
+                      {#if columnVisibility.amount}
+                        <td class="px-6 py-4">
+                          <div class="flex items-center space-x-2">
+                            <span class="text-lg font-bold text-green-600">
+                              ${payment.amount.toLocaleString()}
+                            </span>
+                            <!-- Amount trend indicator -->
+                            <div class="text-xs">
+                              {#if payment.amount > 10000}
+                                <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full font-medium">High</span>
+                              {:else if payment.amount > 5000}
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">Medium</span>
+                              {:else}
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium">Low</span>
+                              {/if}
+                            </div>
+                          </div>
+                        </td>
+                      {/if}
+
+                      {#if columnVisibility.method}
+                        <td class="px-6 py-4">
+                          <div class="flex items-center space-x-2">
+                            {#if payment.paymentMethod === 'bank_transfer'}
+                              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1M8 21l4-7-4-7"/>
+                              </svg>
+                              <span class="text-sm text-gray-900">Bank Transfer</span>
+                            {:else if payment.paymentMethod === 'cash'}
+                              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                              </svg>
+                              <span class="text-sm text-gray-900">Cash</span>
+                            {:else}
+                              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                              </svg>
+                              <span class="text-sm text-gray-900 capitalize">{payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}</span>
+                            {/if}
+                          </div>
+                        </td>
+                      {/if}
+
+                      {#if columnVisibility.status}
+                        <td class="px-6 py-4">
+                          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                            {payment.status === 'completed' || !payment.status ? 'bg-green-100 text-green-800' :
+                             payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                             payment.status === 'failed' ? 'bg-red-100 text-red-800' :
+                             'bg-gray-100 text-gray-800'}">
+                            <span class="w-1.5 h-1.5 mr-1.5 rounded-full
+                              {payment.status === 'completed' || !payment.status ? 'bg-green-400' :
+                               payment.status === 'pending' ? 'bg-yellow-400' :
+                               payment.status === 'failed' ? 'bg-red-400' :
+                               'bg-gray-400'}"></span>
+                            {payment.status ? payment.status.charAt(0).toUpperCase() + payment.status.slice(1) : 'Completed'}
+                          </span>
+                        </td>
+                      {/if}
+
+                      {#if columnVisibility.analytics}
+                        <td class="px-6 py-4">
+                          <div class="flex items-center space-x-3">
+                            <!-- Performance Score -->
+                            <div class="flex items-center space-x-1">
+                              <div class="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div 
+                                  class="h-full bg-gradient-to-r from-red-400 via-yellow-400 to-green-400 rounded-full transition-all duration-500"
+                                  style="width: {Math.min(100, (payment.amount / 20000) * 100)}%"
+                                ></div>
+                              </div>
+                              <span class="text-xs text-gray-500">{Math.round((payment.amount / 20000) * 100)}%</span>
+                            </div>
+                            
+                            <!-- Trend Indicator -->
+                            <div class="text-xs">
+                              {#if index > 0 && paginatedPayments[index-1]}
+                                {#if payment.amount > paginatedPayments[index-1].amount}
+                                  <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                                  </svg>
+                                {:else}
+                                  <svg class="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                  </svg>
+                                {/if}
+                              {/if}
+                            </div>
+                          </div>
+                        </td>
+                      {/if}
+
+                      <!-- Actions -->
                       <td class="px-6 py-4">
-                        <span class="text-lg font-semibold text-gray-900">{formatCurrency(payment.amount)}</span>
-                      </td>
-                      <td class="px-6 py-4">
-                        <span class="text-gray-900">{formatDate(payment.paymentDate)}</span>
-                      </td>
-                      <td class="px-6 py-4">
-                        <span class="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                          Completed
-                        </span>
-                      </td>
-                      <td class="px-6 py-4">
-                        <span class="text-gray-600 text-sm">{payment.notes || 'No notes'}</span>
-                      </td>
-                      <td class="px-6 py-4 text-right">
-                        <div class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button class="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+                        <div class="flex items-center space-x-2">
+                          <button 
+                            on:click|stopPropagation={() => viewPaymentDetails(payment)}
+                            class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="View Details"
+                          >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                             </svg>
                           </button>
-                          <button class="p-2 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors">
+                          <button 
+                            on:click|stopPropagation={() => editPayment(payment)}
+                            class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Edit Payment"
+                          >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
                           </button>
-                          <button class="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                          <button 
+                            on:click|stopPropagation={() => duplicatePayment(payment)}
+                            class="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                            title="Duplicate Payment"
+                          >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                             </svg>
                           </button>
+                        </div>
+                      </td>
+                    </tr>
+                  {:else}
+                    <tr>
+                      <td colspan="100%" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center space-y-3">
+                          <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                          </svg>
+                          <div>
+                            <h3 class="text-lg font-medium text-gray-900">No payments found</h3>
+                            <p class="text-gray-500">Try adjusting your search or filters</p>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -1368,44 +2249,74 @@
               </table>
             </div>
 
-            <!-- Enhanced Pagination -->
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+            <!-- Table Footer with Performance Stats -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
               <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <span class="text-sm text-gray-700">Show</span>
-                  <select 
-                    bind:value={itemsPerPage} 
-                    on:change={applyFilters}
-                    class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value={10}>10</option>
-                    <option value={15}>15</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                  <span class="text-sm text-gray-700">per page</span>
-                </div>
-                
-                <div class="flex items-center space-x-2">
-                  <span class="text-sm text-gray-700">
-                    Page {currentPage} of {totalPages} ({filteredPayments.length} results)
-                  </span>
-                  <div class="flex space-x-1">
-                    <button
-                      on:click={() => handlePageChange(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      on:click={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Next
-                    </button>
+                <div class="flex items-center space-x-6 text-sm text-gray-600">
+                  <div>
+                    Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredPayments.length)} of {filteredPayments.length} payments
                   </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>Completed: {filteredPayments.filter(p => !p.status || p.status === 'completed').length}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <span>Pending: {filteredPayments.filter(p => p.status === 'pending').length}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span>Failed: {filteredPayments.filter(p => p.status === 'failed').length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Advanced Pagination -->
+                <div class="flex items-center space-x-2">
+                  <button
+                    on:click={() => currentPage = 1}
+                    disabled={currentPage === 1}
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    First
+                  </button>
+                  <button
+                    on:click={() => currentPage = Math.max(1, currentPage - 1)}
+                    disabled={currentPage === 1}
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  
+                  <!-- Page Numbers -->
+                  {#each Array.from({length: Math.min(5, Math.ceil(filteredPayments.length / itemsPerPage))}, (_, i) => {
+                    const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+                    const startPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+                    return startPage + i;
+                  }) as pageNum}
+                    <button
+                      on:click={() => currentPage = pageNum}
+                      class="px-3 py-2 text-sm rounded-lg transition-colors {currentPage === pageNum ? 'bg-blue-600 text-white' : 'border border-gray-200 hover:bg-gray-50'}"
+                    >
+                      {pageNum}
+                    </button>
+                  {/each}
+                  
+                  <button
+                    on:click={() => currentPage = Math.min(Math.ceil(filteredPayments.length / itemsPerPage), currentPage + 1)}
+                    disabled={currentPage === Math.ceil(filteredPayments.length / itemsPerPage)}
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                  <button
+                    on:click={() => currentPage = Math.ceil(filteredPayments.length / itemsPerPage)}
+                    disabled={currentPage === Math.ceil(filteredPayments.length / itemsPerPage)}
+                    class="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Last
+                  </button>
                 </div>
               </div>
             </div>
@@ -1418,3 +2329,79 @@
   <!-- TEMPORARY: Debug panel for troubleshooting date/timezone issues -->
   <DateDebugPanel />
 </div>
+
+<style>
+  /* Table density styles */
+  table.compact tbody td {
+    padding: 8px 16px;
+  }
+  
+  table.compact tbody th {
+    padding: 8px 16px;
+  }
+  
+  table.comfortable tbody td {
+    padding: 20px 24px;
+  }
+  
+  table.comfortable tbody th {
+    padding: 20px 24px;
+  }
+
+  /* Smooth transitions */
+  .transition-all {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Custom scrollbar for table */
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Loading shimmer effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -468px 0;
+    }
+    100% {
+      background-position: 468px 0;
+    }
+  }
+
+  .loading-shimmer {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 400% 100%;
+    animation: shimmer 1.2s ease-in-out infinite;
+  }
+
+  /* Focus states */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  /* Hover animations */
+  .hover-scale {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+</style>
