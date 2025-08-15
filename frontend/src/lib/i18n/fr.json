@@ -1317,8 +1317,8 @@
       },
       "empty_state": {
         "title": "Aucun Client à Risque",
-        "description": "Aucun client n'a de retard de paiement significatif selon les critères actuels.",
-        "explanation": "Les clients sont considérés à risque lorsqu'ils ont manqué 2 mois ou plus de paiements mensuels.",
+        "description": "Aucun client n'a de retard de paiement selon les critères actuels.",
+        "explanation": "Les clients sont considérés à risque lorsqu'ils ont manqué 1 mois ou plus de paiements mensuels.",
         "link_text": "Voir tous les paiements"
       },
       "loading": "Chargement de l'analyse des clients à risque...",

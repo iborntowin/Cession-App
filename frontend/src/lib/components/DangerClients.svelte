@@ -20,7 +20,7 @@
 
   // Filters
   let selectedSeverity = 'all';
-  let thresholdMonths = 2;
+  let thresholdMonths = 1; // Changed default to 1 to include warnings
   let searchQuery = '';
   let sortField = 'severity';
   let sortOrder = 'desc';
@@ -120,18 +120,18 @@
 
   function getSeverityColor(severity) {
     switch (severity?.toLowerCase()) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-      case 'danger': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'warning': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'critical': return 'bg-red-200 text-red-900 border-red-300';
+      case 'danger': return 'bg-red-100 text-red-800 border-red-200';
+      case 'warning': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   }
 
   function getSeverityRowColor(severity) {
     switch (severity?.toLowerCase()) {
-      case 'critical': return 'border-l-4 border-red-500 bg-red-50';
-      case 'danger': return 'border-l-4 border-orange-500 bg-orange-50';
-      case 'warning': return 'border-l-4 border-yellow-500 bg-yellow-50';
+      case 'critical': return 'border-l-4 border-red-600 bg-red-50';
+      case 'danger': return 'border-l-4 border-red-500 bg-red-50';
+      case 'warning': return 'border-l-4 border-yellow-400 bg-yellow-50';
       default: return 'border-l-4 border-gray-300 bg-gray-50';
     }
   }

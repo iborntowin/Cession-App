@@ -1294,8 +1294,8 @@
       },
       "empty_state": {
         "title": "No Clients at Risk",
-        "description": "No clients have significant payment delays according to current criteria.",
-        "explanation": "Clients are considered at risk when they have missed 2 or more monthly payments.",
+        "description": "No clients have payment delays according to current criteria.",
+        "explanation": "Clients are considered at risk when they have missed 1 or more monthly payments.",
         "link_text": "View all payments"
       },
       "loading": "Loading danger clients analysis...",

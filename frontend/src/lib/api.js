@@ -632,7 +632,7 @@ export const paymentsApi = {
     }
   },
 
-  getDangerClientsAnalysis: async (thresholdMonths = 2) => {
+  getDangerClientsAnalysis: async (thresholdMonths = 1) => {
     try {
       const params = new URLSearchParams();
       if (thresholdMonths) params.append('thresholdMonths', thresholdMonths.toString());

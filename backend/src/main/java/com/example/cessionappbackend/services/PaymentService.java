@@ -124,7 +124,7 @@ public class PaymentService {
     @Transactional(readOnly = true)
     public DangerClientsAnalysisDTO getDangerClientsAnalysis(Integer thresholdMonths) {
         if (thresholdMonths == null) {
-            thresholdMonths = 2; // Default threshold
+            thresholdMonths = 1; // Default threshold changed to 1 to include warnings
         }
 
         List<Cession> activeCessions = cessionRepository.findByStatusIn(List.of("ACTIVE", "active", "in_progress"));
@@ -166,12 +166,12 @@ public class PaymentService {
             // Calculate missed months
             int missedMonths = Math.max(0, dueMonths - paidMonths);
 
-            // Only include if missed months >= threshold
+            // Include if missed months >= threshold (now includes 1-month warnings)
             if (missedMonths >= thresholdMonths) {
                 // Get last payment date
                 LocalDate lastPaymentDate = paymentRepository.findLastPaymentDateByCession(cession.getId());
 
-                // Determine severity
+                // Determine severity based on missed months
                 String severity;
                 if (missedMonths >= 3) {
                     severity = "critical";
@@ -179,7 +179,11 @@ public class PaymentService {
                 } else if (missedMonths >= 2) {
                     severity = "danger";
                     dangerCount++;
+                } else if (missedMonths == 1) {
+                    severity = "warning";
+                    warningCount++;
                 } else {
+                    // This shouldn't happen given our threshold check, but safety fallback
                     severity = "warning";
                     warningCount++;
                 }
