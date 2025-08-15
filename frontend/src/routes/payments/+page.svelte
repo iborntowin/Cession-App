@@ -33,27 +33,18 @@
   let selectedTimeRange = 'all';
   let selectedStatus = '';
   let selectedClient = '';
-  let selectedPaymentMethod = '';
+  let selectedMonth = '';
   let minAmount = '';
   let maxAmount = '';
   let showAdvancedFilters = false;
+  let showMonthPicker = false;
 
   // Enhanced table features
-  let tableDensity = 'normal'; // compact, normal, comfortable
-  let showColumnSettings = false;
+  let tableDensity = 'comfortable'; // Keep only comfortable density
   let showExportOptions = false;
   let sortBy = 'paymentDate';
 
-  // Column visibility configuration
-  let columnVisibility = {
-    id: true,
-    date: true,
-    client: true,
-    amount: true,
-    method: true,
-    status: true,
-    analytics: true
-  };
+  // Computed variables
 
   // Computed variables
   $: paginatedPayments = filteredPayments.slice(
@@ -63,9 +54,6 @@
 
   /* ---------- views & modals ---------- */
   let currentView = 'table'; // table, cards, analytics
-  let showModal = false;
-  let selectedPayment = null;
-  let modalMode = 'view';
   let showBulkActions = false;
   let selectedPayments = new Set();
 
@@ -123,10 +111,9 @@
           if (response.ok) {
             const result = await response.json();
             createdClients.push(result);
-            console.log('Created client:', result.fullName);
           }
         } catch (e) {
-          console.warn('Client might already exist:', client.fullName);
+          // Client might already exist, continue
         }
       }
 
@@ -158,10 +145,9 @@
           if (response.ok) {
             const result = await response.json();
             createdCessions.push(result);
-            console.log('Created cession for month:', monthDate.toISOString().slice(0, 7));
           }
         } catch (e) {
-          console.warn('Error creating cession:', e);
+          // Error creating cession, continue
         }
       }
 
@@ -194,10 +180,10 @@
               
               if (response.ok) {
                 const result = await response.json();
-                console.log('Created payment:', result.amount, 'for', paymentDate.toISOString().slice(0, 7));
+                // Payment created successfully
               }
             } catch (e) {
-              console.warn('Error creating payment:', e);
+              // Error creating payment, continue
             }
           }
         }
@@ -209,7 +195,6 @@
       await loadAll();
       
     } catch (error) {
-      console.error('Error generating sample data:', error);
       showAlert('Error generating sample data: ' + error.message, 'error');
     } finally {
       generatingData = false;
@@ -224,6 +209,13 @@
       return;
     }
     await loadAll();
+    
+    // Add click outside handler
+    document.addEventListener('click', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
   });
 
   async function loadAll() {
@@ -234,8 +226,6 @@
         paymentsApi.getAllPayments(),
         cessionsApi.getAll()
       ]);
-
-      console.log('API Responses:', { payRes, cesRes });
       
       payments = payRes.success ? payRes.data : [];
       // Fix: cessionsApi.getAll() returns data directly, not wrapped in success/data
@@ -253,34 +243,6 @@
   function buildAdvancedAnalytics() {
     const now = new Date();
     const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-    
-    console.log('=== ANALYTICS DEBUG ===');
-    console.log('Building analytics with data:', { 
-      paymentsCount: payments.length, 
-      cessionsCount: cessions.length,
-      samplePayment: payments[0],
-      sampleCession: cessions[0]
-    });
-    
-    // Detailed logging to understand data structure
-    if (payments.length > 0) {
-      console.log('Sample payment structure:', Object.keys(payments[0]));
-      console.log('Payment amount type:', typeof payments[0].amount, payments[0].amount);
-    }
-    if (cessions.length > 0) {
-      console.log('Sample cession structure:', Object.keys(cessions[0]));
-      console.log('Cession monthlyPayment:', cessions[0].monthlyPayment);
-      console.log('Cession monthlyDeduction:', cessions[0].monthlyDeduction);
-      console.log('Cession startDate:', cessions[0].startDate);
-      console.log('Cession createdAt:', cessions[0].createdAt);
-      console.log('Cession status:', cessions[0].status);
-      console.log('Full cession object:', cessions[0]);
-    }
-    
-    // Show alert if no data is found
-    if (payments.length === 0 && cessions.length === 0) {
-      console.warn('No data found in database. Database appears to be empty.');
-    }
     
     // Helper function to safely convert amounts to numbers
     const safeAmount = (amount) => {
@@ -310,13 +272,6 @@
       monthly[currentMonth] = 0;
       last12Months.push(currentMonth);
     }
-    
-    console.log('Checking months:', last12Months);
-    console.log('Current date:', now.toISOString().slice(0, 7));
-    
-    // Also check what months our cessions actually start in
-    const cessionMonths = cessions.map(c => c.startDate ? c.startDate.slice(0, 7) : 'no-date').filter(m => m !== 'no-date');
-    console.log('Cession start months:', [...new Set(cessionMonths)].sort());
     
     payments.forEach(p => {
       const month = new Date(p.paymentDate).toISOString().slice(0, 7);
@@ -431,8 +386,6 @@
     const paymentMonths = [...new Set(payments.map(p => p.paymentDate ? p.paymentDate.slice(0, 7) : null).filter(Boolean))];
     const allRelevantMonths = [...new Set([...cessionStartMonths, ...paymentMonths])].sort();
     
-    console.log('Relevant months with actual data:', allRelevantMonths);
-    
     // Use relevant months instead of arbitrary last 12 months
     const monthsToAnalyze = allRelevantMonths.length > 0 ? allRelevantMonths : last12Months;
     
@@ -476,8 +429,6 @@
         return sum + safeAmount(monthlyAmount);
       }, 0);
       
-      console.log(`Month ${month}: Active cessions: ${activeCessions.length}, Expected payments: ${expectedPayments}`);
-      
       // Calculate new cessions created this month
       const monthCessions = cessions.filter(c => {
         const startMonth = c.startDate ? c.startDate.slice(0, 7) : null;
@@ -508,13 +459,6 @@
     // Set current month to the latest month with data
     const monthWithData = monthsData.findIndex(m => m.paymentAmount > 0 || m.expectedPayments > 0);
     currentMonthIndex = monthWithData >= 0 ? Math.max(monthWithData, monthsData.length - 3) : Math.max(0, monthsData.length - 1);
-    
-    console.log('Analytics built:', { 
-      total, 
-      avgPayment, 
-      monthsData: monthsData.slice(-3),
-      currentMonthIndex 
-    });
   }
 
   // Carousel navigation functions
@@ -530,24 +474,35 @@
     currentMonthIndex = index;
   }
 
+  // Helper function for currency formatting with TND
+  function formatTND(amount) {
+    if (typeof amount !== 'number' || isNaN(amount)) return '0 TND';
+    return amount.toLocaleString('fr-TN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' TND';
+  }
+
   // Helper function for short currency format in charts
   function formatCurrencyShort(amount) {
     if (amount >= 1000000) {
-      return formatCurrency(amount / 1000000) + 'M';
+      return (amount / 1000000).toFixed(1) + 'M TND';
     } else if (amount >= 1000) {
-      return formatCurrency(amount / 1000) + 'K';
+      return (amount / 1000).toFixed(1) + 'K TND';
     }
-    return formatCurrency(amount);
+    return formatTND(amount);
   }
 
   // Calendar view state
   let showCalendarView = false;
-  
+
   function toggleCalendarView() {
     showCalendarView = !showCalendarView;
   }
 
-  function calculateRiskLevel(cession, now) {
+  // Close month picker when clicking outside
+  function handleClickOutside(event) {
+    if (showMonthPicker && !event.target.closest('.month-picker-container')) {
+      showMonthPicker = false;
+    }
+  }  function calculateRiskLevel(cession, now) {
     const daysSince = Math.floor((now - new Date(cession.createdAt)) / 86400000);
     if (daysSince > 180) return 'critical';
     if (daysSince > 120) return 'high';
@@ -579,14 +534,41 @@
   function applyFilters() {
     let list = [...payments];
 
-    // Apply search
+    // Enhanced search - search by client name, client ID, cession ID, amount, notes, payment method
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      list = list.filter(p => 
-        p.cessionClientName?.toLowerCase().includes(query) ||
-        p.notes?.toLowerCase().includes(query) ||
-        p.amount.toString().includes(query)
-      );
+      const query = searchQuery.toLowerCase().trim();
+      list = list.filter(p => {
+        // Search in client name
+        const clientNameMatch = p.cessionClientName?.toLowerCase().includes(query);
+        
+        // Search in cession ID (both with and without #)
+        const cessionIdMatch = p.cessionId?.toString().includes(query) || 
+                              `#${p.cessionId}`.toLowerCase().includes(query);
+        
+        // Search in payment ID
+        const paymentIdMatch = p.id?.toString().includes(query) || 
+                              `#${p.id}`.toLowerCase().includes(query);
+        
+        // Search in amount (as string and formatted)
+        const amountMatch = p.amount?.toString().includes(query) ||
+                           p.amount?.toLocaleString().includes(query);
+        
+        // Search in notes
+        const notesMatch = p.notes?.toLowerCase().includes(query);
+        
+        // Search in payment method
+        const methodMatch = p.paymentMethod?.toLowerCase().includes(query) ||
+                           p.paymentMethod?.toLowerCase().replace('_', ' ').includes(query);
+        
+        // Search in formatted date
+        const dateMatch = new Date(p.paymentDate).toLocaleDateString().includes(query) ||
+                         new Date(p.paymentDate).toLocaleDateString('en-US', { 
+                           year: 'numeric', month: 'long', day: 'numeric' 
+                         }).toLowerCase().includes(query);
+        
+        return clientNameMatch || cessionIdMatch || paymentIdMatch || 
+               amountMatch || notesMatch || methodMatch || dateMatch;
+      });
     }
 
     // Apply time range
@@ -613,9 +595,12 @@
       list = list.filter(p => p.cessionClientName === selectedClient);
     }
 
-    // Apply payment method filter
-    if (selectedPaymentMethod) {
-      list = list.filter(p => p.paymentMethod === selectedPaymentMethod);
+    // Apply month filter
+    if (selectedMonth) {
+      list = list.filter(p => {
+        const paymentMonth = new Date(p.paymentDate).getMonth() + 1;
+        return paymentMonth.toString().padStart(2, '0') === selectedMonth;
+      });
     }
 
     // Apply status filter
@@ -750,7 +735,7 @@
     selectedTimeRange = 'all';
     selectedStatus = '';
     selectedClient = '';
-    selectedPaymentMethod = '';
+    selectedMonth = '';
     minAmount = '';
     maxAmount = '';
     handleSearch();
@@ -817,23 +802,6 @@
     window.URL.revokeObjectURL(url);
     
     showAlert(`${filename} downloaded successfully!`, 'success');
-  }
-
-  // Table action functions
-  function viewPaymentDetails(payment) {
-    selectedPayment = payment;
-    modalMode = 'view';
-    showModal = true;
-  }
-
-  function editPayment(payment) {
-    selectedPayment = payment;
-    modalMode = 'edit';
-    showModal = true;
-  }
-
-  function duplicatePayment(payment) {
-    showAlert('Duplicate payment feature coming soon!', 'info');
   }
 </script>
 
@@ -978,7 +946,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p class="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(analytics.total || 0)}</p>
+                  <p class="text-3xl font-bold text-gray-900 mt-2">{formatTND(analytics.total || 0)}</p>
                 </div>
                 <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                   <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1014,7 +982,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-gray-600">Average Payment</p>
-                  <p class="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(analytics.avgPayment || 0)}</p>
+                  <p class="text-3xl font-bold text-gray-900 mt-2">{formatTND(analytics.avgPayment || 0)}</p>
                 </div>
                 <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                   <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1048,9 +1016,9 @@
           </div>
 
           <!-- Enhanced Business Intelligence Dashboard -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Advanced Monthly Analytics with AI-like Insights -->
-            <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <!-- Advanced Monthly Analytics - Takes 2/4 columns -->
+            <div class="xl:col-span-2 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center space-x-3">
                   <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
@@ -1059,8 +1027,8 @@
                     </svg>
                   </div>
                   <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Business Intelligence Dashboard</h3>
-                    <p class="text-sm text-gray-500">Monthly Performance & Predictive Analytics</p>
+                    <h3 class="text-lg font-semibold text-gray-900">Monthly Analytics</h3>
+                    <p class="text-sm text-gray-500">Performance & Insights</p>
                   </div>
                 </div>
                 <div class="flex items-center space-x-2">
@@ -1161,7 +1129,7 @@
                           {:else if efficiencyScore >= 70}
                             💪 Good performance with room for improvement. Consider focusing on clients with {currentMonth.activeCessionCount - currentMonth.paymentCount} unpaid cessions.
                           {:else if currentMonth.expectedPayments > 0}
-                            ⚠️ Collection efficiency at {efficiencyScore.toFixed(0)}% - {Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount) > 0 ? `${formatCurrency(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))} shortfall` : 'needs attention'}. Review client follow-up processes.
+                            ⚠️ Collection efficiency at {efficiencyScore.toFixed(0)}% - {Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount) > 0 ? `${formatTND(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))} shortfall` : 'needs attention'}. Review client follow-up processes.
                           {:else}
                             📊 No active cessions for this month. Consider business development opportunities.
                           {/if}
@@ -1181,13 +1149,13 @@
                           </svg>
                         </div>
                         <div class="text-right">
-                          <div class="text-2xl font-bold text-blue-900">{formatCurrency(currentMonth.paymentAmount)}</div>
+                          <div class="text-2xl font-bold text-blue-900">{formatTND(currentMonth.paymentAmount)}</div>
                           <div class="text-xs text-blue-600">Collected Revenue</div>
                         </div>
                       </div>
                       <div class="flex items-center justify-between text-sm">
                         <span class="text-blue-700">Transactions: {currentMonth.paymentCount}</span>
-                        <span class="text-blue-700">Avg: {currentMonth.paymentCount > 0 ? formatCurrency(currentMonth.paymentAmount / currentMonth.paymentCount) : formatCurrency(0)}</span>
+                        <span class="text-blue-700">Avg: {currentMonth.paymentCount > 0 ? formatTND(currentMonth.paymentAmount / currentMonth.paymentCount) : formatTND(0)}</span>
                       </div>
                       <div class="mt-2 bg-blue-200 rounded-full h-1.5">
                         <div class="h-1.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000" style="width: {maxValue ? (currentMonth.paymentAmount / maxValue * 100) : 0}%"></div>
@@ -1208,8 +1176,8 @@
                         </div>
                       </div>
                       <div class="flex items-center justify-between text-sm">
-                        <span class="text-green-700">Target: {formatCurrency(currentMonth.expectedPayments)}</span>
-                        <span class="text-green-700">Gap: {formatCurrency(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))}</span>
+                        <span class="text-green-700">Target: {formatTND(currentMonth.expectedPayments)}</span>
+                        <span class="text-green-700">Gap: {formatTND(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))}</span>
                       </div>
                       <div class="mt-2 bg-green-200 rounded-full h-1.5">
                         <div class="h-1.5 bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000" style="width: {Math.min(efficiencyScore, 100)}%"></div>
@@ -1230,7 +1198,7 @@
                         </div>
                       </div>
                       <div class="flex items-center justify-between text-sm">
-                        <span class="text-purple-700">Volume: {formatCurrency(currentMonth.cessionAmount)}</span>
+                        <span class="text-purple-700">Volume: {formatTND(currentMonth.cessionAmount)}</span>
                         <span class="text-purple-700">Active: {currentMonth.activeCessionCount}</span>
                       </div>
                       <div class="mt-2 bg-purple-200 rounded-full h-1.5">
@@ -1267,7 +1235,7 @@
                           <div class="bg-gray-200 rounded-full h-8 overflow-hidden">
                             <div class="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000 ease-out flex items-center justify-between px-3"
                                  style="width: {maxValue ? (currentMonth.paymentAmount / maxValue * 100) : 0}%">
-                              <span class="text-xs font-semibold text-white">{formatCurrency(currentMonth.paymentAmount)}</span>
+                              <span class="text-xs font-semibold text-white">{formatTND(currentMonth.paymentAmount)}</span>
                               {#if currentMonth.paymentAmount > 0}
                                 <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                                   <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -1286,7 +1254,7 @@
                           <div class="bg-gray-200 rounded-full h-8 overflow-hidden">
                             <div class="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-1000 ease-out flex items-center justify-between px-3"
                                  style="width: {maxValue ? (currentMonth.expectedPayments / maxValue * 100) : 0}%">
-                              <span class="text-xs font-semibold text-white">{formatCurrency(currentMonth.expectedPayments)}</span>
+                              <span class="text-xs font-semibold text-white">{formatTND(currentMonth.expectedPayments)}</span>
                               {#if currentMonth.expectedPayments > 0}
                                 <div class="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                                   <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -1309,7 +1277,7 @@
                             <div class="bg-gray-200 rounded-full h-6 overflow-hidden">
                               <div class="h-full rounded-full transition-all duration-1000 ease-out flex items-center px-2 {currentMonth.paymentAmount > currentMonth.expectedPayments ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-red-400 to-red-600'}"
                                    style="width: {maxValue ? (Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount) / maxValue * 100) : 0}%">
-                                <span class="text-xs font-semibold text-white">{formatCurrency(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))}</span>
+                                <span class="text-xs font-semibold text-white">{formatTND(Math.abs(currentMonth.expectedPayments - currentMonth.paymentAmount))}</span>
                               </div>
                             </div>
                           </div>
@@ -1360,7 +1328,7 @@
                           {#if currentMonth.cessionCount > 0}
                             <div class="flex items-start space-x-2">
                               <div class="w-1.5 h-1.5 bg-purple-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                              <span class="text-gray-700">New business growth: {currentMonth.cessionCount} cessions worth {formatCurrency(currentMonth.cessionAmount)}</span>
+                              <span class="text-gray-700">New business growth: {currentMonth.cessionCount} cessions worth {formatTND(currentMonth.cessionAmount)}</span>
                             </div>
                           {/if}
                         </div>
@@ -1468,95 +1436,93 @@
               {/if}
             </div>
 
-            <!-- KPI Dashboard & Predictive Analytics -->
-            <div class="space-y-6">
-              {#if monthsData.length > 0}
-                {@const totalRevenue = monthsData.reduce((sum, month) => sum + month.paymentAmount, 0)}
-                {@const totalExpected = monthsData.reduce((sum, month) => sum + month.expectedPayments, 0)}
-                {@const overallEfficiency = totalExpected > 0 ? (totalRevenue / totalExpected * 100) : 0}
-                {@const recentMonths = monthsData.slice(-3)}
-                {@const avgRecentEfficiency = recentMonths.length > 0 ? recentMonths.reduce((sum, month) => sum + (month.expectedPayments > 0 ? (month.paymentAmount / month.expectedPayments * 100) : 0), 0) / recentMonths.length : 0}
-                {@const totalCessions = monthsData.reduce((sum, month) => sum + month.cessionCount, 0)}
-                {@const totalCessionAmount = monthsData.reduce((sum, month) => sum + month.cessionAmount, 0)}
-                
-                <!-- Real-time Business Health Score -->
-                <div class="bg-white rounded-2xl p-5 shadow-lg border border-gray-100">
-                  <div class="flex items-center justify-between mb-4">
-                    <h4 class="text-lg font-semibold text-gray-900">🎯 Business Health</h4>
-                    <div class="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full animate-pulse"></div>
-                  </div>
-                  
-                  <!-- Overall Health Score -->
-                  <div class="text-center mb-4">
-                    <div class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                      {overallEfficiency.toFixed(0)}
-                    </div>
-                    <div class="text-sm text-gray-600 mb-3">Overall Health Score</div>
-                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div class="h-full bg-gradient-to-r from-red-400 via-yellow-400 via-blue-400 to-green-500 rounded-full transition-all duration-2000"
-                           style="width: {Math.min(overallEfficiency, 100)}%"></div>
-                    </div>
-                  </div>
+            {#if monthsData.length > 0}
+              {@const totalRevenue = monthsData.reduce((sum, month) => sum + month.paymentAmount, 0)}
+              {@const totalExpected = monthsData.reduce((sum, month) => sum + month.expectedPayments, 0)}
+              {@const overallEfficiency = totalExpected > 0 ? (totalRevenue / totalExpected * 100) : 0}
+              {@const recentMonths = monthsData.slice(-3)}
+              {@const avgRecentEfficiency = recentMonths.length > 0 ? recentMonths.reduce((sum, month) => sum + (month.expectedPayments > 0 ? (month.paymentAmount / month.expectedPayments * 100) : 0), 0) / recentMonths.length : 0}
+              {@const totalCessions = monthsData.reduce((sum, month) => sum + month.cessionCount, 0)}
+              {@const totalCessionAmount = monthsData.reduce((sum, month) => sum + month.cessionAmount, 0)}
 
-                  <!-- Key Metrics Grid -->
-                  <div class="space-y-3">
-                    <div class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-                      <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <div class="text-sm font-medium text-blue-900">Total Revenue</div>
-                          <div class="text-xs text-blue-600">{monthsData.length} months tracked</div>
-                        </div>
-                      </div>
-                      <div class="text-right">
-                        <div class="text-lg font-bold text-blue-900">{formatCurrency(totalRevenue)}</div>
-                        <div class="text-xs text-blue-600">Collected</div>
-                      </div>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
-                      <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <div class="text-sm font-medium text-green-900">3-Month Avg</div>
-                          <div class="text-xs text-green-600">Recent efficiency</div>
-                        </div>
-                      </div>
-                      <div class="text-right">
-                        <div class="text-lg font-bold text-green-900">{avgRecentEfficiency.toFixed(1)}%</div>
-                        <div class="text-xs text-green-600">Collection Rate</div>
-                      </div>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
-                      <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <div class="text-sm font-medium text-purple-900">Portfolio Growth</div>
-                          <div class="text-xs text-purple-600">{totalCessions} total cessions</div>
-                        </div>
-                      </div>
-                      <div class="text-right">
-                        <div class="text-lg font-bold text-purple-900">{formatCurrency(totalCessionAmount)}</div>
-                        <div class="text-xs text-purple-600">Total Volume</div>
-                      </div>
-                    </div>
+              <!-- Business Health Dashboard - Takes 1/4 column -->
+            <div class="bg-white rounded-2xl p-5 shadow-lg border border-gray-100">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-semibold text-gray-900">🎯 Business Health</h4>
+                <div class="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full animate-pulse"></div>
+              </div>
+              
+              <!-- Overall Health Score -->
+              <div class="text-center mb-4">
+                <div class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                  {overallEfficiency.toFixed(0)}
+                </div>
+                <div class="text-sm text-gray-600 mb-3">Overall Health Score</div>
+                <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-red-400 via-yellow-400 via-blue-400 to-green-500 rounded-full transition-all duration-2000"
+                       style="width: {Math.min(overallEfficiency, 100)}%"></div>
                 </div>
               </div>
-            {/if}
-          </div>            <!-- Top Clients -->
+
+              <!-- Key Metrics Grid -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-medium text-blue-900">Total Revenue</div>
+                      <div class="text-xs text-blue-600">{monthsData.length} months tracked</div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-lg font-bold text-blue-900">{formatTND(totalRevenue)}</div>
+                    <div class="text-xs text-blue-600">Collected</div>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-medium text-green-900">3-Month Avg</div>
+                      <div class="text-xs text-green-600">Recent efficiency</div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-lg font-bold text-green-900">{avgRecentEfficiency.toFixed(1)}%</div>
+                    <div class="text-xs text-green-600">Collection Rate</div>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="text-sm font-medium text-purple-900">Portfolio Growth</div>
+                      <div class="text-xs text-purple-600">{totalCessions} total cessions</div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-lg font-bold text-purple-900">{formatTND(totalCessionAmount)}</div>
+                    <div class="text-xs text-purple-600">Total Volume</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Clients - Takes 1/4 column -->
             <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Performing Clients</h3>
               <div class="space-y-4">
@@ -1570,16 +1536,14 @@
                       <p class="text-sm text-gray-500">{client.paymentCount} payments</p>
                     </div>
                     <div class="text-right">
-                      <p class="font-semibold text-gray-900">{formatCurrency(client.totalPaid)}</p>
-                      <p class="text-sm text-gray-500">avg {formatCurrency(client.avgPayment)}</p>
+                      <p class="font-semibold text-gray-900">{formatTND(client.totalPaid)}</p>
+                      <p class="text-sm text-gray-500">avg {formatTND(client.avgPayment)}</p>
                     </div>
                   </div>
                 {/each}
               </div>
             </div>
-          </div>
-
-          <!-- Risk Analysis -->
+          {/if}
           {#if riskClients.length > 0}
             <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div class="flex items-center justify-between mb-6">
@@ -1599,7 +1563,7 @@
                     </div>
                     <div class="space-y-1 text-sm">
                       <p class="text-gray-600">Cession: {client.daysSinceCreation} days ago</p>
-                      <p class="text-gray-600">Amount: {formatCurrency(client.totalLoanAmount || 0)}</p>
+                      <p class="text-gray-600">Amount: {formatTND(client.totalLoanAmount || 0)}</p>
                       {#if client.daysSinceLastPayment}
                         <p class="text-red-700 font-medium">Last payment: {client.daysSinceLastPayment} days ago</p>
                       {:else}
@@ -1611,10 +1575,15 @@
               </div>
             </div>
           {/if}
-
-          <!-- Danger Clients Analysis -->
+        </div>
+      </div>
+      
+      <!-- Danger Clients Analysis - Full Width Container -->
+      <div class="w-full bg-gray-50">
+        <div class="max-w-full mx-auto py-8">
           <DangerClients />
         </div>
+      </div>
       {:else}
         <!-- Enterprise-Grade Table View -->
         <div class="space-y-6" transition:fade={{ duration: 300 }}>
@@ -1633,7 +1602,7 @@
                       type="text"
                       bind:value={searchQuery}
                       on:input={handleSearch}
-                      placeholder="🔍 Search by client name, amount, date, transaction ID..."
+                      placeholder="🔍 Search by client name, cession ID, payment ID, amount, date, method..."
                       class="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
                     />
                     {#if searchQuery}
@@ -1651,59 +1620,6 @@
 
                 <!-- View Controls -->
                 <div class="flex items-center space-x-3">
-                  <!-- Density Control -->
-                  <div class="flex items-center space-x-1 bg-gray-50 rounded-lg p-1">
-                    <button
-                      on:click={() => tableDensity = 'compact'}
-                      class="px-3 py-1 text-xs rounded-md transition-all {tableDensity === 'compact' ? 'bg-white shadow-sm font-medium' : 'text-gray-600 hover:text-gray-900'}"
-                    >
-                      Compact
-                    </button>
-                    <button
-                      on:click={() => tableDensity = 'normal'}
-                      class="px-3 py-1 text-xs rounded-md transition-all {tableDensity === 'normal' ? 'bg-white shadow-sm font-medium' : 'text-gray-600 hover:text-gray-900'}"
-                    >
-                      Normal
-                    </button>
-                    <button
-                      on:click={() => tableDensity = 'comfortable'}
-                      class="px-3 py-1 text-xs rounded-md transition-all {tableDensity === 'comfortable' ? 'bg-white shadow-sm font-medium' : 'text-gray-600 hover:text-gray-900'}"
-                    >
-                      Comfortable
-                    </button>
-                  </div>
-
-                  <!-- Column Visibility -->
-                  <div class="relative">
-                    <button
-                      on:click={() => showColumnSettings = !showColumnSettings}
-                      class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2z"/>
-                      </svg>
-                      <span>Columns</span>
-                    </button>
-                    
-                    {#if showColumnSettings}
-                      <div class="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-4" transition:scale>
-                        <h4 class="font-semibold text-gray-900 mb-3">Show/Hide Columns</h4>
-                        <div class="space-y-2 max-h-64 overflow-y-auto">
-                          {#each Object.entries(columnVisibility) as [column, visible]}
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                bind:checked={columnVisibility[column]}
-                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              />
-                              <span class="text-sm capitalize">{column.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
-                            </label>
-                          {/each}
-                        </div>
-                      </div>
-                    {/if}
-                  </div>
-
                   <!-- Export Options -->
                   <div class="relative">
                     <button
@@ -1809,20 +1725,116 @@
                   </select>
                 </div>
 
-                <!-- Payment Method Filter -->
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Method</label>
-                  <select 
-                    bind:value={selectedPaymentMethod}
-                    on:change={handleSearch}
-                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <!-- Month Filter - Elegant Dropdown -->
+                <div class="relative month-picker-container">
+                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Month Filter</label>
+                  <button
+                    type="button"
+                    on:click={() => showMonthPicker = !showMonthPicker}
+                    class="w-full px-4 py-3 text-left border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
                   >
-                    <option value="">All methods</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="cash">Cash</option>
-                    <option value="check">Check</option>
-                    <option value="online">Online Payment</option>
-                  </select>
+                    <div class="flex items-center space-x-2">
+                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                      </svg>
+                      <span class="text-sm font-medium">
+                        {#if selectedMonth}
+                          {new Date(2024, parseInt(selectedMonth) - 1).toLocaleString('default', { month: 'long' })}
+                        {:else}
+                          All Months
+                        {/if}
+                      </span>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 transform transition-transform {showMonthPicker ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </button>
+
+                  {#if showMonthPicker}
+                    <div 
+                      class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-5 backdrop-blur-sm"
+                      transition:slide={{ duration: 300, easing: quintOut }}
+                      style="box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);"
+                    >
+                      <!-- Current Selection Display -->
+                      <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                        <div class="flex items-center space-x-2">
+                          <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <h3 class="text-sm font-semibold text-gray-800">Select Month to Filter</h3>
+                        </div>
+                        {#if selectedMonth}
+                          <button 
+                            on:click={() => { selectedMonth = ''; handleSearch(); showMonthPicker = false; }}
+                            class="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                          >
+                            ✕ Clear
+                          </button>
+                        {/if}
+                      </div>
+
+                      <!-- Month Grid -->
+                      <div class="grid grid-cols-4 gap-2 mb-4">
+                        {#each [
+                          { value: '01', name: 'January', short: 'Jan', color: 'from-blue-400 to-blue-600' },
+                          { value: '02', name: 'February', short: 'Feb', color: 'from-purple-400 to-purple-600' },
+                          { value: '03', name: 'March', short: 'Mar', color: 'from-green-400 to-green-600' },
+                          { value: '04', name: 'April', short: 'Apr', color: 'from-yellow-400 to-yellow-600' },
+                          { value: '05', name: 'May', short: 'May', color: 'from-pink-400 to-pink-600' },
+                          { value: '06', name: 'June', short: 'Jun', color: 'from-indigo-400 to-indigo-600' },
+                          { value: '07', name: 'July', short: 'Jul', color: 'from-red-400 to-red-600' },
+                          { value: '08', name: 'August', short: 'Aug', color: 'from-orange-400 to-orange-600' },
+                          { value: '09', name: 'September', short: 'Sep', color: 'from-teal-400 to-teal-600' },
+                          { value: '10', name: 'October', short: 'Oct', color: 'from-amber-400 to-amber-600' },
+                          { value: '11', name: 'November', short: 'Nov', color: 'from-cyan-400 to-cyan-600' },
+                          { value: '12', name: 'December', short: 'Dec', color: 'from-emerald-400 to-emerald-600' }
+                        ] as month}
+                          <button
+                            type="button"
+                            on:click={() => { 
+                              selectedMonth = month.value; 
+                              handleSearch(); 
+                              showMonthPicker = false;
+                            }}
+                            class="group relative px-3 py-4 text-center border-2 rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 {selectedMonth === month.value 
+                              ? `bg-gradient-to-br ${month.color} text-white border-transparent shadow-lg scale-105` 
+                              : 'bg-white text-gray-700 border-gray-200 hover:bg-gradient-to-br hover:' + month.color + ' hover:text-white hover:border-transparent hover:shadow-md'}"
+                          >
+                            <div class="text-xs font-bold uppercase tracking-wide">{month.short}</div>
+                            {#if selectedMonth === month.value}
+                              <div class="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
+                                <svg class="w-2 h-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                              </div>
+                            {/if}
+                          </button>
+                        {/each}
+                      </div>
+
+                      <!-- Quick Actions -->
+                      <div class="flex gap-2">
+                        <button
+                          type="button"
+                          on:click={() => { 
+                            const currentMonth = new Date().getMonth() + 1;
+                            selectedMonth = currentMonth.toString().padStart(2, '0'); 
+                            handleSearch(); 
+                            showMonthPicker = false;
+                          }}
+                          class="flex-1 px-4 py-2 text-sm font-semibold bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
+                        >
+                          📅 Current Month
+                        </button>
+                        <button
+                          type="button"
+                          on:click={() => { showMonthPicker = false; }}
+                          class="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  {/if}
                 </div>
 
                 <!-- Status Filter -->
@@ -1843,7 +1855,7 @@
               </div>
 
               <!-- Filter Summary & Clear -->
-              {#if searchQuery || selectedTimeRange !== 'all' || minAmount || maxAmount || selectedClient || selectedPaymentMethod || selectedStatus}
+              {#if searchQuery || selectedTimeRange !== 'all' || minAmount || maxAmount || selectedClient || selectedMonth || selectedStatus}
                 <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div class="flex items-center space-x-2">
                     <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1854,6 +1866,7 @@
                       {#if searchQuery}• Search: "{searchQuery}"{/if}
                       {#if selectedTimeRange !== 'all'}• {selectedTimeRange}{/if}
                       {#if minAmount || maxAmount}• Amount: {minAmount || '0'} - {maxAmount || '∞'}{/if}
+                      {#if selectedMonth}• Month: {new Date(2024, parseInt(selectedMonth) - 1).toLocaleString('default', { month: 'long' })}{/if}
                     </span>
                   </div>
                   <button
@@ -1954,7 +1967,7 @@
 
             <!-- Table Container with Horizontal Scroll -->
             <div class="overflow-x-auto">
-              <table class="w-full min-w-[1200px]" class:compact={tableDensity === 'compact'} class:comfortable={tableDensity === 'comfortable'}>
+              <table class="w-full min-w-[1200px] comfortable">
                 <!-- Table Header -->
                 <thead class="bg-gray-50">
                   <tr>
@@ -1969,86 +1982,47 @@
                     </th>
 
                     <!-- Sortable Columns -->
-                    {#if columnVisibility.id}
-                      <th class="px-6 py-3 text-left">
-                        <button
-                          on:click={() => handleSort('id')}
-                          class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
-                        >
-                          <span>ID</span>
-                          <svg class="w-3 h-3 {sortBy === 'id' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'id' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'id' || sortOrder !== 'asc'}/>
-                            <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'id' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'id' || sortOrder !== 'desc'}/>
-                          </svg>
-                        </button>
-                      </th>
-                    {/if}
-
-                    {#if columnVisibility.date}
-                      <th class="px-6 py-3 text-left">
-                        <button
-                          on:click={() => handleSort('paymentDate')}
-                          class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
-                        >
-                          <span>Date</span>
-                          <svg class="w-3 h-3 {sortBy === 'paymentDate' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'paymentDate' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'paymentDate' || sortOrder !== 'asc'}/>
-                            <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'paymentDate' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'paymentDate' || sortOrder !== 'desc'}/>
-                          </svg>
-                        </button>
-                      </th>
-                    {/if}
-
-                    {#if columnVisibility.client}
-                      <th class="px-6 py-3 text-left">
-                        <button
-                          on:click={() => handleSort('cessionClientName')}
-                          class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
-                        >
-                          <span>Client</span>
-                          <svg class="w-3 h-3 {sortBy === 'cessionClientName' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'cessionClientName' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'cessionClientName' || sortOrder !== 'asc'}/>
-                            <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'cessionClientName' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'cessionClientName' || sortOrder !== 'desc'}/>
-                          </svg>
-                        </button>
-                      </th>
-                    {/if}
-
-                    {#if columnVisibility.amount}
-                      <th class="px-6 py-3 text-left">
-                        <button
-                          on:click={() => handleSort('amount')}
-                          class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
-                        >
-                          <span>Amount</span>
-                          <svg class="w-3 h-3 {sortBy === 'amount' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'amount' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'amount' || sortOrder !== 'asc'}/>
-                            <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'amount' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'amount' || sortOrder !== 'desc'}/>
-                          </svg>
-                        </button>
-                      </th>
-                    {/if}
-
-                    {#if columnVisibility.method}
-                      <th class="px-6 py-3 text-left">
-                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Method</span>
-                      </th>
-                    {/if}
-
-                    {#if columnVisibility.status}
-                      <th class="px-6 py-3 text-left">
-                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
-                      </th>
-                    {/if}
-
-                    {#if columnVisibility.analytics}
-                      <th class="px-6 py-3 text-left">
-                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Analytics</span>
-                      </th>
-                    {/if}
+                    <th class="px-6 py-3 text-left">
+                      <button
+                        on:click={() => handleSort('paymentDate')}
+                        class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
+                      >
+                        <span>Date</span>
+                        <svg class="w-3 h-3 {sortBy === 'paymentDate' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'paymentDate' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'paymentDate' || sortOrder !== 'asc'}/>
+                          <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'paymentDate' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'paymentDate' || sortOrder !== 'desc'}/>
+                        </svg>
+                      </button>
+                    </th>
 
                     <th class="px-6 py-3 text-left">
-                      <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</span>
+                      <button
+                        on:click={() => handleSort('cessionClientName')}
+                        class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
+                      >
+                        <span>Client</span>
+                        <svg class="w-3 h-3 {sortBy === 'cessionClientName' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'cessionClientName' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'cessionClientName' || sortOrder !== 'asc'}/>
+                          <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'cessionClientName' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'cessionClientName' || sortOrder !== 'desc'}/>
+                        </svg>
+                        </button>
+                      </th>
+
+                    <th class="px-6 py-3 text-left">
+                      <button
+                        on:click={() => handleSort('amount')}
+                        class="flex items-center space-x-1 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-700 group"
+                      >
+                        <span>Amount</span>
+                        <svg class="w-3 h-3 {sortBy === 'amount' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M5 8l5-5 5 5H5z" class:opacity-100={sortBy === 'amount' && sortOrder === 'asc'} class:opacity-30={sortBy !== 'amount' || sortOrder !== 'asc'}/>
+                          <path d="M5 12l5 5 5-5H5z" class:opacity-100={sortBy === 'amount' && sortOrder === 'desc'} class:opacity-30={sortBy !== 'amount' || sortOrder !== 'desc'}/>
+                        </svg>
+                      </button>
+                    </th>
+
+                    <th class="px-6 py-3 text-left">
+                      <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</span>
                     </th>
                   </tr>
                 </thead>
@@ -2057,8 +2031,7 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                   {#each paginatedPayments as payment, index}
                     <tr 
-                      class="hover:bg-gray-50 transition-colors cursor-pointer {selectedPayments.has(payment.id) ? 'bg-blue-50' : ''}"
-                      on:click={() => togglePaymentSelection(payment.id)}
+                      class="hover:bg-gray-50 transition-colors {selectedPayments.has(payment.id) ? 'bg-blue-50' : ''}"
                     >
                       <!-- Checkbox -->
                       <td class="px-4 py-4">
@@ -2071,163 +2044,74 @@
                         />
                       </td>
 
-                      {#if columnVisibility.id}
-                        <td class="px-6 py-4 text-sm text-gray-900 font-mono">
-                          #{payment.id}
-                        </td>
-                      {/if}
-
-                      {#if columnVisibility.date}
-                        <td class="px-6 py-4">
-                          <div class="flex flex-col">
-                            <span class="text-sm font-medium text-gray-900">
-                              {new Date(payment.paymentDate).toLocaleDateString()}
-                            </span>
-                            <span class="text-xs text-gray-500">
-                              {new Date(payment.paymentDate).toLocaleTimeString()}
-                            </span>
-                          </div>
-                        </td>
-                      {/if}
-
-                      {#if columnVisibility.client}
-                        <td class="px-6 py-4">
-                          <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                              {payment.cessionClientName.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <div class="text-sm font-medium text-gray-900">{payment.cessionClientName}</div>
-                              <div class="text-xs text-gray-500">Cession #{payment.cessionId}</div>
-                            </div>
-                          </div>
-                        </td>
-                      {/if}
-
-                      {#if columnVisibility.amount}
-                        <td class="px-6 py-4">
-                          <div class="flex items-center space-x-2">
-                            <span class="text-lg font-bold text-green-600">
-                              ${payment.amount.toLocaleString()}
-                            </span>
-                            <!-- Amount trend indicator -->
-                            <div class="text-xs">
-                              {#if payment.amount > 10000}
-                                <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full font-medium">High</span>
-                              {:else if payment.amount > 5000}
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">Medium</span>
-                              {:else}
-                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium">Low</span>
-                              {/if}
-                            </div>
-                          </div>
-                        </td>
-                      {/if}
-
-                      {#if columnVisibility.method}
-                        <td class="px-6 py-4">
-                          <div class="flex items-center space-x-2">
-                            {#if payment.paymentMethod === 'bank_transfer'}
-                              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1M8 21l4-7-4-7"/>
-                              </svg>
-                              <span class="text-sm text-gray-900">Bank Transfer</span>
-                            {:else if payment.paymentMethod === 'cash'}
-                              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                              </svg>
-                              <span class="text-sm text-gray-900">Cash</span>
-                            {:else}
-                              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                              </svg>
-                              <span class="text-sm text-gray-900 capitalize">{payment.paymentMethod?.replace('_', ' ') || 'Bank Transfer'}</span>
-                            {/if}
-                          </div>
-                        </td>
-                      {/if}
-
-                      {#if columnVisibility.status}
-                        <td class="px-6 py-4">
-                          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                            {payment.status === 'completed' || !payment.status ? 'bg-green-100 text-green-800' :
-                             payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                             payment.status === 'failed' ? 'bg-red-100 text-red-800' :
-                             'bg-gray-100 text-gray-800'}">
-                            <span class="w-1.5 h-1.5 mr-1.5 rounded-full
-                              {payment.status === 'completed' || !payment.status ? 'bg-green-400' :
-                               payment.status === 'pending' ? 'bg-yellow-400' :
-                               payment.status === 'failed' ? 'bg-red-400' :
-                               'bg-gray-400'}"></span>
-                            {payment.status ? payment.status.charAt(0).toUpperCase() + payment.status.slice(1) : 'Completed'}
+                      <td class="px-6 py-4">
+                        <div class="flex flex-col">
+                          <span class="text-sm font-medium text-gray-900">
+                            {new Date(payment.paymentDate).toLocaleDateString()}
                           </span>
-                        </td>
-                      {/if}
+                          <span class="text-xs text-gray-500">
+                            {new Date(payment.paymentDate).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </td>
 
-                      {#if columnVisibility.analytics}
-                        <td class="px-6 py-4">
-                          <div class="flex items-center space-x-3">
-                            <!-- Performance Score -->
-                            <div class="flex items-center space-x-1">
-                              <div class="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div 
-                                  class="h-full bg-gradient-to-r from-red-400 via-yellow-400 to-green-400 rounded-full transition-all duration-500"
-                                  style="width: {Math.min(100, (payment.amount / 20000) * 100)}%"
-                                ></div>
-                              </div>
-                              <span class="text-xs text-gray-500">{Math.round((payment.amount / 20000) * 100)}%</span>
-                            </div>
-                            
-                            <!-- Trend Indicator -->
-                            <div class="text-xs">
-                              {#if index > 0 && paginatedPayments[index-1]}
-                                {#if payment.amount > paginatedPayments[index-1].amount}
-                                  <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                                  </svg>
-                                {:else}
-                                  <svg class="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                  </svg>
-                                {/if}
-                              {/if}
-                            </div>
+                      <td class="px-6 py-4">
+                        <div class="flex items-center space-x-3">
+                          <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                            {payment.cessionClientName.charAt(0).toUpperCase()}
                           </div>
-                        </td>
-                      {/if}
+                          <div>
+                            <button 
+                              on:click|stopPropagation={() => {
+                                // Get the cession to find the correct client ID
+                                const cession = cessions.find(c => c.id === payment.cessionId);
+                                const clientId = cession?.clientId || payment.clientId || payment.cessionClientId;
+                                if (clientId) {
+                                  goto(`/clients/${clientId}?tab=details`);
+                                }
+                              }}
+                              class="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
+                            >
+                              {payment.cessionClientName}
+                            </button>
+                          </div>
+                        </div>
+                      </td>
 
-                      <!-- Actions -->
                       <td class="px-6 py-4">
                         <div class="flex items-center space-x-2">
                           <button 
-                            on:click|stopPropagation={() => viewPaymentDetails(payment)}
-                            class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View Details"
+                            on:click|stopPropagation={() => goto(`/cessions/${payment.cessionId}`)}
+                            class="text-lg font-bold text-green-600 hover:text-green-800 hover:underline transition-colors"
                           >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                            </svg>
+                            {payment.amount.toLocaleString()} TND
                           </button>
-                          <button 
-                            on:click|stopPropagation={() => editPayment(payment)}
-                            class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Edit Payment"
-                          >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                          </button>
-                          <button 
-                            on:click|stopPropagation={() => duplicatePayment(payment)}
-                            class="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                            title="Duplicate Payment"
-                          >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                            </svg>
-                          </button>
+                          <!-- Amount trend indicator -->
+                          <div class="text-xs">
+                            {#if payment.amount > 10000}
+                              <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full font-medium">High</span>
+                            {:else if payment.amount > 5000}
+                              <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium">Medium</span>
+                            {:else}
+                              <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium">Low</span>
+                            {/if}
+                          </div>
                         </div>
+                      </td>
+
+                      <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                          {payment.status === 'completed' || !payment.status ? 'bg-green-100 text-green-800' :
+                           payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                           payment.status === 'failed' ? 'bg-red-100 text-red-800' :
+                           'bg-gray-100 text-gray-800'}">
+                          <span class="w-1.5 h-1.5 mr-1.5 rounded-full
+                            {payment.status === 'completed' || !payment.status ? 'bg-green-400' :
+                             payment.status === 'pending' ? 'bg-yellow-400' :
+                             payment.status === 'failed' ? 'bg-red-400' :
+                             'bg-gray-400'}"></span>
+                          {payment.status ? payment.status.charAt(0).toUpperCase() + payment.status.slice(1) : 'Completed'}
+                        </span>
                       </td>
                     </tr>
                   {:else}
@@ -2325,9 +2209,6 @@
       {/if}
     {/if}
   </div>
-
-  <!-- TEMPORARY: Debug panel for troubleshooting date/timezone issues -->
-  <DateDebugPanel />
 </div>
 
 <style>
