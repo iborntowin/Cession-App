@@ -38,7 +38,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [],
+    "resources": [
+      "backend/cession-app-backend-0.0.1-SNAPSHOT.jar"
+    ],
     "copyright": "Copyright © 2025 Nassim Maaoui. All rights reserved.",
     "category": "Business",
     "shortDescription": "Professional cession management application",

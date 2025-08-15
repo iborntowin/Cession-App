@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -129,7 +130,9 @@ public class PaymentService {
 
         List<Cession> activeCessions = cessionRepository.findByStatusIn(List.of("ACTIVE", "active", "in_progress"));
         List<DangerClientDTO> dangerClients = new ArrayList<>();
-        LocalDate now = LocalDate.now();
+        
+        // FIXED: Use UTC timezone consistently to avoid dev/prod differences
+        LocalDate now = LocalDate.now(java.time.ZoneOffset.UTC);
 
         int warningCount = 0;
         int dangerCount = 0;
@@ -143,8 +146,21 @@ public class PaymentService {
                 continue;
             }
 
+            // FIXED: Ensure consistent date handling - convert to start of month for accurate comparison
+            LocalDate cessionStartDate = cession.getStartDate();
+            if (cessionStartDate == null) {
+                continue; // Skip cessions without start date
+            }
+            
+            // Normalize dates to first day of month for consistent month calculation
+            LocalDate normalizedStartDate = cessionStartDate.withDayOfMonth(1);
+            LocalDate normalizedNow = now.withDayOfMonth(1);
+            
             // Calculate due months (months elapsed since start_date, capped by months_total if available)
-            long monthsElapsed = ChronoUnit.MONTHS.between(cession.getStartDate(), now);
+            // FIXED: Use more robust month calculation that handles edge cases consistently
+            long monthsElapsed = ChronoUnit.MONTHS.between(normalizedStartDate, normalizedNow);
+            
+            // FIXED: Only consider positive elapsed months (cessions that have actually started)
             int dueMonths = (int) Math.max(0, monthsElapsed);
             
             // If we have a total loan amount, calculate expected total months
@@ -165,6 +181,9 @@ public class PaymentService {
 
             // Calculate missed months
             int missedMonths = Math.max(0, dueMonths - paidMonths);
+
+            // Debug logging can be enabled by uncommenting the line below
+            // System.out.println(String.format("DEBUG - Cession %s: startDate=%s, monthsElapsed=%d, dueMonths=%d, missedMonths=%d", cession.getId(), cessionStartDate, monthsElapsed, dueMonths, missedMonths));
 
             // Include if missed months >= threshold (now includes 1-month warnings)
             if (missedMonths >= thresholdMonths) {

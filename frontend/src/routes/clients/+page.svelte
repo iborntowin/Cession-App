@@ -6,7 +6,7 @@
   import { clientsLoading, clientsLoadingManager } from '$lib/stores/pageLoading';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
-  import { fade, fly } from 'svelte/transition';
+  import { fade, fly, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { t, currentLanguage } from '$lib/i18n';
   import { browser } from '$app/environment';
@@ -77,6 +77,14 @@
   onDestroy(() => {
     cleanup();
   });
+
+  // Handle keyboard events for modal
+  function handleKeydown(event) {
+    if (event.key === 'Escape' && isClientDetailsVisible) {
+      event.preventDefault();
+      closeClientDetails();
+    }
+  }
 
   // Stable loading with anti-flickering system
   async function loadClients(forceRefresh = false) {
@@ -325,12 +333,21 @@
     applySorting();
   }
 
-  // Client details functions (unchanged but with error handling)
+  // Client details functions with improved error handling
+  let isLoadingClientDetails = false;
+  
   async function showClientDetails(client) {
     if (!client || !client.id) {
       showAlert('Invalid client data', 'error');
       return;
     }
+
+    // Prevent multiple modal openings
+    if (isLoadingClientDetails || isClientDetailsVisible) {
+      return;
+    }
+
+    isLoadingClientDetails = true;
 
     try {
       const freshClient = await clientsApi.getById(client.id);
@@ -341,67 +358,124 @@
       selectedClient = freshClient.data;
       isClientDetailsVisible = true;
 
-      // Load additional details
+      // Load additional details in parallel
+      const detailPromises = [];
+      
       if (freshClient.data.jobId) {
-        try {
-          const jobs = await jobsApi.getAll();
-          jobDetails = jobs.find(job => job.id === freshClient.data.jobId);
-        } catch (error) {
-          console.error('Error loading job details:', error);
-        }
+        detailPromises.push(
+          jobsApi.getAll()
+            .then(jobs => {
+              jobDetails = jobs.find(job => job.id === freshClient.data.jobId);
+            })
+            .catch(error => {
+              console.error('Error loading job details:', error);
+              jobDetails = null;
+            })
+        );
       }
 
       if (freshClient.data.workplaceId) {
-        try {
-          const workplaces = await workplacesApi.getAll();
-          workplaceDetails = workplaces.find(workplace => workplace.id === freshClient.data.workplaceId);
-        } catch (error) {
-          console.error('Error loading workplace details:', error);
-        }
+        detailPromises.push(
+          workplacesApi.getAll()
+            .then(workplaces => {
+              workplaceDetails = workplaces.find(workplace => workplace.id === freshClient.data.workplaceId);
+            })
+            .catch(error => {
+              console.error('Error loading workplace details:', error);
+              workplaceDetails = null;
+            })
+        );
       }
+
+      // Wait for all detail loading to complete
+      if (detailPromises.length > 0) {
+        await Promise.allSettled(detailPromises);
+      }
+
     } catch (error) {
       console.error('Error loading client details:', error);
       showAlert('Failed to load client details', 'error');
+      
+      // Reset modal state on error
+      isClientDetailsVisible = false;
+      selectedClient = null;
+    } finally {
+      isLoadingClientDetails = false;
     }
   }
 
   function closeClientDetails() {
-    isClientDetailsVisible = false;
-    selectedClient = null;
-    jobDetails = null;
-    workplaceDetails = null;
+    try {
+      isClientDetailsVisible = false;
+      selectedClient = null;
+      jobDetails = null;
+      workplaceDetails = null;
+      isLoadingClientDetails = false;
+    } catch (error) {
+      console.error('Error closing client details:', error);
+      // Force close the modal even if there's an error
+      isClientDetailsVisible = false;
+      selectedClient = null;
+      isLoadingClientDetails = false;
+    }
   }
 
-  function viewFullDetails(clientId) {
+  async function viewFullDetails(clientId) {
     if (!clientId) {
       showAlert('Invalid client ID', 'error');
       return;
     }
-    closeClientDetails();
+    
     try {
-      goto(`/clients/${clientId}`);
+      // Close modal first to prevent UI freezing
+      closeClientDetails();
+      
+      // Add a small delay to ensure modal closes properly
+      await tick();
+      
+      // Navigate to client details
+      await goto(`/clients/${clientId}`);
     } catch (error) {
       console.error('Error navigating to client details:', error);
       showAlert('Failed to navigate to client details', 'error');
+      
+      // Fallback navigation
       if (browser) {
-        window.location.href = `/clients/${clientId}`;
+        try {
+          window.location.href = `/clients/${clientId}`;
+        } catch (fallbackError) {
+          console.error('Fallback navigation failed:', fallbackError);
+        }
       }
     }
   }
 
-  function createCession(clientId) {
+  async function createCession(clientId) {
     if (!clientId) {
       showAlert('Invalid client ID', 'error');
       return;
     }
+    
     try {
+      // Close modal first to prevent UI freezing
       closeClientDetails();
-      goto(`/cessions/new?clientId=${clientId}`);
+      
+      // Add a small delay to ensure modal closes properly
+      await tick();
+      
+      // Navigate to cession creation
+      await goto(`/cessions/new?clientId=${clientId}`);
     } catch (error) {
       console.error('Error navigating to cession creation:', error);
       showAlert('Failed to navigate to cession creation', 'error');
+      
+      // Fallback navigation
       if (browser) {
-        window.location.href = `/cessions/new?clientId=${clientId}`;
+        try {
+          window.location.href = `/cessions/new?clientId=${clientId}`;
+        } catch (fallbackError) {
+          console.error('Fallback navigation failed:', fallbackError);
+        }
       }
     }
   }
@@ -444,6 +518,8 @@
 <svelte:head>
   <title>{$t('clients.title')} | {$t('common.app.title')}</title>
 </svelte:head>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" class:rtl={isRTL} dir={isRTL ? 'rtl' : 'ltr'}>
   <!-- Modern Header with Glassmorphism -->
@@ -730,10 +806,19 @@
                   class="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 hover:shadow-xl hover:border-purple-200 transition-all duration-300 cursor-pointer"
                   in:fly={{ y: hasSearchQuery ? 0 : 20, delay: hasSearchQuery ? 0 : index * 30, duration: hasSearchQuery ? 0 : 200 }}
                   out:fly={{ y: hasSearchQuery ? 0 : -20, duration: hasSearchQuery ? 0 : 150 }}
-                  on:click={() => showClientDetails(client)}
-                  on:keydown={(e) => e.key === 'Enter' && showClientDetails(client)}
+                  on:click|stopPropagation={async (e) => {
+                    e.preventDefault();
+                    await showClientDetails(client);
+                  }}
+                  on:keydown|stopPropagation={async (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      await showClientDetails(client);
+                    }
+                  }}
                   role="button"
                   tabindex="0"
+                  aria-label="View details for {client.fullName}"
                 >
                   <!-- Client Avatar and Header -->
                   <div class="flex items-start justify-between mb-4">
@@ -803,10 +888,19 @@
                   class="group bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 hover:shadow-xl hover:border-purple-200 transition-all duration-300 cursor-pointer"
                   in:fly={{ x: hasSearchQuery ? 0 : -20, delay: hasSearchQuery ? 0 : index * 20, duration: hasSearchQuery ? 0 : 200 }}
                   out:fly={{ x: hasSearchQuery ? 0 : 20, duration: hasSearchQuery ? 0 : 150 }}
-                  on:click={() => showClientDetails(client)}
-                  on:keydown={(e) => e.key === 'Enter' && showClientDetails(client)}
+                  on:click|stopPropagation={async (e) => {
+                    e.preventDefault();
+                    await showClientDetails(client);
+                  }}
+                  on:keydown|stopPropagation={async (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      await showClientDetails(client);
+                    }
+                  }}
                   role="button"
                   tabindex="0"
+                  aria-label="View details for {client.fullName}"
                 >
                   <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
@@ -854,14 +948,32 @@
 
 <!-- Client Details Modal -->
 {#if isClientDetailsVisible && selectedClient}
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" transition:fade={{ duration: 200 }}>
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" transition:scale={{ duration: 300 }}>
+  <div 
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" 
+    transition:fade={{ duration: 200 }}
+    on:click|self={(e) => {
+      e.preventDefault();
+      closeClientDetails();
+    }}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="client-modal-title"
+  >
+    <div 
+      class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" 
+      transition:scale={{ duration: 300 }}
+      on:click|stopPropagation
+    >
       <div class="p-6 border-b border-gray-200">
         <div class="flex items-center justify-between">
-          <h2 class="text-2xl font-bold text-gray-900">Client Details</h2>
+          <h2 id="client-modal-title" class="text-2xl font-bold text-gray-900">Client Details</h2>
           <button
-            on:click={closeClientDetails}
-            class="text-gray-400 hover:text-gray-600 transition-colors"
+            on:click|stopPropagation={(e) => {
+              e.preventDefault();
+              closeClientDetails();
+            }}
+            class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+            aria-label="Close modal"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -917,14 +1029,22 @@
           <!-- Actions -->
           <div class="flex space-x-4 pt-6 border-t border-gray-200">
             <button
-              on:click={() => viewFullDetails(selectedClient.id)}
-              class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+              on:click|stopPropagation={async (e) => {
+                e.preventDefault();
+                await viewFullDetails(selectedClient.id);
+              }}
+              class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!selectedClient?.id}
             >
               View Full Details
             </button>
             <button
-              on:click={() => createCession(selectedClient.id)}
-              class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium"
+              on:click|stopPropagation={async (e) => {
+                e.preventDefault();
+                await createCession(selectedClient.id);
+              }}
+              class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!selectedClient?.id}
             >
               Create Cession
             </button>

@@ -1,191 +1,143 @@
 #!/usr/bin/env pwsh
-# Simple Production Build Script
-# Uses the existing npm scripts that are already working
+# Production Build Script for Cession Management App
+# This script ensures the backend is built and bundled with the Tauri application
 
-param(
-    [switch]$Clean = $false,
-    [switch]$Verbose = $false
-)
+Write-Host "🚀 Starting Production Build Process..." -ForegroundColor Green
 
-$ErrorActionPreference = "Stop"
+# Step 1: Clean previous builds
+Write-Host "🧹 Cleaning previous builds..." -ForegroundColor Yellow
+if (Test-Path "frontend/dist") {
+    Remove-Item -Recurse -Force "frontend/dist"
+    Write-Host "   ✅ Cleaned frontend dist" -ForegroundColor Green
+}
+if (Test-Path "frontend/src-tauri/target") {
+    Remove-Item -Recurse -Force "frontend/src-tauri/target"
+    Write-Host "   ✅ Cleaned Tauri target" -ForegroundColor Green
+}
 
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  PRODUCTION BUILD" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
+# Step 2: Build Backend JAR
+Write-Host "🔧 Building Backend JAR..." -ForegroundColor Yellow
+Set-Location "backend"
+try {
+    $backendResult = & mvn clean package -DskipTests
+    if ($LASTEXITCODE -ne 0) {
+        throw "Backend build failed"
+    }
+    Write-Host "   ✅ Backend JAR built successfully" -ForegroundColor Green
+} catch {
+    Write-Host "   ❌ Backend build failed: $_" -ForegroundColor Red
+    Set-Location ".."
+    exit 1
+}
+Set-Location ".."
 
-function Invoke-Step {
-    param(
-        [string]$StepName,
-        [scriptblock]$Command,
-        [string]$ErrorMessage = "Step failed"
-    )
-    
-    Write-Host "[$StepName] Starting..." -ForegroundColor Yellow
-    try {
-        $result = & $Command
-        if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
-            throw "$ErrorMessage (Exit code: $LASTEXITCODE)"
+# Step 3: Verify JAR file exists
+$jarPath = "backend/target/cession-app-backend-0.0.1-SNAPSHOT.jar"
+if (-not (Test-Path $jarPath)) {
+    Write-Host "   ❌ Backend JAR file not found at: $jarPath" -ForegroundColor Red
+    exit 1
+}
+$jarSize = (Get-Item $jarPath).Length / 1MB
+Write-Host "   ✅ Backend JAR verified (Size: $([math]::Round($jarSize, 2)) MB)" -ForegroundColor Green
+
+# Step 4: Build Frontend
+Write-Host "🎨 Building Frontend..." -ForegroundColor Yellow
+Set-Location "frontend"
+try {
+    $frontendResult = & npm run build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Frontend build failed"
+    }
+    Write-Host "   ✅ Frontend built successfully" -ForegroundColor Green
+} catch {
+    Write-Host "   ❌ Frontend build failed: $_" -ForegroundColor Red
+    Set-Location ".."
+    exit 1
+}
+
+# Step 5: Build Tauri Application
+Write-Host "📦 Building Tauri Application..." -ForegroundColor Yellow
+try {
+    $tauriResult = & npm run tauri build
+    if ($LASTEXITCODE -ne 0) {
+        throw "Tauri build failed"
+    }
+    Write-Host "   ✅ Tauri application built successfully" -ForegroundColor Green
+} catch {
+    Write-Host "   ❌ Tauri build failed: $_" -ForegroundColor Red
+    Set-Location ".."
+    exit 1
+}
+Set-Location ".."
+
+# Step 6: Verify build outputs
+Write-Host "🔍 Verifying build outputs..." -ForegroundColor Yellow
+
+$tauriTargetDir = "frontend/src-tauri/target/release"
+if (Test-Path $tauriTargetDir) {
+    $exeFiles = Get-ChildItem -Path $tauriTargetDir -Filter "*.exe" -Recurse
+    if ($exeFiles.Count -gt 0) {
+        foreach ($exe in $exeFiles) {
+            $exeSize = $exe.Length / 1MB
+            Write-Host "   ✅ Built: $($exe.Name) (Size: $([math]::Round($exeSize, 2)) MB)" -ForegroundColor Green
         }
-        Write-Host "[$StepName] Success" -ForegroundColor Green
-        return $result
-    } catch {
-        Write-Host "[$StepName] Failed: $_" -ForegroundColor Red
-        throw
+    } else {
+        Write-Host "   ⚠️  No .exe files found in target directory" -ForegroundColor Yellow
     }
-}
-
-Write-Host "STEP 1: Environment Check" -ForegroundColor Magenta
-Write-Host "=========================" -ForegroundColor Magenta
-
-Write-Host "Java: Available (skipping version check)" -ForegroundColor Green
-Write-Host "Maven: Available (skipping version check)" -ForegroundColor Green
-Write-Host "Node.js: Available (skipping version check)" -ForegroundColor Green
-
-Write-Host ""
-
-if ($Clean) {
-    Write-Host "STEP 2: Clean Previous Builds" -ForegroundColor Magenta
-    Write-Host "=============================" -ForegroundColor Magenta
-
-    if (Test-Path "backend/target") {
-        Remove-Item "backend/target" -Recurse -Force
-        Write-Host "Cleaned backend/target" -ForegroundColor Green
+    
+    $msiFiles = Get-ChildItem -Path $tauriTargetDir -Filter "*.msi" -Recurse
+    if ($msiFiles.Count -gt 0) {
+        foreach ($msi in $msiFiles) {
+            $msiSize = $msi.Length / 1MB
+            Write-Host "   ✅ Built: $($msi.Name) (Size: $([math]::Round($msiSize, 2)) MB)" -ForegroundColor Green
+        }
     }
-
-    Set-Location frontend
-    if (Test-Path "src-tauri/target") {
-        Remove-Item "src-tauri/target" -Recurse -Force
-        Write-Host "Cleaned frontend/src-tauri/target" -ForegroundColor Green
-    }
-    Set-Location ..
-
-    Write-Host ""
-}
-
-Write-Host "STEP 3: Install Dependencies" -ForegroundColor Magenta
-Write-Host "============================" -ForegroundColor Magenta
-
-Set-Location frontend
-
-# Clean node_modules if it exists to avoid lock issues
-if (Test-Path "node_modules") {
-    Write-Host "Cleaning node_modules..." -ForegroundColor Yellow
-    Remove-Item "node_modules" -Recurse -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
-}
-
-Invoke-Step "Install Dependencies" {
-    npm install
-} "Failed to install dependencies"
-
-Write-Host ""
-
-Write-Host "STEP 4: Build Production Release" -ForegroundColor Magenta
-Write-Host "================================" -ForegroundColor Magenta
-
-Write-Host ""
-Write-Host "Building production release..." -ForegroundColor Cyan
-Write-Host ""
-
-$env:RUST_LOG = if ($Verbose) { "debug" } else { "warn" }
-$env:TAURI_DEBUG = "false"
-
-Invoke-Step "Production Build" {
-    npm run tauri:build:production
-} "Production build failed"
-
-Write-Host ""
-
-Write-Host "STEP 5: Organize Output Files" -ForegroundColor Magenta
-Write-Host "=============================" -ForegroundColor Magenta
-
-Set-Location ..
-
-$outputDir = "dist"
-if (-not (Test-Path $outputDir)) {
-    New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-}
-
-$tauriOutputDir = "frontend/src-tauri/target/release"
-$bundleDir = "$tauriOutputDir/bundle"
-
-Write-Host "Looking for built files..." -ForegroundColor Yellow
-
-$exePath = "$tauriOutputDir/cession-app.exe"
-if (Test-Path $exePath) {
-    Copy-Item $exePath "$outputDir/" -Force
-    $exeSize = (Get-Item $exePath).Length / 1MB
-    Write-Host "Executable: $([math]::Round($exeSize, 2)) MB" -ForegroundColor Green
 } else {
-    Write-Host "Executable not found at $exePath" -ForegroundColor Yellow
-    $altExe = Get-ChildItem "$tauriOutputDir/*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($altExe) {
-        Copy-Item $altExe.FullName "$outputDir/cession-app.exe" -Force
-        $exeSize = (Get-Item $altExe.FullName).Length / 1MB
-        Write-Host "Found executable: $($altExe.Name) - $([math]::Round($exeSize, 2)) MB" -ForegroundColor Green
-    }
+    Write-Host "   ❌ Tauri target directory not found" -ForegroundColor Red
+    exit 1
 }
 
-if (Test-Path $bundleDir) {
-    $msiPath = Get-ChildItem "$bundleDir/msi/*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($msiPath) {
-        Copy-Item $msiPath.FullName "$outputDir/" -Force
-        $msiSize = (Get-Item $msiPath.FullName).Length / 1MB
-        Write-Host "MSI Installer: $([math]::Round($msiSize, 2)) MB" -ForegroundColor Green
-    }
+# Step 7: Create deployment package
+Write-Host "📋 Creating deployment summary..." -ForegroundColor Yellow
+$deploymentInfo = @"
+🎉 PRODUCTION BUILD COMPLETED SUCCESSFULLY!
 
-    $nsisPath = Get-ChildItem "$bundleDir/nsis/*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($nsisPath) {
-        Copy-Item $nsisPath.FullName "$outputDir/cession-app-installer.exe" -Force
-        $nsisSize = (Get-Item $nsisPath.FullName).Length / 1MB
-        Write-Host "NSIS Installer: $([math]::Round($nsisSize, 2)) MB" -ForegroundColor Green
-    }
-}
+📦 Build Artifacts:
+   - Backend JAR: $jarPath ($([math]::Round($jarSize, 2)) MB)
+   - Frontend: frontend/dist/
+   - Tauri App: $tauriTargetDir/
 
-Write-Host ""
+🔧 Key Features Included:
+   ✅ Backend bundled with application
+   ✅ Timezone fixes for danger clients analysis
+   ✅ Enhanced date handling
+   ✅ Debug tools (temporary)
+   ✅ Automatic backend startup
+   ✅ Health monitoring system
 
-Write-Host "STEP 6: Create Documentation" -ForegroundColor Magenta
-Write-Host "============================" -ForegroundColor Magenta
+🚀 Next Steps:
+   1. Test the .exe file to verify danger clients analysis works
+   2. Compare results with development build
+   3. Remove debug components once confirmed working
+   4. Deploy to production environment
 
-$buildDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-$readmeText = "# Cession App - Production Build`n`n"
-$readmeText += "## Files`n`n"
-$readmeText += "- cession-app.exe: Main application (run this directly)`n"
-$readmeText += "- Installers: MSI or NSIS installer files (if generated)`n`n"
-$readmeText += "## How to Run`n`n"
-$readmeText += "1. Double-click cession-app.exe`n"
-$readmeText += "2. The app will start automatically with its backend`n"
-$readmeText += "3. Wait for the 'System Ready' status`n`n"
-$readmeText += "## Requirements`n`n"
-$readmeText += "- Windows 10 or later`n"
-$readmeText += "- The app is self-contained (includes Java runtime)`n`n"
-$readmeText += "## Data Location`n`n"
-$readmeText += "App data is stored in: %APPDATA%\com.electro.cessionapp\`n`n"
-$readmeText += "Build Date: $buildDate`n"
+📍 Installation Files Location:
+   $tauriTargetDir/
 
-Set-Content -Path "$outputDir/README.txt" -Value $readmeText
-Write-Host "Created README.txt" -ForegroundColor Green
+⚠️  Important Notes:
+   - The application will automatically start the backend when launched
+   - No separate backend installation required
+   - All timezone issues should be resolved
+   - Debug panel available for troubleshooting
 
-Write-Host ""
+Build completed at: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+"@
 
-Write-Host "STEP 7: Build Complete!" -ForegroundColor Magenta
-Write-Host "=======================" -ForegroundColor Magenta
+Write-Host $deploymentInfo -ForegroundColor Cyan
 
-Write-Host ""
-Write-Host "Production build completed!" -ForegroundColor Green
-Write-Host ""
-Write-Host "Output files in '$outputDir':" -ForegroundColor Cyan
+# Save deployment info to file
+$deploymentInfo | Out-File -FilePath "DEPLOYMENT_INFO.txt" -Encoding UTF8
+Write-Host "📄 Deployment info saved to DEPLOYMENT_INFO.txt" -ForegroundColor Green
 
-Get-ChildItem $outputDir | ForEach-Object {
-    $size = if ($_.PSIsContainer) { "DIR" } else { "$([math]::Round($_.Length / 1MB, 2)) MB" }
-    Write-Host "  $($_.Name) - $size" -ForegroundColor White
-}
-
-Write-Host ""
-Write-Host "To test: Run .\$outputDir\cession-app.exe" -ForegroundColor Yellow
-Write-Host ""
-
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  BUILD COMPLETED SUCCESSFULLY" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "🎉 Production build completed successfully!" -ForegroundColor Green
+Write-Host "   You can now test the .exe file in: $tauriTargetDir" -ForegroundColor Cyan

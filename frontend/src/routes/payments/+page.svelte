@@ -9,6 +9,7 @@
   import { t } from '$lib/i18n';
   import { language } from '$lib/stores/language';
   import DangerClients from '$lib/components/DangerClients.svelte';
+  import DateDebugPanel from '$lib/components/DateDebugPanel.svelte';
 
   // RTL support
   $: isRTL = $language.code === 'ar';
@@ -1413,4 +1414,7 @@
       {/if}
     {/if}
   </div>
+
+  <!-- TEMPORARY: Debug panel for troubleshooting date/timezone issues -->
+  <DateDebugPanel />
 </div>

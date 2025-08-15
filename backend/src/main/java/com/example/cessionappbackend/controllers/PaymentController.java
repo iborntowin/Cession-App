@@ -55,7 +55,20 @@ public class PaymentController {
     @GetMapping("/danger-clients-analysis")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<com.example.cessionappbackend.dto.DangerClientsAnalysisDTO> getDangerClientsAnalysis(
-            @RequestParam(required = false, defaultValue = "2") Integer thresholdMonths) {
+            @RequestParam(required = false, defaultValue = "1") Integer thresholdMonths) {
         return ResponseEntity.ok(paymentService.getDangerClientsAnalysis(thresholdMonths));
+    }
+
+    @GetMapping("/debug/timezone-info")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<java.util.Map<String, Object>> getTimezoneDebugInfo() {
+        java.util.Map<String, Object> info = new java.util.HashMap<>();
+        info.put("defaultTimeZone", java.util.TimeZone.getDefault().getID());
+        info.put("systemTimezone", System.getProperty("user.timezone"));
+        info.put("currentTimeUTC", java.time.LocalDateTime.now(java.time.ZoneOffset.UTC));
+        info.put("currentTimeSystem", java.time.LocalDateTime.now());
+        info.put("currentDateUTC", java.time.LocalDate.now(java.time.ZoneOffset.UTC));
+        info.put("currentDateSystem", java.time.LocalDate.now());
+        return ResponseEntity.ok(info);
     }
 }

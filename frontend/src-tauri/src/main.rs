@@ -1519,7 +1519,7 @@ fn launch_backend_process(config: &BackendConfig) -> Result<BackendProcess, Stri
         .arg("--logging.level.com.example=INFO")
         .arg("--spring.profiles.active=desktop")
         .arg("--spring.jpa.hibernate.ddl-auto=update")
-        .arg("--spring.datasource.url=jdbc:h2:file:./data/db")
+        .arg("--spring.datasource.url=jdbc:h2:file:./data/db;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE")
         .arg("--spring.h2.console.enabled=false")
         .arg("--management.endpoints.web.exposure.include=health,info")
         .arg("--management.endpoint.health.show-details=always")
@@ -1534,7 +1534,7 @@ fn launch_backend_process(config: &BackendConfig) -> Result<BackendProcess, Stri
         .env("SERVER_PORT", config.port.to_string())
         .env("LOGGING_LEVEL_ROOT", "WARN")
         .env("SPRING_JPA_HIBERNATE_DDL_AUTO", "update")
-        .env("SPRING_DATASOURCE_URL", "jdbc:h2:file:./data/db")
+        .env("SPRING_DATASOURCE_URL", "jdbc:h2:file:./data/db;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
