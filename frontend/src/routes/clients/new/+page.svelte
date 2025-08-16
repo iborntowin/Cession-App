@@ -440,7 +440,8 @@
         address: formData.address,
         jobId: formData.jobId,
         workerNumber: workerNumberInput,
-        workplaceId: formData.workplaceId
+        workplaceId: formData.workplaceId,
+        createdAt: new Date().toISOString() // Ensure creation timestamp is included
       };
 
       // Create the client
