@@ -14,7 +14,7 @@
   import MonthlyCessionsChart from '$lib/components/dashboard/MonthlyCessionsChart.svelte';
   import RecentCessions from '$lib/components/dashboard/RecentCessions.svelte';
   import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
-  import RecentActivity from '$lib/components/dashboard/RecentActivity.svelte';
+  import BusinessInsights from '$lib/components/dashboard/BusinessInsights.svelte';
 
   // Animation states matching login page
   let dashboardVisible = false;
@@ -41,7 +41,6 @@
   let lowStockProducts = [];
   let payments = [];
   let sales = [];
-  let recentActivities = [];
 
   let systemHealth = {
     status: 'healthy',
@@ -198,7 +197,6 @@
       quickStats.monthlyRevenue = payments.reduce((s, p) => s + safeAmount(p.amount), 0);
       
       generateDailyGoals();
-      generateRecentActivities();
       
       console.log('Dashboard data loaded successfully. Monthly trends:', monthlyTrends);
     } catch (error) {
@@ -572,36 +570,6 @@
     }
   }
 
-  function generateRecentActivities() {
-    const activities = [];
-    recentCessions.slice(0, 5).forEach(c => {
-      activities.push({
-        type: 'Cession',
-        description: `New cession for ${c.clientName}`,
-        time: c.createdAt,
-        icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-      });
-    });
-    recentClients.slice(0, 5).forEach(c => {
-      activities.push({
-        type: 'Client',
-        description: `New client: ${c.fullName}`,
-        time: c.createdAt,
-        icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'
-      });
-    });
-    payments.slice(0, 5).forEach(p => {
-      activities.push({
-        type: 'Payment',
-        description: `Payment of ${formatCurrency(p.amount)} received`,
-        time: p.createdAt,
-        icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'
-      });
-    });
-
-    recentActivities = activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 10);
-  }
-
   function formatCurrency(amount) {
     if (amount === null || amount === undefined) return 'N/A';
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -660,23 +628,43 @@
               
               <div>
                 <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent" style="text-align: {textAlign}">
-                  Welcome Back, {$user?.fullName || 'User'}
+                  Good {currentTime.getHours() < 12 ? 'Morning' : currentTime.getHours() < 17 ? 'Afternoon' : 'Evening'}, {$user?.fullName?.split(' ')[0] || 'User'}
                 </h1>
                 <p class="text-gray-600 font-medium" style="text-align: {textAlign}">
-                  {format(currentTime, 'EEEE, MMMM do, yyyy • HH:mm')}
+                  {totalClients} clients • {activeCessionsCount} active cessions • {formatCurrency(quickStats.monthlyRevenue)} TND revenue
                 </p>
               </div>
             </div>
             
             <!-- Action Buttons (Glassmorphism Style) -->
             <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+              <!-- Real-time Status Indicator -->
+              <div class="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg">
+                <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                <span class="text-xs font-medium text-gray-600">Live</span>
+                <span class="text-xs text-gray-500">•</span>
+                <span class="text-xs font-medium text-emerald-600">{analytics.activeCount} active</span>
+              </div>
+
               <!-- Auto Refresh Toggle -->
               <button 
                 class="p-2 bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl {autoRefresh ? 'ring-2 ring-emerald-500/20' : ''}"
                 on:click={toggleAutoRefresh}
+                title="{autoRefresh ? 'Disable' : 'Enable'} auto-refresh"
               >
                 <svg class="w-5 h-5 {autoRefresh ? 'text-emerald-600 animate-spin' : 'text-gray-600'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </button>
+
+              <!-- Quick Export -->
+              <button 
+                class="p-2 bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl"
+                on:click={() => exportData('PDF')}
+                title="Export dashboard data"
+              >
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
               </button>
             </div>
@@ -689,21 +677,25 @@
     <div class="max-w-7xl mx-auto px-6 py-8">
       <!-- Main Dashboard Grid -->
       {#if widgetsVisible}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8" in:fly={{ y: 30, duration: 600, delay: 600 }}>
+        <div class="space-y-8" in:fly={{ y: 30, duration: 600, delay: 600 }}>
+          <!-- Top KPIs Section -->
           <div class="lg:col-span-3">
             <QuickStats {analytics} {quickStats} {totalClients} {recentClients} {systemHealth} {formatCurrency} />
           </div>
 
-          <!-- Left Column -->
-          <div class="lg:col-span-2 space-y-8">
-            <MonthlyCessionsChart {monthlyTrends} {formatCurrency} />
-            <RecentCessions {recentCessions} {getStatusClass} {safeFormatDistanceToNow} {formatCurrency} />
-          </div>
+          <!-- Main Content Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Left Column - Charts and Primary Data -->
+            <div class="lg:col-span-3 space-y-8">
+              <MonthlyCessionsChart {monthlyTrends} {formatCurrency} />
+              <RecentCessions {recentCessions} {getStatusClass} {safeFormatDistanceToNow} {formatCurrency} />
+            </div>
 
-          <!-- Right Column -->
-          <div class="space-y-8">
-            <QuickActions />
-            <RecentActivity {recentActivities} {safeFormatDistanceToNow} />
+            <!-- Right Column - Insights and Actions -->
+            <div class="lg:col-span-1 space-y-8">
+              <QuickActions />
+              <BusinessInsights {recentCessions} {payments} {clients} {formatCurrency} {safeFormatDistanceToNow} />
+            </div>
           </div>
         </div>
       {/if}
