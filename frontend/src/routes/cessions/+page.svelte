@@ -134,9 +134,24 @@
     growth: 0
   };
   
-  // 🔄 Reactive time-range analytics calculation
-  $: if (cessions.length > 0 && timeRange) {
-    calculateTimeRangeAnalytics();
+  // 🔄 OPTIMIZED: Reactive time-range analytics calculation with debouncing
+  let analyticsTimeout;
+  let lastCessionsHash = '';
+  let lastTimeRange = '';
+  
+  $: {
+    const currentHash = JSON.stringify(cessions.map(c => c.id + c.updatedAt)).slice(0, 100);
+    if ((currentHash !== lastCessionsHash || timeRange !== lastTimeRange) && 
+        cessions.length > 0 && timeRange) {
+      lastCessionsHash = currentHash;
+      lastTimeRange = timeRange;
+      
+      // Debounce expensive analytics calculation
+      clearTimeout(analyticsTimeout);
+      analyticsTimeout = setTimeout(() => {
+        calculateTimeRangeAnalytics();
+      }, 500);
+    }
   }
   
   function calculateTimeRangeAnalytics() {

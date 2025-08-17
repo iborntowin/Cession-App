@@ -1,0 +1,223 @@
+{
+  "projectName": "Cession Management System",
+  "projectType": "Full-stack Desktop Application",
+  "architecture": "Frontend-Backend Microservices",
+  "techStack": {
+    "frontend": {
+      "framework": "SvelteKit",
+      "language": "TypeScript/JavaScript",
+      "buildTool": "Vite",
+      "styling": "TailwindCSS",
+      "desktop": "Tauri",
+      "port": 5173
+    },
+    "backend": {
+      "framework": "Spring Boot",
+      "language": "Java 17",
+      "buildTool": "Maven",
+      "database": "H2 (embedded)",
+      "authentication": "JWT",
+      "port": 8082
+    },
+    "external": {
+      "storage": "Supabase",
+      "ocr": "Tesseract OCR",
+      "mobile": "React Native (separate)"
+    }
+  },
+  "features": {
+    "authentication": {
+      "description": "JWT-based authentication with role-based access control",
+      "roles": ["USER", "ADMIN"],
+      "endpoints": ["/api/v1/auth/signin", "/api/v1/auth/signup", "/api/v1/auth/users"]
+    },
+    "clientManagement": {
+      "description": "Complete client management system with documents",
+      "features": ["Create/Edit clients", "Document upload", "Search functionality", "Analytics"]
+    },
+    "cessionManagement": {
+      "description": "Salary cession management with payment tracking",
+      "features": ["Create cessions", "Payment tracking", "Document generation", "Status monitoring"]
+    },
+    "financialManagement": {
+      "description": "Financial tracking with expenses and income",
+      "features": ["Expense tracking", "Income recording", "Financial reports", "Charts and analytics"]
+    },
+    "inventory": {
+      "description": "Product and category management",
+      "features": ["Product CRUD", "Category management", "Stock tracking"]
+    },
+    "multiLanguage": {
+      "description": "Support for multiple languages",
+      "languages": ["Arabic (RTL)", "English", "French"]
+    }
+  },
+  "pages": [
+    {
+      "route": "/login",
+      "description": "User authentication page"
+    },
+    {
+      "route": "/",
+      "description": "Dashboard homepage"
+    },
+    {
+      "route": "/clients",
+      "description": "Client management with search and analytics"
+    },
+    {
+      "route": "/clients/new",
+      "description": "Create new client form"
+    },
+    {
+      "route": "/clients/[id]",
+      "description": "Client details with cessions and documents"
+    },
+    {
+      "route": "/clients/[id]/edit",
+      "description": "Edit client information"
+    },
+    {
+      "route": "/cessions",
+      "description": "Cession management and listing"
+    },
+    {
+      "route": "/cessions/new",
+      "description": "Create new cession"
+    },
+    {
+      "route": "/cessions/[id]",
+      "description": "Cession details with payment tracking"
+    },
+    {
+      "route": "/salary-cessions",
+      "description": "Salary cession specific management"
+    },
+    {
+      "route": "/payments",
+      "description": "Payment management and tracking"
+    },
+    {
+      "route": "/finance",
+      "description": "Financial overview and management"
+    },
+    {
+      "route": "/dashboard/expenses",
+      "description": "Expense tracking with charts"
+    },
+    {
+      "route": "/inventory",
+      "description": "Product and inventory management"
+    },
+    {
+      "route": "/settings",
+      "description": "Application settings"
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "path": "/api/v1/auth/*",
+      "description": "Authentication and user management"
+    },
+    {
+      "path": "/api/v1/clients/*",
+      "description": "Client CRUD operations"
+    },
+    {
+      "path": "/api/v1/cessions/*",
+      "description": "Cession management"
+    },
+    {
+      "path": "/api/v1/payments/*",
+      "description": "Payment tracking"
+    },
+    {
+      "path": "/api/v1/products/*",
+      "description": "Product management"
+    },
+    {
+      "path": "/api/v1/expenses/*",
+      "description": "Expense tracking"
+    },
+    {
+      "path": "/api/v1/income/*",
+      "description": "Income management"
+    },
+    {
+      "path": "/api/v1/documents/*",
+      "description": "Document upload and management"
+    },
+    {
+      "path": "/api/v1/jobs/*",
+      "description": "Job/position management"
+    },
+    {
+      "path": "/api/v1/workplaces/*",
+      "description": "Workplace management"
+    }
+  ],
+  "testingConcerns": [
+    {
+      "category": "Authentication",
+      "issues": [
+        "JWT token validation",
+        "Role-based access control",
+        "Session management",
+        "Login/logout functionality"
+      ]
+    },
+    {
+      "category": "Data Integrity",
+      "issues": [
+        "Form validation",
+        "Database constraints",
+        "Data consistency between frontend and backend",
+        "File upload validation"
+      ]
+    },
+    {
+      "category": "UI/UX",
+      "issues": [
+        "Responsive design across devices",
+        "RTL language support",
+        "Loading states and error handling",
+        "Navigation and routing"
+      ]
+    },
+    {
+      "category": "Performance",
+      "issues": [
+        "Large dataset handling",
+        "Search functionality efficiency",
+        "File upload performance",
+        "Chart rendering performance"
+      ]
+    },
+    {
+      "category": "Integration",
+      "issues": [
+        "Frontend-backend communication",
+        "Supabase storage integration",
+        "Database connection stability",
+        "Cross-origin resource sharing (CORS)"
+      ]
+    },
+    {
+      "category": "Security",
+      "issues": [
+        "Input sanitization",
+        "SQL injection prevention",
+        "File upload security",
+        "API endpoint protection"
+      ]
+    }
+  ],
+  "knownIssues": [
+    "Multiple fix files suggest ongoing UI flickering issues",
+    "Arabic RTL translation and rendering concerns",
+    "Finance modal and data loading problems",
+    "Client data caching and refresh logic issues",
+    "Mobile responsiveness and offline functionality",
+    "Login loading states and button interactions"
+  ]
+}

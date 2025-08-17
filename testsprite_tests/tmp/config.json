@@ -1,0 +1,15 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5173",
+  "executionArgs": {
+    "projectName": "Cession-App",
+    "projectPath": "C:\\Tauri",
+    "testIds": [],
+    "additionalInstruction": "Perform comprehensive testing focusing on UI bugs, data integrity issues, authentication problems, responsive design flaws, performance bottlenecks, and integration failures. Test all critical user flows including login, client management, cession creation, payment tracking, and financial operations. Pay special attention to multi-language support, RTL rendering, form validation, error handling, and edge cases.",
+    "envs": {
+      "API_KEY": "sk-user-VTDRbwTa9OOUzHWXh6R8W8bFvUzO3K9hAPV5q5fUvrqAG6YJBaNBXIb8Meqdd2tsm4ZJvw_Qrm0u4gIPvPcD68RyR4wTfBCY9xygfhP4Jz4A8BDP5n7Wi_3iMl6M_s3_DDw"
+    }
+  }
+}

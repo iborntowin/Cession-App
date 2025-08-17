@@ -11,6 +11,13 @@
   import { t, currentLanguage } from '$lib/i18n';
   import { browser } from '$app/environment';
 
+  // Cleanup timeouts and intervals on component destroy
+  onDestroy(() => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    if (analyticsTimeout) clearTimeout(analyticsTimeout);
+    if (refreshInterval) clearInterval(refreshInterval);
+  });
+
   // Core data
   let clients = [];
   let filteredClients = [];
@@ -72,6 +79,8 @@
 
   // Search optimization with proper debouncing
   let searchTimeout;
+  let analyticsTimeout;
+  let refreshInterval;
   let isSearching = false;
   let searchId = 0; // Prevent race conditions
   let hasSearchQuery = false; // Track if we have active search
@@ -569,10 +578,38 @@
   // RTL support
   $: isRTL = $currentLanguage === 'ar';
 
-  // Initialize filtered clients when clients data changes
-  $: if (clients.length > 0) {
-    performSearch();
+  // OPTIMIZED: Use debounced reactive statements to prevent excessive re-rendering
+  let lastClientsHash = '';
+  let analyticsCache = null;
+  let analyticsCacheTime = 0;
+  const ANALYTICS_CACHE_DURATION = 30000; // 30 seconds
+
+  $: {
+    // Only trigger when clients data actually changes (not just length)
+    const currentHash = JSON.stringify(clients.map(c => c.id + c.updatedAt)).slice(0, 100);
+    if (currentHash !== lastClientsHash && clients.length > 0) {
+      lastClientsHash = currentHash;
+      // Debounce the expensive operations
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        performSearch();
+        generateClientAnalyticsOptimized();
+      }, 300);
+    }
+  }
+
+  // 📊 OPTIMIZED: Generate Comprehensive Client Analytics with Caching
+  function generateClientAnalyticsOptimized() {
+    if (!clients.length) return;
+
+    // Check cache first
+    const now = Date.now();
+    if (analyticsCache && (now - analyticsCacheTime) < ANALYTICS_CACHE_DURATION) {
+      return analyticsCache;
+    }
+
     generateClientAnalytics();
+    analyticsCacheTime = now;
   }
 
   // 📊 Generate Comprehensive Client Analytics
