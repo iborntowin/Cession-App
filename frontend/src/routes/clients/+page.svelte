@@ -61,6 +61,7 @@
   let jobDistribution = [];
   let workplaceDistribution = [];
   let phoneAvailability = { withPhone: 0, withoutPhone: 0 };
+  let showAllJobCategories = false; // State for showing all job categories
   let dataQualityMetrics = {
     duplicateCINs: [],
     duplicateWorkerNumbers: [],
@@ -556,9 +557,9 @@
   }
 
   function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-TN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'TND',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -1460,8 +1461,8 @@
               <!-- 2. Distribution by Job Category - Pie Chart Style -->
               <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
                 <div class="flex items-center justify-between mb-6">
-                  <h3 class="text-lg font-semibold text-gray-900">📊 Distribution by Job Category</h3>
-                  <span class="text-sm text-gray-500">Client segments by profession</span>
+                  <h3 class="text-lg font-semibold text-gray-900">📊 {$t('clients.analytics.job_distribution.title')}</h3>
+                  <span class="text-sm text-gray-500">{$t('clients.analytics.job_distribution.subtitle')}</span>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <!-- Donut Chart Visualization -->
@@ -1496,14 +1497,14 @@
                       <div class="absolute inset-0 flex items-center justify-center">
                         <div class="text-center">
                           <div class="text-2xl font-bold text-gray-900">{clients.length}</div>
-                          <div class="text-xs text-gray-600">Total Clients</div>
+                          <div class="text-xs text-gray-600">{$t('clients.analytics.job_distribution.total_clients')}</div>
                         </div>
                       </div>
                     </div>
                   </div>
                   <!-- Legend and Stats -->
                   <div class="space-y-3">
-                    {#each jobDistribution.slice(0, 8) as job, index}
+                    {#each (showAllJobCategories ? jobDistribution : jobDistribution.slice(0, 8)) as job, index}
                       <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                         <div class="flex items-center space-x-3">
                           <div class="w-4 h-4 rounded-full" style="background: {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#06B6D4'][index % 8]};"></div>
@@ -1516,15 +1517,34 @@
                       </div>
                     {/each}
                     {#if jobDistribution.length > 8}
-                      <div class="text-xs text-gray-500 text-center pt-2">
-                        +{jobDistribution.length - 8} more categories
+                      <div class="flex justify-center pt-2">
+                        <button 
+                          class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors duration-200"
+                          on:click={() => showAllJobCategories = !showAllJobCategories}
+                        >
+                          <span>
+                            {#if showAllJobCategories}
+                              {$t('clients.analytics.job_distribution.show_less')}
+                            {:else}
+                              +{jobDistribution.length - 8} {$t('clients.analytics.job_distribution.more_categories')} - {$t('clients.analytics.job_distribution.show_more')}
+                            {/if}
+                          </span>
+                          <svg 
+                            class="w-4 h-4 transition-transform duration-200 {showAllJobCategories ? 'rotate-180' : ''}" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
                       </div>
                     {/if}
                   </div>
                 </div>
                 <div class="mt-4 p-3 bg-indigo-50 rounded-lg">
                   <p class="text-sm text-indigo-800">
-                    <span class="font-semibold">Insight:</span> See client segments (e.g., most are from IT, construction, etc.) to optimize services.
+                    <span class="font-semibold">{$t('clients.analytics.job_distribution.insight_label')}:</span> {$t('clients.analytics.job_distribution.insight')}.
                   </p>
                 </div>
               </div>
@@ -2161,13 +2181,13 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <p class="text-gray-900">{selectedClient.phone || 'N/A'}</p>
+                <p class="text-gray-900">{selectedClient.phoneNumber || selectedClient.phone || 'N/A'}</p>
               </div>
             </div>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <p class="text-gray-900">{selectedClient.email || 'N/A'}</p>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Job</label>
+                <p class="text-gray-900">{jobDetails?.name || jobsMap[selectedClient.jobId] || 'N/A'}</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>

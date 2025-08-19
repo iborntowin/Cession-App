@@ -1,30 +1,22 @@
 {
-  "projectName": "Cession Management System",
-  "projectType": "Full-stack Desktop Application",
-  "architecture": "Frontend-Backend Microservices",
-  "techStack": {
-    "frontend": {
-      "framework": "SvelteKit",
-      "language": "TypeScript/JavaScript",
-      "buildTool": "Vite",
-      "styling": "TailwindCSS",
-      "desktop": "Tauri",
-      "port": 5173
-    },
-    "backend": {
-      "framework": "Spring Boot",
-      "language": "Java 17",
-      "buildTool": "Maven",
-      "database": "H2 (embedded)",
-      "authentication": "JWT",
-      "port": 8082
-    },
-    "external": {
-      "storage": "Supabase",
-      "ocr": "Tesseract OCR",
-      "mobile": "React Native (separate)"
-    }
-  },
+  "tech_stack": [
+    "Java 17",
+    "Spring Boot 3.2.5",
+    "Spring Security",
+    "Spring Data JPA",
+    "H2 Database",
+    "Maven",
+    "SvelteKit",
+    "TypeScript",
+    "JavaScript",
+    "Vite 4.5.14",
+    "TailwindCSS",
+    "Tauri 2.0",
+    "Chart.js",
+    "JWT Authentication",
+    "Hibernate ORM",
+    "HikariCP Connection Pool"
+  ],
   "features": {
     "authentication": {
       "description": "JWT-based authentication with role-based access control",

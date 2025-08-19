@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import Chart from 'chart.js/auto';
+  import { chartLeakDetector, performanceTracker } from '$lib/utils/performanceMonitoring';
   
   export let data = null;
   export let type = 'pie';
@@ -10,6 +11,8 @@
   let canvas;
   let chart = null;
   let mounted = false;
+  let resizeObserver;
+  let chartId = `cessionChart_${Math.random().toString(36).substr(2, 9)}`;
   
   function initChart(data) {
     if (!mounted || !canvas) {
@@ -138,9 +141,29 @@
   });
   
   onDestroy(() => {
-    console.log('Component destroyed');
-    if (chart) {
-      chart.destroy();
+    try {
+      mounted = false;
+      
+      if (chart) {
+        // Unregister from leak detector
+        chartLeakDetector.unregisterChart(chartId);
+        
+        // Clear any pending animations
+        if (chart.config && chart.config.options && chart.config.options.animation) {
+          chart.config.options.animation.duration = 0;
+        }
+        
+        chart.destroy();
+        chart = null;
+      }
+
+      // Clean up resize observer
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
+    } catch (error) {
+      console.error('Error in CessionChart onDestroy:', error);
     }
   });
 </script>

@@ -30,6 +30,9 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private RateLimitingFilter rateLimitingFilter;
+
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -51,16 +54,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // For production Tauri app, we need to allow all origins temporarily
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        // Alternative: specific origins for better security
-        // configuration.setAllowedOrigins(Arrays.asList(
-        //     "http://localhost:5173",
-        //     "http://127.0.0.1:5173",
-        //     "tauri://localhost",
-        //     "https://tauri.localhost",
-        //     "http://tauri.localhost"
-        // ));
+        // Specific origins for better security
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "tauri://localhost",
+            "https://tauri.localhost",
+            "http://tauri.localhost"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization",
@@ -126,6 +127,7 @@ public class SecurityConfig {
                 
                 // Any other authenticated request
                 .anyRequest().authenticated())
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();

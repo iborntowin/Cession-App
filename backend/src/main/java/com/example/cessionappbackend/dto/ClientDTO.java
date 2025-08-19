@@ -18,36 +18,52 @@ public class ClientDTO {
 
     @Column(name = "full_name", nullable = false)
     @NotBlank(message = "Full name is required")
-    @Size(max = 255, message = "Full name cannot exceed 255 characters")
+    @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
+    @Pattern(regexp = "^[a-zA-Z\\u0600-\\u06FF\\s'-]+$", message = "Full name can only contain letters, spaces, hyphens, and apostrophes")
     private String fullName;
 
     @Column(unique = true, nullable = false)
     @NotNull(message = "CIN is required")
-    @Pattern(regexp = "\\d{8}", message = "CIN must be exactly 8 digits")
+    @Pattern(regexp = "^\\d{8}$", message = "CIN must be exactly 8 digits")
     private String cin; // National ID Card number
 
-    @Size(max = 255, message = "Phone number cannot exceed 255 characters")
+    @Size(max = 20, message = "Phone number cannot exceed 20 characters")
+    @Pattern(regexp = "^[+]?[0-9\\s()-]{8,20}$", message = "Phone number format is invalid")
     @Column(length = 255)
     private String phoneNumber;
 
     // New fields for linked Workplace and Job
+    @NotNull(message = "Workplace is required")
     private UUID workplaceId;
+    
+    @Size(max = 255, message = "Workplace name cannot exceed 255 characters")
     private String workplaceName;
 
+    @NotNull(message = "Job is required")
     private UUID jobId;
+    
+    @Size(max = 255, message = "Job name cannot exceed 255 characters")
     private String jobName;
 
-    @Column(length = 255)
+    @NotBlank(message = "Address is required")
+    @Size(min = 5, max = 500, message = "Address must be between 5 and 500 characters")
+    @Column(length = 500)
     private String address;
 
     @Column(name = "worker_number", unique = true)
     @NotNull(message = "Worker number is required")
-    @Pattern(regexp = "\\d{10}", message = "Worker number must be exactly 10 digits")
+    @Pattern(regexp = "^\\d{10}$", message = "Worker number must be exactly 10 digits")
     private String workerNumber;
+
+    // Email validation if provided
+    @Email(message = "Email format is invalid")
+    @Size(max = 255, message = "Email cannot exceed 255 characters")
+    private String email;
 
     public void setId(UUID id) {
         this.id = id;
     }
+    
     // Timestamps are usually handled by the system, not sent in create/update requests
     // private OffsetDateTime createdAt;
     // private OffsetDateTime updatedAt;
@@ -113,8 +129,17 @@ public class ClientDTO {
     public String getWorkerNumber() {
         return workerNumber;
     }
+    
     public void setWorkerNumber(String workerNumber) {
         this.workerNumber = workerNumber;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     @ManyToOne(fetch = FetchType.LAZY)

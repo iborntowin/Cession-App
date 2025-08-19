@@ -1,13 +1,14 @@
 {
   "status": "commited",
-  "type": "frontend",
+  "type": "backend",
   "scope": "codebase",
-  "localEndpoint": "http://localhost:5173",
+  "localEndpoint": "http://localhost:8082",
+  "backendAuthType": "public",
   "executionArgs": {
     "projectName": "Cession-App",
-    "projectPath": "C:\\Tauri",
+    "projectPath": "c:\\Tauri",
     "testIds": [],
-    "additionalInstruction": "Perform comprehensive testing focusing on UI bugs, data integrity issues, authentication problems, responsive design flaws, performance bottlenecks, and integration failures. Test all critical user flows including login, client management, cession creation, payment tracking, and financial operations. Pay special attention to multi-language support, RTL rendering, form validation, error handling, and edge cases.",
+    "additionalInstruction": "Execute LIVE TESTING on the currently running application at http://localhost:5173 and http://localhost:8082. Focus on: 1) REAL-TIME UI performance monitoring - check for flickering, slow renders, component re-renders 2) MEMORY LEAK detection - monitor JavaScript heap usage, Chart.js instances, reactive subscriptions 3) DATABASE performance - monitor H2 connection pool usage, query execution times 4) API response times and error rates 5) Frontend reactivity issues - check excessive reactive statement execution 6) User interaction responsiveness - form submissions, navigation, search functionality 7) Mobile/responsive design issues 8) Chart.js memory management and performance 9) Real browser testing across different scenarios 10) Live stress testing with rapid user interactions. Test the ACTUAL RUNNING APPLICATION, not code analysis.",
     "envs": {
       "API_KEY": "sk-user-VTDRbwTa9OOUzHWXh6R8W8bFvUzO3K9hAPV5q5fUvrqAG6YJBaNBXIb8Meqdd2tsm4ZJvw_Qrm0u4gIPvPcD68RyR4wTfBCY9xygfhP4Jz4A8BDP5n7Wi_3iMl6M_s3_DDw"
     }

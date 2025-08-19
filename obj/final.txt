@@ -1,0 +1,50 @@
+# Create the necessary directories
+$directories = @(
+    "frontend/src-tauri/backend",
+    "frontend/src-tauri/target/debug/backend", 
+    "frontend/src-tauri/target/release/backend"
+)
+
+foreach ($dir in $directories) {
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force
+        Write-Host "Created directory: $dir" -ForegroundColor Green
+    }
+}
+
+# Copy the JAR to all required locations
+$sourceJar = "backend/target/cession-app-backend-0.0.1-SNAPSHOT.jar"
+$destinations = @(
+    "frontend/src-tauri/backend/cession-app-backend-0.0.1-SNAPSHOT.jar",
+    "frontend/src-tauri/backend/app.jar",
+    "frontend/src-tauri/target/debug/backend/cession-app-backend-0.0.1-SNAPSHOT.jar", 
+    "frontend/src-tauri/target/debug/backend/app.jar",
+    "frontend/src-tauri/target/release/backend/cession-app-backend-0.0.1-SNAPSHOT.jar",
+    "frontend/src-tauri/target/release/backend/app.jar"
+)
+
+Write-Host "Copying JAR files..." -ForegroundColor Yellow
+foreach ($dest in $destinations) {
+    Copy-Item $sourceJar $dest -Force
+    Write-Host "✓ Copied to: $dest" -ForegroundColor Green
+}
+
+Write-Host "`nJAR files copied successfully!" -ForegroundColor Cyan
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+npm run build
+npm run tauri build
+.\package-deployment.ps1

@@ -8,6 +8,7 @@
   import { language } from '$lib/stores/language';
   import { api } from '$lib/api';
   import Chart from 'chart.js/auto';
+  import { chartLeakDetector } from '$lib/utils/performanceMonitoring';
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
 
   // RTL support
@@ -83,7 +84,9 @@
 
   onDestroy(() => {
     try {
+      // Properly cleanup chart to prevent memory leaks
       if (chart) {
+        chartLeakDetector.unregisterChart('financeChart');
         chart.destroy();
         chart = null;
       }
@@ -282,7 +285,9 @@
   }
 
   function updateChart() {
+    // Properly destroy existing chart to prevent memory leaks
     if (chart) {
+      chartLeakDetector.unregisterChart('financeChart');
       chart.destroy();
       chart = null;
     }
@@ -319,10 +324,11 @@
       'rgba(236, 72, 153, 1)'
     ];
 
-    chart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: labels,
+    try {
+      chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
         datasets: [{
           data: data,
           backgroundColor: backgroundColors,
@@ -372,13 +378,18 @@
           animateScale: true,
           duration: 1000
         }
-      }
-    });
-    
-    console.log('Chart updated with data:', labels, data);
-  }
-
-  function calculateTotalSales() {
+        }
+      });
+      
+      // Register chart with leak detector
+      chartLeakDetector.registerChart('financeChart', chart);
+      
+      console.log('Chart updated with data:', labels, data);
+    } catch (error) {
+      console.error('Error creating chart:', error);
+      showAlert('Failed to create chart', 'error');
+    }
+  }  function calculateTotalSales() {
     return sales.reduce((sum, sale) => {
       const saleAmount = (sale.sellingPriceAtSale || 0) * (sale.quantity || 0);
       return sum + saleAmount;

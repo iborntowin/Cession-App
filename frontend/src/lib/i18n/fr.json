@@ -414,6 +414,18 @@
       "delete_error": "Erreur lors de la suppression du client.",
       "danger_zone": "Zone de Danger",
       "danger_zone_subtitle": "Les actions dans cette zone sont irréversibles."
+    },
+    "analytics": {
+      "job_distribution": {
+        "title": "Répartition par Catégorie d'Emploi",
+        "subtitle": "Segments de clients par profession",
+        "insight": "Voir les segments de clients pour optimiser les services",
+        "insight_label": "Aperçu",
+        "total_clients": "Total des Clients",
+        "more_categories": "catégories supplémentaires",
+        "show_more": "Afficher Plus",
+        "show_less": "Afficher Moins"
+      }
     }
   },
   "cessions": {
@@ -439,7 +451,16 @@
       "active": "Actif",
       "top_clients": "Meilleurs Clients",
       "cessions": "Cessions",
-      "total": "Total"
+      "total": "Total",
+      "job_distribution": {
+        "title": "Répartition par Catégorie d'Emploi",
+        "subtitle": "Segments de clients par profession",
+        "insight": "Voir les segments de clients pour optimiser les services",
+        "total_clients": "Total des Clients",
+        "more_categories": "catégories supplémentaires",
+        "show_more": "Afficher Plus",
+        "show_less": "Afficher Moins"
+      }
     },
     "status": {
       "active": "Active",

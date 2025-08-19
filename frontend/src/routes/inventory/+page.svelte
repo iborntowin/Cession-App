@@ -13,6 +13,7 @@
   import { slide, fade, fly, scale, blur } from 'svelte/transition';
   import { quintOut, cubicOut, elasticOut } from 'svelte/easing';
   import { PerformanceMonitor } from '$lib/utils/performance.js';
+  import { formatCurrency } from '$lib/utils/formatters';
 
   // Initialize performance monitoring
   const perfMonitor = new PerformanceMonitor('InventoryPage');
@@ -804,7 +805,7 @@
               <div class="mx-2 w-px h-4 bg-gray-300"></div>
               <div class="flex items-center space-x-1">
                 <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span class="text-xs font-bold text-blue-800">${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}</span>
+                <span class="text-xs font-bold text-blue-800">{formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)}</span>
                 <span class="text-xs font-medium text-blue-700">Valeur</span>
               </div>
               {#if stockAlerts.length > 0}
@@ -825,7 +826,7 @@
               <span class="text-xs text-green-600 ml-1">P</span>
             </div>
             <div class="flex items-center px-2 py-1 bg-blue-100 rounded-lg">
-              <span class="text-xs font-bold text-blue-800">${Math.round((inventoryAnalytics.totalPurchaseValue || 0) / 1000)}k</span>
+              <span class="text-xs font-bold text-blue-800">{formatCurrency(Math.round((inventoryAnalytics.totalPurchaseValue || 0) / 1000) * 1000)}</span>
             </div>
             {#if stockAlerts.length > 0}
               <div class="flex items-center px-2 py-1 bg-red-100 rounded-lg">
@@ -937,7 +938,7 @@
                     </div>
                   </div>
                   <div class="text-3xl font-bold text-white mb-1">
-                    ${(inventoryAnalytics.totalValue || 0).toLocaleString()}
+                    {formatCurrency(inventoryAnalytics.totalValue || 0)}
                   </div>
                   <div class="text-sm text-emerald-300">
                     Total Selling Value
@@ -946,7 +947,7 @@
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    Potential profit: ${((inventoryAnalytics.totalValue || 0) - (inventoryAnalytics.totalPurchaseValue || 0)).toLocaleString()}
+                    Potential profit: {formatCurrency((inventoryAnalytics.totalValue || 0) - (inventoryAnalytics.totalPurchaseValue || 0))}
                   </div>
                 </div>
 
@@ -963,7 +964,7 @@
                     </div>
                   </div>
                   <div class="text-3xl font-bold text-white mb-1">
-                    ${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}
+                    {formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)}
                   </div>
                   <div class="text-sm text-blue-300">
                     Stock Investment
@@ -1419,7 +1420,7 @@
                   <div>
                     <div class="font-semibold text-purple-800">Portfolio Health</div>
                     <div class="text-sm text-purple-700">
-                      ${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()} invested across {products.length} products
+                      {formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)} invested across {products.length} products
                     </div>
                   </div>
                 </div>

@@ -20,7 +20,8 @@ public class Client {
 
     @Column(name = "full_name", nullable = false)
     @NotBlank(message = "Full name is required")
-    @Size(max = 255, message = "Full name cannot exceed 255 characters")
+    @Size(min = 2, max = 255, message = "Full name must be between 2 and 255 characters")
+    @Pattern(regexp = "^[a-zA-ZÀ-ÿ\\s\\-']+$", message = "Full name can only contain letters, spaces, hyphens, and apostrophes")
     private String fullName;
 
     @Column(unique = true, nullable = false)
@@ -29,13 +30,15 @@ public class Client {
     private String cin; // National ID Card number
 
     @Column(length = 255)
+    @Pattern(regexp = "^\\d{8}$", message = "Phone number must be exactly 8 digits")
     private String phoneNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workplace_id")
     private Workplace workplace;
 
-    @Column(length = 255)
+    @Column(length = 500)
+    @Size(min = 5, max = 500, message = "Address must be between 5 and 500 characters")
     private String address;
 
     @Column(name = "worker_number", unique = true)

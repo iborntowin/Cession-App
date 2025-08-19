@@ -377,6 +377,18 @@
       "delete_error": "حدث خطأ أثناء حذف العميل.",
       "danger_zone": "منطقة الخطر",
       "danger_zone_subtitle": "الإجراءات في هذه المنطقة لا يمكن التراجع عنها."
+    },
+    "analytics": {
+      "job_distribution": {
+        "title": "التوزيع حسب فئة الوظيفة",
+        "subtitle": "قطاعات العملاء حسب المهنة",
+        "insight": "رؤية قطاعات العملاء لتحسين الخدمات",
+        "insight_label": "رؤية",
+        "total_clients": "إجمالي العملاء",
+        "more_categories": "فئات إضافية",
+        "show_more": "عرض المزيد",
+        "show_less": "عرض أقل"
+      }
     }
   },
   "cessions": {
@@ -422,7 +434,16 @@
       "active": "نشط",
       "top_clients": "أفضل العملاء",
       "cessions": "إحالات",
-      "total": "المجموع"
+      "total": "المجموع",
+      "job_distribution": {
+        "title": "التوزيع حسب فئة الوظيفة",
+        "subtitle": "قطاعات العملاء حسب المهنة",
+        "insight": "رؤية قطاعات العملاء لتحسين الخدمات",
+        "total_clients": "إجمالي العملاء",
+        "more_categories": "فئات إضافية",
+        "show_more": "عرض المزيد",
+        "show_less": "عرض أقل"
+      }
     },
     "count": "{count} {count, plural, one=الإحالة other=الإحالةات}",
     "details": {

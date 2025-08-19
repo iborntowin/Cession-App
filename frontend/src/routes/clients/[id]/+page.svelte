@@ -285,9 +285,7 @@
                     <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
                       <thead class="bg-gray-50/80 backdrop-blur-sm">
                         <tr>
-                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            {$t('clients.details.cessions.table.id')}
-                          </th>
+                          
                           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             {$t('clients.details.cessions.table.start_date')}
                           </th>
@@ -305,9 +303,7 @@
                       <tbody class="bg-white/80 backdrop-blur-sm divide-y divide-gray-200">
                         {#each cessions as cession, i}
                           <tr class="hover:bg-purple-50/80 transition-colors duration-150" transition:fly={{ y: 10, delay: i * 50, duration: 200 }}>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {cession.id}
-                            </td>
+                           
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                               <span dir="ltr">{formatDate(cession.startDate)}</span>
                             </td>

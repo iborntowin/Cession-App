@@ -1,12 +1,12 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { api } from '$lib/api';
   import { user } from '$lib/stores';
   import { get } from 'svelte/store';
   import { format } from 'date-fns';
   import { fr } from 'date-fns/locale';
   import { Chart } from 'chart.js/auto';
-  import { onDestroy } from 'svelte';
+  import { chartLeakDetector, performanceTracker } from '$lib/utils/performanceMonitoring';
   import FinancialModal from '$lib/components/FinancialModal.svelte';
   import ExpenseForm from '$lib/components/ExpenseForm.svelte';
   import IncomeForm from '$lib/components/IncomeForm.svelte';
@@ -28,6 +28,9 @@
   let totalPages = 0;
   let sortField = 'date';
   let sortDirection = 'desc';
+  let componentMounted = false;
+  let resizeObserver;
+  let chartId = `expensesChart_${Math.random().toString(36).substr(2, 9)}`;
   let dateRange = {
     start: new Date(year, month - 1, 1).toISOString().split('T')[0],
     end: new Date(year, month, 0).toISOString().split('T')[0]
@@ -40,12 +43,33 @@
   ];
 
   onMount(() => {
+    componentMounted = true;
     loadData();
   });
 
   onDestroy(() => {
-    if (chart) {
-      chart.destroy();
+    try {
+      componentMounted = false;
+      
+      if (chart) {
+        chartLeakDetector.unregisterChart(chartId);
+        
+        // Clear any pending animations
+        if (chart.config && chart.config.options && chart.config.options.animation) {
+          chart.config.options.animation.duration = 0;
+        }
+        
+        chart.destroy();
+        chart = null;
+      }
+
+      // Clean up resize observer
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
+    } catch (error) {
+      console.error('Error in expenses onDestroy:', error);
     }
   });
 
@@ -83,8 +107,12 @@
   }
 
   function updateChart() {
+    if (!componentMounted) return;
+    
     if (chart) {
+      chartLeakDetector.unregisterChart(chartId);
       chart.destroy();
+      chart = null;
     }
 
     const ctx = document.getElementById('expensesChart');
@@ -113,6 +141,10 @@
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 300 // Reduce animation duration for better performance
+        },
         plugins: {
           legend: {
             position: 'bottom'
@@ -124,6 +156,22 @@
         }
       }
     });
+
+    // Register chart with leak detector
+    chartLeakDetector.registerChart(chartId, chart);
+
+    // Set up resize observer
+    if (typeof ResizeObserver !== 'undefined') {
+      const chartContainer = ctx.parentElement;
+      if (chartContainer && !resizeObserver) {
+        resizeObserver = new ResizeObserver(() => {
+          if (chart && componentMounted) {
+            chart.resize();
+          }
+        });
+        resizeObserver.observe(chartContainer);
+      }
+    }
   }
 
   function formatCurrency(amount) {

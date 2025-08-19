@@ -6,6 +6,7 @@ import com.example.cessionappbackend.repositories.ClientRepository;
 import com.example.cessionappbackend.entities.Client;
 import com.example.cessionappbackend.dto.SalaryAssignmentDocumentDTO;
 import com.example.cessionappbackend.services.SalaryAssignmentPdfGeneratorService;
+import com.example.cessionappbackend.security.FileUploadValidator;
 
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,15 +17,21 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/v1/documents")
 // @CrossOrigin(origins = "${frontend.url}") // Handled globally or via SecurityConfig
 public class DocumentController {
+
+    private static final Logger logger = LoggerFactory.getLogger(DocumentController.class);
 
     @Autowired
     private DocumentService documentService;
@@ -34,6 +41,9 @@ public class DocumentController {
 
     @Autowired
     private SalaryAssignmentPdfGeneratorService salaryAssignmentPdfGeneratorService;
+
+    @Autowired
+    private FileUploadValidator fileUploadValidator;
 
     // GET /api/v1/documents/client/{clientId} - Get documents by client ID
     @GetMapping("/client/{clientId}")
@@ -76,17 +86,24 @@ public class DocumentController {
         }
     }
 
-    // POST /api/v1/documents/client/{clientId}/{documentType} - Upload client document
+    // POST /api/v1/documents/clients/{clientId}/documents - Upload client document
     // This endpoint is for general document uploads where clientNumber is not required for naming
     @PostMapping("/clients/{clientId}/documents")
-    public ResponseEntity<DocumentDTO> uploadClientDocument(
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> uploadClientDocument(
             @PathVariable UUID clientId,
             @RequestParam("documentType") String documentType,
             @RequestParam("file") @NotNull MultipartFile file) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
         try {
+            // Validate file security
+            fileUploadValidator.validateFile(file, documentType);
+            
             // Get client from repository
             Client client = clientRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Client not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Client not found"));
             
             DocumentDTO document = documentService.uploadClientDocument(
                 clientId,
@@ -94,9 +111,24 @@ public class DocumentController {
                 documentType,
                 file
             );
-            return ResponseEntity.ok(document);
+            
+            response.put("success", true);
+            response.put("data", document);
+            response.put("message", "Document uploaded successfully");
+            
+            logger.info("Document uploaded successfully for client {}: {}", clientId, document.getFileName());
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            logger.warn("File validation failed for client {}: {}", clientId, e.getMessage());
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to upload document: " + e.getMessage(), e);
+            logger.error("Failed to upload document for client {}: {}", clientId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("error", "Failed to upload document: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
@@ -104,35 +136,83 @@ public class DocumentController {
     // This endpoint accepts clientNumber for naming convention and specific bucket upload
     @PostMapping(value = "/client/{clientId}/specific", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DocumentDTO> uploadSpecificClientDocument(
+    public ResponseEntity<Map<String, Object>> uploadSpecificClientDocument(
             @PathVariable UUID clientId,
             @RequestParam(value = "clientNumber", required = false) Integer clientNumber, // clientNumber is optional, but preferred for specific docs
             @RequestParam("documentType") @NotNull String documentType,
             @RequestParam("file") @NotNull MultipartFile file) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
         try {
+            // Validate file security
+            fileUploadValidator.validateFile(file, documentType);
+            
             // Use the overloaded service method for specific document types
             DocumentDTO uploadedDocument = documentService.uploadClientDocument(clientId, clientNumber, documentType, file);
-            return ResponseEntity.status(HttpStatus.CREATED).body(uploadedDocument);
+            
+            response.put("success", true);
+            response.put("data", uploadedDocument);
+            response.put("message", "Document uploaded successfully");
+            
+            logger.info("Specific document uploaded successfully for client {}: {}", clientId, uploadedDocument.getFileName());
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+            logger.warn("File validation failed for client {}: {}", clientId, e.getMessage());
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload document: " + e.getMessage());
+            logger.error("IO error uploading document for client {}: {}", clientId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("error", "Failed to upload document: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error uploading document for client {}: {}", clientId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("error", "Failed to upload document: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 
     // POST /api/v1/documents/cession/{cessionId} - Upload cession contract document
     @PostMapping(value = "/cession/{cessionId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DocumentDTO> uploadCessionDocument(
+    public ResponseEntity<Map<String, Object>> uploadCessionDocument(
             @PathVariable UUID cessionId,
             @RequestParam("file") @NotNull MultipartFile file) {
+        
+        Map<String, Object> response = new HashMap<>();
+        
         try {
+            // Validate file security (cession contracts should be PDFs)
+            fileUploadValidator.validateFile(file, "CESSION_CONTRACT");
+            
             DocumentDTO uploadedDocument = documentService.uploadCessionDocument(cessionId, file);
-            return ResponseEntity.status(HttpStatus.CREATED).body(uploadedDocument);
+            
+            response.put("success", true);
+            response.put("data", uploadedDocument);
+            response.put("message", "Cession contract uploaded successfully");
+            
+            logger.info("Cession contract uploaded successfully for cession {}: {}", cessionId, uploadedDocument.getFileName());
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+            logger.warn("File validation failed for cession {}: {}", cessionId, e.getMessage());
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload document: " + e.getMessage());
+            logger.error("IO error uploading cession contract for cession {}: {}", cessionId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("error", "Failed to upload document: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error uploading cession contract for cession {}: {}", cessionId, e.getMessage(), e);
+            response.put("success", false);
+            response.put("error", "Failed to upload document: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 

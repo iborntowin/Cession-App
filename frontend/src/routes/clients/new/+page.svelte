@@ -155,6 +155,19 @@
   let cinDebounceTimer = null;
   let workerNumberDebounceTimer = null;
 
+  // Handle Full Name input changes with validation
+  function handleFullNameInput(event) {
+    let value = event.target.value;
+    // Allow letters, spaces, hyphens, apostrophes, and accented characters
+    value = value.replace(/[^a-zA-ZÀ-ÿ\s\-']/g, '');
+    // Limit to 255 characters
+    if (value.length > 255) {
+      value = value.slice(0, 255);
+    }
+    formData.fullName = value;
+    event.target.value = value;
+  }
+
   // Handle CIN input changes
   function handleCinInput(event) {
     let value = event.target.value.replace(/[^\d]/g, '').slice(0, 8);
@@ -185,6 +198,39 @@
     if (workerNumberLength === 10) {
       checkWorkerNumberDuplicate(value);
     }
+  }
+
+  // Handle Phone Number input with enhanced validation
+  function handlePhoneNumberInput(event) {
+    let value = event.target.value.replace(/[^\d]/g, '');
+    if (value.length > 8) {
+      value = value.slice(0, 8);
+    }
+    phoneNumberInput = value;
+    phoneNumberLength = phoneNumberInput.length;
+    formData.phoneNumber = value; // Store as string
+
+    if (phoneNumberLength === 8) {
+      phoneNumberStatus = 'valid';
+    } else if (phoneNumberLength > 0) {
+      phoneNumberStatus = 'invalid';
+    } else {
+      phoneNumberStatus = 'empty';
+    }
+    
+    // Update the input field to show cleaned value
+    event.target.value = value;
+  }
+
+  // Handle Address input with length validation
+  function handleAddressInput(event) {
+    let value = event.target.value;
+    // Limit to 500 characters
+    if (value.length > 500) {
+      value = value.slice(0, 500);
+      event.target.value = value;
+    }
+    formData.address = value;
   }
 
   // Debounced function to check CIN duplicates
@@ -306,27 +352,6 @@
     otherDocuments = otherDocuments.filter((_, i) => i !== index);
   }
 
-  // Handle Phone Number input
-  function handlePhoneNumberInput(event) {
-    let value = event.target.value;
-    value = value.replace(/[^\d]/g, '');
-    if (value.length > 8) {
-      value = value.slice(0, 8);
-    }
-    phoneNumberInput = value;
-    phoneNumberLength = phoneNumberInput.length;
-    const numValue = parseInt(phoneNumberInput);
-    formData.phoneNumber = isNaN(numValue) ? '' : value; // Store as string
-
-    if (phoneNumberLength === 8) {
-      phoneNumberStatus = 'valid';
-    } else if (phoneNumberLength > 0) {
-      phoneNumberStatus = 'invalid';
-    } else {
-      phoneNumberStatus = 'empty';
-    }
-  }
-
   // Get color for the filling part of the Phone Number bar
   function getPhoneNumberBarFillColor() {
     if (phoneNumberStatus === 'valid') return 'bg-green-500';
@@ -391,35 +416,95 @@
     loading.set(true);
 
     try {
-      // Client-side validation
-      if (!formData.fullName.trim()) {
-        showAlert('Full Name cannot be blank', 'error');
-        return;
+      // Comprehensive client-side validation
+      const errors = [];
+
+      // Full Name validation
+      if (!formData.fullName || !formData.fullName.trim()) {
+        errors.push('Full Name is required');
+      } else if (formData.fullName.trim().length < 2) {
+        errors.push('Full Name must be at least 2 characters long');
+      } else if (formData.fullName.trim().length > 255) {
+        errors.push('Full Name cannot exceed 255 characters');
+      } else if (!/^[a-zA-ZÀ-ÿ\s\-']+$/.test(formData.fullName.trim())) {
+        errors.push('Full Name can only contain letters, spaces, hyphens, and apostrophes');
       }
 
-      // Validate CIN - must be exactly 8 digits
+      // CIN validation
       if (!cinInput || cinInput.length !== 8) {
-        showAlert('CIN must be exactly 8 digits', 'error');
-        return;
+        errors.push('CIN must be exactly 8 digits');
+      } else if (!/^\d{8}$/.test(cinInput)) {
+        errors.push('CIN must contain only numbers');
+      } else if (cinStatus === 'duplicate') {
+        errors.push('This CIN number already exists in the system');
+      } else if (cinStatus === 'checking') {
+        errors.push('Please wait while we verify the CIN number');
       }
 
-      // Validate worker number if provided - must be exactly 10 digits
+      // Worker Number validation
       if (!workerNumberInput || workerNumberInput.length !== 10) {
-        showAlert('Worker number must be exactly 10 digits', 'error');
+        errors.push('Worker number must be exactly 10 digits');
+      } else if (!/^\d{10}$/.test(workerNumberInput)) {
+        errors.push('Worker number must contain only numbers');
+      } else if (workerNumberStatus === 'duplicate') {
+        errors.push('This Worker Number already exists in the system');
+      } else if (workerNumberStatus === 'checking') {
+        errors.push('Please wait while we verify the Worker Number');
+      }
+
+      // Workplace validation
+      if (!selectedWorkplaceId) {
+        errors.push('Workplace selection is required');
+      }
+
+      // Job validation
+      if (!formData.jobId) {
+        errors.push('Job selection is required');
+      }
+
+      // Address validation
+      if (!formData.address || !formData.address.trim()) {
+        errors.push('Address is required');
+      } else if (formData.address.trim().length < 5) {
+        errors.push('Address must be at least 5 characters long');
+      } else if (formData.address.trim().length > 500) {
+        errors.push('Address cannot exceed 500 characters');
+      }
+
+      // Phone Number validation (optional but if provided must be valid)
+      if (phoneNumberInput && phoneNumberInput.trim()) {
+        if (phoneNumberInput.length !== 8) {
+          errors.push('Phone number must be exactly 8 digits if provided');
+        } else if (!/^\d{8}$/.test(phoneNumberInput)) {
+          errors.push('Phone number must contain only numbers');
+        }
+      }
+
+      // Display validation errors
+      if (errors.length > 0) {
+        showAlert(`Please fix the following errors:\n• ${errors.join('\n• ')}`, 'error');
         return;
       }
 
-      if (!selectedWorkplaceId) {
-        showAlert('Workplace is required', 'error');
-        return;
-      }
-      if (!formData.jobId) {
-        showAlert('Job is required', 'error');
-        return;
-      }
-      if (!formData.address || !formData.address.trim()) {
-        showAlert('Address is required', 'error');
-        return;
+      // Server-side duplicate check before submission
+      try {
+        const duplicateCheck = await clientsApi.checkDuplicate(cinInput, workerNumberInput);
+        if (duplicateCheck.success && duplicateCheck.data) {
+          if (duplicateCheck.data.cinExists) {
+            errors.push('This CIN number already exists in the system');
+          }
+          if (duplicateCheck.data.workerNumberExists) {
+            errors.push('This Worker Number already exists in the system');
+          }
+          
+          if (errors.length > 0) {
+            showAlert(`Duplicate data found:\n• ${errors.join('\n• ')}`, 'error');
+            return;
+          }
+        }
+      } catch (duplicateError) {
+        console.error('Error checking duplicates:', duplicateError);
+        // Continue with submission if duplicate check fails
       }
 
       // Get workplace name if workplace is selected
@@ -430,18 +515,18 @@
         }
       }
 
-      // Create a plain object for client data
+      // Create a sanitized client data object
       const clientData = {
-        fullName: formData.fullName,
+        fullName: formData.fullName.trim(),
         cin: cinInput,
-        job: formData.job,
-        phoneNumber: formData.phoneNumber,
-        workplace: formData.workplace,
-        address: formData.address,
+        job: formData.job.trim(),
+        phoneNumber: phoneNumberInput || null, // Send null if empty
+        workplace: formData.workplace.trim(),
+        address: formData.address.trim(),
         jobId: formData.jobId,
         workerNumber: workerNumberInput,
         workplaceId: formData.workplaceId,
-        createdAt: new Date().toISOString() // Ensure creation timestamp is included
+        createdAt: new Date().toISOString()
       };
 
       // Create the client
@@ -451,11 +536,13 @@
         showAlert('Client created successfully', 'success');
         goto(`/clients/${result.data.id}`);
       } else {
-        showAlert(result.error || 'Failed to create client', 'error');
+        const errorMessage = result.error || 'Failed to create client';
+        showAlert(errorMessage, 'error');
       }
     } catch (error) {
       console.error('Error creating client:', error);
-      showAlert(error.message || 'Failed to create client', 'error');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create client. Please try again.';
+      showAlert(errorMessage, 'error');
     } finally {
       isSaving = false;
       loading.set(false);
@@ -516,14 +603,21 @@
         <div>
           <label for="fullName" class="block text-sm font-medium text-purple-600 mb-2">
             Full Name *
+            <span class="text-xs text-gray-500">(Letters, spaces, hyphens, and apostrophes only)</span>
           </label>
           <input
             type="text"
             id="fullName"
             bind:value={formData.fullName}
+            on:input={handleFullNameInput}
             class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
+            placeholder="Enter full name"
+            maxlength="255"
             required
           />
+          <div class="mt-1 text-xs text-gray-500">
+            {formData.fullName.length}/255 characters
+          </div>
         </div>
 
         <!-- CIN and Worker Number -->
@@ -683,15 +777,23 @@
         <div>
           <label for="address" class="block text-sm font-medium text-purple-600 mb-2">
             Address *
+            <span class="text-xs text-gray-500">(Minimum 5 characters)</span>
           </label>
-          <input
-            type="text"
+          <textarea
             id="address"
             bind:value={formData.address}
+            on:input={handleAddressInput}
             required
-            class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
+            rows="3"
+            maxlength="500"
+            placeholder="Enter complete address"
+            class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm resize-none"
             readonly={selectedWorkplaceId !== null}
-          />
+          ></textarea>
+          <div class="mt-1 flex justify-between text-xs text-gray-500">
+            <span>Minimum 5 characters required</span>
+            <span>{formData.address.length}/500 characters</span>
+          </div>
         </div>
 
         <!-- Phone Number Input -->
@@ -820,22 +922,44 @@
         <div class="pt-6">
           <button
             type="submit"
-            disabled={isSaving || cinStatus !== 'valid' || workerNumberStatus !== 'valid' || !formData.fullName}
-            class="w-full flex justify-center items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+            disabled={isSaving || 
+                     cinStatus !== 'valid' || 
+                     workerNumberStatus !== 'valid' || 
+                     !formData.fullName.trim() ||
+                     formData.fullName.trim().length < 2 ||
+                     !selectedWorkplaceId ||
+                     !formData.jobId ||
+                     !formData.address.trim() ||
+                     formData.address.trim().length < 5 ||
+                     (phoneNumberInput && phoneNumberStatus !== 'valid')}
+            class="w-full flex justify-center items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium disabled:opacity-70 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500"
           >
             {#if isSaving}
               <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Saving...
+              Creating Client...
             {:else}
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
               </svg>
-              Save Client
+              Create Client
             {/if}
           </button>
+          
+          <!-- Validation Status -->
+          <div class="mt-3 text-sm text-center">
+            {#if cinStatus !== 'valid' || workerNumberStatus !== 'valid'}
+              <span class="text-red-600">⚠️ Please complete all required fields with valid data</span>
+            {:else if !formData.fullName.trim() || !selectedWorkplaceId || !formData.jobId || !formData.address.trim()}
+              <span class="text-yellow-600">📝 Please fill in all required fields</span>
+            {:else if phoneNumberInput && phoneNumberStatus !== 'valid'}
+              <span class="text-yellow-600">📱 Phone number must be 8 digits if provided</span>
+            {:else}
+              <span class="text-green-600">✅ All fields are valid - ready to create client</span>
+            {/if}
+          </div>
         </div>
       </form>
     </div>

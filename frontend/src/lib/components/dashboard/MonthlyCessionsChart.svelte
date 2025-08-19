@@ -1,8 +1,9 @@
 <script lang="ts">
   import Chart from 'chart.js/auto';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { quintOut } from 'svelte/easing';
   import { fade } from 'svelte/transition';
+  import { chartLeakDetector, performanceTracker } from '$lib/utils/performanceMonitoring';
   
   export let monthlyTrends = [];
   export let formatCurrency = (amount) => {
@@ -24,103 +25,167 @@
   
   let canvas;
   let chart = null;
+  let componentMounted = false;
+  let resizeObserver;
+  let chartId = `monthlyCessionsChart_${Math.random().toString(36).substr(2, 9)}`;
 
   function initChart() {
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    if (!canvas || !componentMounted) return;
     
-    if (chart) {
-      chart.destroy();
-    }
-    
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: realTrends.map(t => `${t.month} ${t.year}`),
-        datasets: [
-          {
-            label: 'New Cessions',
-            data: realTrends.map(t => t.count),
-            backgroundColor: 'rgba(16, 185, 129, 0.8)',
-            borderColor: 'rgb(16, 185, 129)',
-            borderWidth: 1,
-            borderRadius: 4,
-            order: 2
-          },
-          {
-            label: 'Active Cessions',
-            data: realTrends.map(t => t.activeCessionsCount),
-            type: 'line',
-            borderColor: 'rgb(79, 70, 229)',
-            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            order: 1
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              usePointStyle: true,
-              padding: 16
+    try {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      if (chart) {
+        chartLeakDetector.unregisterChart(chartId);
+        chart.destroy();
+        chart = null;
+      }
+      
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: realTrends.map(t => `${t.month} ${t.year}`),
+          datasets: [
+            {
+              label: 'New Cessions',
+              data: realTrends.map(t => t.count),
+              backgroundColor: 'rgba(16, 185, 129, 0.8)',
+              borderColor: 'rgb(16, 185, 129)',
+              borderWidth: 1,
+              borderRadius: 4,
+              order: 2
+            },
+            {
+              label: 'Active Cessions',
+              data: realTrends.map(t => t.activeCessionsCount),
+              type: 'line',
+              borderColor: 'rgb(79, 70, 229)',
+              backgroundColor: 'rgba(79, 70, 229, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              order: 1
             }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 300 // Reduce animation duration for better performance
           },
-          tooltip: {
-            padding: 12,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            titleColor: '#1f2937',
-            titleFont: { weight: '600' },
-            bodyColor: '#6b7280',
-            borderColor: 'rgba(0, 0, 0, 0.1)',
-            borderWidth: 1,
-            callbacks: {
-              label: function(context) {
-                const datasetLabel = context.dataset.label;
-                const value = context.raw;
-                
-                if (datasetLabel === 'New Cessions') {
-                  return `${datasetLabel}: ${value} (${formatCurrency(realTrends[context.dataIndex].value)} DT)`;
-                } else {
-                  return `${datasetLabel}: ${value} (${formatCurrency(realTrends[context.dataIndex].activeValue)} DT/month)`;
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 16
+              }
+            },
+            tooltip: {
+              padding: 12,
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              titleColor: '#1f2937',
+              titleFont: { weight: '600' },
+              bodyColor: '#6b7280',
+              borderColor: 'rgba(0, 0, 0, 0.1)',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  const datasetLabel = context.dataset.label;
+                  const value = context.raw;
+                  
+                  if (datasetLabel === 'New Cessions') {
+                    return `${datasetLabel}: ${value} (${formatCurrency(realTrends[context.dataIndex].value)} DT)`;
+                  } else {
+                    return `${datasetLabel}: ${value} (${formatCurrency(realTrends[context.dataIndex].activeValue)} DT/month)`;
+                  }
                 }
               }
             }
-          }
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false
+              }
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
             }
           },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)'
+          // Optimize performance
+          elements: {
+            point: {
+              radius: 3,
+              hoverRadius: 5
             }
           }
         }
+      });
+
+      // Register chart with leak detector
+      chartLeakDetector.registerChart(chartId, chart);
+
+      // Set up resize observer
+      if (typeof ResizeObserver !== 'undefined') {
+        const chartContainer = canvas.parentElement;
+        if (chartContainer && !resizeObserver) {
+          resizeObserver = new ResizeObserver(() => {
+            if (chart && componentMounted) {
+              chart.resize();
+            }
+          });
+          resizeObserver.observe(chartContainer);
+        }
       }
-    });
+    } catch (error) {
+      console.error('Error initializing MonthlyCessionsChart:', error);
+    }
   }
   
-  $: if (realTrends.length > 0 && canvas) {
+  $: if (realTrends.length > 0 && canvas && componentMounted) {
     initChart();
   }
   
   onMount(() => {
+    componentMounted = true;
     if (realTrends.length > 0) {
       initChart();
+    }
+  });
+
+  onDestroy(() => {
+    try {
+      componentMounted = false;
+      
+      if (chart) {
+        chartLeakDetector.unregisterChart(chartId);
+        
+        // Clear any pending animations
+        if (chart.config && chart.config.options && chart.config.options.animation) {
+          chart.config.options.animation.duration = 0;
+        }
+        
+        chart.destroy();
+        chart = null;
+      }
+
+      // Clean up resize observer
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
+    } catch (error) {
+      console.error('Error in MonthlyCessionsChart onDestroy:', error);
     }
   });
 </script>

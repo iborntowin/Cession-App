@@ -377,6 +377,18 @@
       "delete_error": "Error deleting client.",
       "danger_zone": "Danger Zone",
       "danger_zone_subtitle": "Actions in this zone are irreversible."
+    },
+    "analytics": {
+      "job_distribution": {
+        "title": "Distribution by Job Category",
+        "subtitle": "Client segments by profession",
+        "insight": "See client segments to optimize services",
+        "insight_label": "Insight",
+        "total_clients": "Total Clients",
+        "more_categories": "more categories",
+        "show_more": "Show More",
+        "show_less": "Show Less"
+      }
     }
   },
   "cessions": {
@@ -428,7 +440,16 @@
       "active": "Active",
       "top_clients": "Top Clients",
       "cessions": "Cessions",
-      "total": "Total"
+      "total": "Total",
+      "job_distribution": {
+        "title": "Distribution by Job Category",
+        "subtitle": "Client segments by profession",
+        "insight": "See client segments to optimize services",
+        "total_clients": "Total Clients",
+        "more_categories": "more categories",
+        "show_more": "Show More",
+        "show_less": "Show Less"
+      }
     },
     "count": "{count} {count, plural, one=cession other=cessions}",
     "details": {

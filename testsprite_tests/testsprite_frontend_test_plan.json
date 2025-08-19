@@ -1,8 +1,8 @@
 [
   {
     "id": "TC001",
-    "title": "Successful user login with valid credentials",
-    "description": "Verify that a user can log in successfully using valid credentials and receives a valid JWT token with appropriate role-based access.",
+    "title": "User Login Success with Valid Credentials",
+    "description": "Verify that a user can successfully log in with valid credentials and receive a JWT token with the correct role.",
     "category": "functional",
     "priority": "High",
     "steps": [
@@ -12,26 +12,30 @@
       },
       {
         "type": "action",
-        "description": "Input valid username/email and password"
+        "description": "Enter valid username/email and password"
       },
       {
         "type": "action",
-        "description": "Click on the login button"
+        "description": "Click the login button"
       },
       {
         "type": "assertion",
-        "description": "Verify login is successful and JWT token is received"
+        "description": "Verify login is successful and JWT token is returned"
       },
       {
         "type": "assertion",
-        "description": "Verify user is redirected to dashboard with role-based UI components"
+        "description": "Validate that the JWT token contains the correct user role (USER or ADMIN)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify redirection to the dashboard page"
       }
     ]
   },
   {
     "id": "TC002",
-    "title": "Login failure with invalid credentials",
-    "description": "Verify that the system rejects login attempts with invalid credentials and shows the appropriate error message.",
+    "title": "User Login Failure with Invalid Credentials",
+    "description": "Ensure that login is rejected when credentials are invalid and an appropriate error message is shown.",
     "category": "error handling",
     "priority": "High",
     "steps": [
@@ -41,15 +45,15 @@
       },
       {
         "type": "action",
-        "description": "Input invalid username/email and/or password"
+        "description": "Enter invalid username/email or password"
       },
       {
         "type": "action",
-        "description": "Click on the login button"
+        "description": "Click the login button"
       },
       {
         "type": "assertion",
-        "description": "Verify login is denied and error message is displayed"
+        "description": "Verify login fails with an error message about invalid credentials"
       },
       {
         "type": "assertion",
@@ -59,8 +63,8 @@
   },
   {
     "id": "TC003",
-    "title": "Role-based access control enforcement",
-    "description": "Verify that ADMIN and USER roles have correct permissions restricting or allowing access to features and pages.",
+    "title": "Role-Based Access Control Enforcement",
+    "description": "Validate that access to protected API endpoints and UI features is restricted correctly based on USER or ADMIN roles.",
     "category": "security",
     "priority": "High",
     "steps": [
@@ -69,124 +73,156 @@
         "description": "Log in as USER role"
       },
       {
+        "type": "action",
+        "description": "Attempt to access ADMIN-only API endpoint and admin UI features"
+      },
+      {
         "type": "assertion",
-        "description": "Verify access is denied to admin-only pages such as user management"
+        "description": "Verify access is denied with appropriate status code and message"
       },
       {
         "type": "action",
-        "description": "Log out and log in as ADMIN role"
+        "description": "Log in as ADMIN role"
+      },
+      {
+        "type": "action",
+        "description": "Access both USER and ADMIN functionalities"
       },
       {
         "type": "assertion",
-        "description": "Verify ADMIN has full access including administrative functions"
+        "description": "Verify full access to features and APIs permitted for ADMIN"
       }
     ]
   },
   {
     "id": "TC004",
-    "title": "Create new client with valid data and document upload",
-    "description": "Verify user can create a new client with all mandatory data filled and upload supported document types successfully.",
+    "title": "Client Creation with Valid Data and Document Upload",
+    "description": "Verify that a new client can be created with all required fields and PDF documents can be uploaded successfully.",
     "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to 'Create New Client' form"
+        "description": "Navigate to the new client creation page"
       },
       {
         "type": "action",
-        "description": "Fill all required client data fields with valid input"
+        "description": "Fill in all mandatory client fields with valid data"
       },
       {
         "type": "action",
-        "description": "Upload one or multiple valid document files"
+        "description": "Upload valid PDF document(s)"
       },
       {
         "type": "action",
-        "description": "Submit the form"
+        "description": "Submit the client creation form"
       },
       {
         "type": "assertion",
-        "description": "Verify client is created and listed in client management"
+        "description": "Verify client is created and stored correctly with documents linked"
       },
       {
         "type": "assertion",
-        "description": "Verify documents are successfully uploaded and linked to the client"
+        "description": "Check document is accessible and the file format is PDF"
       }
     ]
   },
   {
     "id": "TC005",
-    "title": "Client form input validation and error handling",
-    "description": "Verify that client creation and editing forms prevent submission with invalid data and show meaningful validation messages.",
+    "title": "Client Creation Field Validation and Error Handling",
+    "description": "Test validation rules for client creation form with missing, invalid, or malformed data including document uploads.",
     "category": "error handling",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to client creation or editing form"
+        "description": "Navigate to the new client creation page"
       },
       {
         "type": "action",
-        "description": "Leave required fields empty or input invalid data formats"
+        "description": "Submit form with blank required fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify validation errors are shown for missing required fields"
       },
       {
         "type": "action",
-        "description": "Attempt to submit the form"
+        "description": "Input invalid data formats (e.g. invalid email, phone number)"
       },
       {
         "type": "assertion",
-        "description": "Verify form submission is blocked"
+        "description": "Verify format validation errors are displayed"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to upload non-PDF file types as document"
       },
       {
         "type": "assertion",
-        "description": "Verify appropriate validation messages are displayed per invalid input field"
+        "description": "Verify file upload is rejected and error message shown"
       }
     ]
   },
   {
     "id": "TC006",
-    "title": "Search clients with pagination and filters",
-    "description": "Verify client search functionality returns correct results with filters applied and supports pagination for large datasets.",
+    "title": "Search Clients with Various Criteria",
+    "description": "Verify the client listing supports search by name, ID, and other demographic filters with correct results.",
     "category": "functional",
     "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to client management page"
+        "description": "Navigate to the client listing page"
       },
       {
         "type": "action",
-        "description": "Input search criteria and apply filters"
+        "description": "Enter search query by client name"
       },
       {
         "type": "assertion",
-        "description": "Verify matching clients are displayed"
+        "description": "Verify filtered client list matches the query"
       },
       {
         "type": "action",
-        "description": "Navigate to next page of results"
+        "description": "Search by client ID"
       },
       {
         "type": "assertion",
-        "description": "Verify pagination works correctly and no duplicate or missing clients appear"
+        "description": "Verify correct client record is retrieved"
+      },
+      {
+        "type": "action",
+        "description": "Search using partial and case insensitive terms"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify relevant clients are displayed"
+      },
+      {
+        "type": "action",
+        "description": "Search with no matching results"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify appropriate 'no results' message is shown"
       }
     ]
   },
   {
     "id": "TC007",
-    "title": "Create salary cession with valid data and status monitoring",
-    "description": "Verify the ability to create a salary cession, assign to a client, track status changes, and generate related documents.",
+    "title": "Create and Monitor Salary Cession with Payment Tracking",
+    "description": "Verify the workflow to create a salary cession, monitor its status, and record payments successfully.",
     "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to create new salary cession page"
+        "description": "Navigate to new cession creation page"
       },
       {
         "type": "action",
-        "description": "Fill in valid cession details including client reference and payment terms"
+        "description": "Create cession with valid salary and payment parameters"
       },
       {
         "type": "action",
@@ -194,404 +230,468 @@
       },
       {
         "type": "assertion",
-        "description": "Verify new cession appears in cession list with default status"
+        "description": "Verify cession status is set as active or pending as per logic"
       },
       {
         "type": "action",
-        "description": "Update the status of the salary cession through its lifecycle"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify status updates are reflected correctly in UI"
+        "description": "View cession details page"
       },
       {
         "type": "action",
-        "description": "Generate and download cession document"
+        "description": "Record one or multiple payments related to the cession"
       },
       {
         "type": "assertion",
-        "description": "Verify document is generated correctly and matches cession data"
+        "description": "Verify payment amounts update the cession balance and status correctly"
       }
     ]
   },
   {
     "id": "TC008",
-    "title": "Payment tracking for salary cessions",
-    "description": "Verify that payments can be recorded against salary cessions and their statuses and balances update accurately.",
+    "title": "Cession Document Generation and Download",
+    "description": "Ensure that documents such as contracts and payment slips are properly generated and downloadable in PDF format for cessions.",
     "category": "functional",
-    "priority": "High",
+    "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to payment management page"
+        "description": "Access cession details for an existing cession"
       },
       {
         "type": "action",
-        "description": "Select a salary cession and record a payment"
+        "description": "Trigger document generation for the cession"
       },
       {
         "type": "assertion",
-        "description": "Verify payment is saved and linked to the correct cession"
+        "description": "Verify the generated document is a valid PDF file"
+      },
+      {
+        "type": "action",
+        "description": "Download the PDF document"
       },
       {
         "type": "assertion",
-        "description": "Verify cession payment status and outstanding balances update accordingly"
+        "description": "Verify that the downloaded document opens and contains accurate cession details"
       }
     ]
   },
   {
     "id": "TC009",
-    "title": "Expense and income recording with financial report verification",
-    "description": "Verify users can record expenses and incomes with valid data and generated financial reports reflect these entries accurately with correct chart visualization.",
+    "title": "Record Expense and Income with Validation and Reporting",
+    "description": "Test adding new expense and income entries including validation and verify that reports and charts reflect the new data accurately.",
     "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to expense recording section and log a new expense with valid inputs"
+        "description": "Navigate to the expense tracking page"
       },
       {
         "type": "action",
-        "description": "Navigate to income recording section and log a new income with valid inputs"
+        "description": "Add a new expense with valid category, amount, and date"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the expense entry is saved and visible in the expense list"
       },
       {
         "type": "action",
-        "description": "Navigate to financial reports page"
+        "description": "Navigate to the income recording page"
+      },
+      {
+        "type": "action",
+        "description": "Add a new income entry with valid data"
       },
       {
         "type": "assertion",
-        "description": "Verify recorded expenses and incomes appear accurately in reports"
+        "description": "Verify the income entry is saved and displayed correctly"
+      },
+      {
+        "type": "action",
+        "description": "Open financial reports and charts page"
       },
       {
         "type": "assertion",
-        "description": "Verify charts correctly visualize the financial data"
+        "description": "Verify reports and interactive charts accurately reflect newly added expenses and income"
       }
     ]
   },
   {
     "id": "TC010",
-    "title": "Inventory product CRUD operations with stock tracking",
-    "description": "Verify create, read, update, and delete operations for products and categories work correctly and stock levels are tracked and updated properly.",
+    "title": "Inventory Product and Category CRUD Operations",
+    "description": "Verify that products and categories can be created, read, updated, and deleted correctly with stock tracking.",
     "category": "functional",
-    "priority": "High",
+    "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to inventory management page"
+        "description": "Navigate to product category management page"
       },
       {
         "type": "action",
-        "description": "Create a new product under a category with valid inputs"
+        "description": "Create a new product category with valid input"
       },
       {
         "type": "assertion",
-        "description": "Verify product is listed and stock quantity is displayed"
+        "description": "Verify the category is listed"
       },
       {
         "type": "action",
-        "description": "Edit product details and update stock quantity"
+        "description": "Edit the category and save changes"
       },
       {
         "type": "assertion",
-        "description": "Verify updated product details and stock quantity are saved"
+        "description": "Verify updated category information is displayed"
       },
       {
         "type": "action",
-        "description": "Delete a product"
+        "description": "Create a new product with assigned category and stock quantity"
       },
       {
         "type": "assertion",
-        "description": "Verify product is removed from the list"
+        "description": "Verify product appears with correct details including stock"
+      },
+      {
+        "type": "action",
+        "description": "Update product information including stock changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify stock tracking updates reflect correctly"
+      },
+      {
+        "type": "action",
+        "description": "Delete product and category"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify removal from listing and no data inconsistencies remain"
       }
     ]
   },
   {
     "id": "TC011",
-    "title": "Language switching and RTL layout rendering",
-    "description": "Verify users can switch application language among Arabic, English, and French and that Arabic renders correctly with RTL layout across all supported platforms.",
+    "title": "Multi-language Switching and RTL Layout Validation",
+    "description": "Test language switching among Arabic, English, and French including RTL layout rendering for Arabic.",
     "category": "ui",
     "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to application settings"
+        "description": "Navigate to the application settings page"
       },
       {
         "type": "action",
-        "description": "Switch application language to Arabic"
+        "description": "Change language to Arabic"
       },
       {
         "type": "assertion",
-        "description": "Verify UI text switches to Arabic"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify application layout renders properly in RTL format"
+        "description": "Verify all UI text is in Arabic and the layout is rendered RTL properly"
       },
       {
         "type": "action",
-        "description": "Switch language to English and French respectively"
+        "description": "Switch language to French"
       },
       {
         "type": "assertion",
-        "description": "Verify UI text switches correctly and layout resets to LTR"
+        "description": "Verify UI text displays in French with default LTR layout"
+      },
+      {
+        "type": "action",
+        "description": "Switch language to English"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm UI text is in English and layout is LTR"
       }
     ]
   },
   {
     "id": "TC012",
-    "title": "Document upload validation and secure storage",
-    "description": "Verify uploaded documents conform to supported formats, are scanned for validity, securely stored in Supabase, and linked properly with no data leakage.",
+    "title": "JWT Token Expiry and Refresh Token Mechanism",
+    "description": "Verify session management by testing expiration of JWT tokens and successful token refresh for an active user session.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Attempt to upload valid document formats (e.g. PDF, JPG)"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify upload is successful and document is accessible securely"
+        "description": "Log in and obtain valid JWT and refresh tokens"
       },
       {
         "type": "action",
-        "description": "Attempt to upload unsupported or corrupted file formats"
+        "description": "Simulate JWT token expiry"
+      },
+      {
+        "type": "action",
+        "description": "Attempt authorized API call with expired JWT token"
       },
       {
         "type": "assertion",
-        "description": "Verify upload is rejected with appropriate error"
+        "description": "Verify request is rejected due to token expiry"
+      },
+      {
+        "type": "action",
+        "description": "Use refresh token to obtain new JWT token"
       },
       {
         "type": "assertion",
-        "description": "Verify no unauthorized access to stored documents occurs"
+        "description": "Verify new JWT token is issued and user can resume activity without re-login"
       }
     ]
   },
   {
     "id": "TC013",
-    "title": "Frontend-backend integration and API security",
-    "description": "Verify API endpoints enforce authentication, input sanitization, return standardized success/error responses, and prevent unauthorized data access.",
+    "title": "Secure File Upload with Virus Scan and File Type Validation",
+    "description": "Verify that file uploads accept only PDF files and trigger virus scanning to ensure safe document storage.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Send valid authenticated requests to various API endpoints"
+        "description": "Attempt to upload a valid PDF document"
       },
       {
         "type": "assertion",
-        "description": "Verify correct data is returned with status code 200"
+        "description": "Verify upload completes successfully and file is scanned"
       },
       {
         "type": "action",
-        "description": "Send requests with invalid or malicious input"
+        "description": "Attempt to upload executable or other dangerous file types"
       },
       {
         "type": "assertion",
-        "description": "Verify input is sanitized and errors are handled gracefully"
+        "description": "Verify upload is rejected due to invalid file type"
       },
       {
         "type": "action",
-        "description": "Send requests without authentication or with invalid tokens"
+        "description": "Simulate virus detection by uploading infected file"
       },
       {
         "type": "assertion",
-        "description": "Verify access is denied with appropriate error message and status code 401 or 403"
+        "description": "Verify upload is blocked and user is notified"
       }
     ]
   },
   {
     "id": "TC014",
-    "title": "Cross-platform synchronization and offline support",
-    "description": "Verify that data changes made on one client platform (desktop, web, mobile) synchronize correctly across others including when networks go offline and later reconnect.",
-    "category": "integration",
-    "priority": "High",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Make data changes (e.g., client edit, new cession) on desktop client"
-      },
-      {
-        "type": "action",
-        "description": "Verify changes appear on web and mobile clients after sync"
-      },
-      {
-        "type": "action",
-        "description": "Perform edits on mobile client while offline"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify edits are queued and stored locally"
-      },
-      {
-        "type": "action",
-        "description": "Reconnect mobile client to network"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify edits are synchronized with backend and visible on other clients"
-      }
-    ]
-  },
-  {
-    "id": "TC015",
-    "title": "UI responsiveness and loading state handling",
-    "description": "Verify UI elements respond properly to different screen sizes on desktop, web, and mobile and that loading and error states are indicated well to the user.",
+    "title": "Responsive UI Rendering Across Devices and Browsers",
+    "description": "Test the application's UI on multiple device types (desktop, tablet, mobile) and browsers to ensure consistent and responsive rendering.",
     "category": "ui",
     "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Access various pages on desktop, web, and mobile devices with different resolutions"
+        "description": "Open the application on desktop browsers (Windows, macOS, Linux)"
       },
       {
         "type": "assertion",
-        "description": "Verify layout adjusts appropriately without content cutoff or overlap"
+        "description": "Verify UI layouts are responsive and functional"
       },
       {
         "type": "action",
-        "description": "Trigger data loading processes (e.g., fetching client list)"
+        "description": "Open application on mobile devices (iOS, Android) and different screen resolutions"
       },
       {
         "type": "assertion",
-        "description": "Verify loading indicators appear during data loading"
+        "description": "Verify UI adapts to screen size, touch interactions work, and no layout breaks occur"
       },
       {
         "type": "action",
-        "description": "Simulate API errors during loading"
+        "description": "Test application in PWA mode offline"
       },
       {
         "type": "assertion",
-        "description": "Verify error messages are displayed and UI recovers gracefully"
+        "description": "Verify offline capabilities and correct caching are functional"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Performance Test for Large Dataset Handling and Search Efficiency",
+    "description": "Validate application responsiveness and speed when processing large numbers of clients and cessions, including search operations.",
+    "category": "performance",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Populate the database with a large volume of client and cession records (thousands)"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to client listing page and measure page load time"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify page loads within acceptable performance limits without UI freezing"
+      },
+      {
+        "type": "action",
+        "description": "Perform client search queries with various parameters"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify search returns results quickly and UI remains responsive"
+      },
+      {
+        "type": "action",
+        "description": "Open dashboard charts with large financial datasets"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify charts render quickly and interactivity is smooth using Chart.js"
       }
     ]
   },
   {
     "id": "TC016",
-    "title": "Data encryption and input validation security testing",
-    "description": "Verify that sensitive data sent and stored is encrypted, input fields are validated to prevent injection attacks, and that security protections (CSRF, XSS) are effective.",
+    "title": "API Security: Input Sanitization and SQL Injection Prevention",
+    "description": "Test that the backend properly sanitizes input fields and prevents SQL injection attacks across API endpoints.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Inspect network communication to verify encryption in transit (e.g., HTTPS, JWT)"
-      },
-      {
-        "type": "action",
-        "description": "Attempt common injection attacks in form inputs (SQL injection, XSS scripts)"
+        "description": "Send API requests with malicious SQL injection patterns in input fields (e.g., ' OR 1=1 --)"
       },
       {
         "type": "assertion",
-        "description": "Verify inputs are sanitized and attacks are blocked or neutralized"
+        "description": "Verify server rejects malicious inputs and no unauthorized data access occurs"
       },
       {
         "type": "action",
-        "description": "Validate CSRF tokens are required and enforced for state-changing requests"
+        "description": "Send API requests with script injection payloads for XSS testing"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify input is sanitized and no script execution is possible"
       }
     ]
   },
   {
     "id": "TC017",
-    "title": "Performance under load with large datasets",
-    "description": "Verify system responsiveness and query performance when dealing with large volumes of clients, payments, and inventory data.",
-    "category": "performance",
+    "title": "Cross-Platform Installation and Functional Verification",
+    "description": "Verify that the application installs and runs correctly on supported desktop (Windows, macOS, Linux), web browsers (PWA), and mobile platforms (iOS, Android).",
+    "category": "functional",
     "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Populate database with large datasets for clients, payments, and inventory"
-      },
-      {
-        "type": "action",
-        "description": "Perform searches, filtering, and loading lists in client management and inventory"
+        "description": "Install desktop application on Windows, macOS, and Linux"
       },
       {
         "type": "assertion",
-        "description": "Verify queries complete within acceptable time limits without UI freezing"
+        "description": "Verify the application launches and core functionality (login, navigation, workflows) work as expected"
       },
       {
         "type": "action",
-        "description": "Upload large documents and observe upload performance"
+        "description": "Access the application via supported web browsers and install PWA"
       },
       {
         "type": "assertion",
-        "description": "Verify no timeouts or performance degradations occur"
+        "description": "Verify PWA features operate correctly including offline mode"
+      },
+      {
+        "type": "action",
+        "description": "Install and run the mobile application on iOS and Android devices"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify application functions including offline availability and performance"
       }
     ]
   },
   {
     "id": "TC018",
-    "title": "File upload and download via Supabase integration",
-    "description": "Verify files upload to and download from Supabase storage correctly without errors and with acceptable performance.",
-    "category": "integration",
-    "priority": "High",
+    "title": "Audit Logging and GDPR Compliance Validation",
+    "description": "Ensure that all critical user actions are logged accurately and data privacy measures meet GDPR and security policies.",
+    "category": "security",
+    "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Upload various supported file types via client UI"
+        "description": "Perform sensitive operations such as client creation, document upload, payment recording"
       },
       {
         "type": "assertion",
-        "description": "Verify files appear in Supabase storage and metadata is updated"
+        "description": "Verify audit logs capture user action, timestamp, and affected data"
       },
       {
         "type": "action",
-        "description": "Download uploaded files"
+        "description": "Test deletion of user personal data respecting GDPR (right to be forgotten)"
       },
       {
         "type": "assertion",
-        "description": "Verify downloaded files match originals and open without corruption"
+        "description": "Verify data is erased or anonymized properly from audit logs and storage"
       }
     ]
   },
   {
     "id": "TC019",
-    "title": "System stability and error recovery under stress",
-    "description": "Verify application remains stable under prolonged use and unexpected load conditions and recovers gracefully from errors or server issues.",
-    "category": "performance",
-    "priority": "Medium",
+    "title": "Session Logout and Token Revocation",
+    "description": "Verify that user logout properly invalidates JWT tokens and ends sessions to prevent unauthorized access.",
+    "category": "security",
+    "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Simulate concurrent users performing various operations"
-      },
-      {
-        "type": "assertion",
-        "description": "Verify no crashes or significant slowdowns occur"
+        "description": "Log in as a user and obtain JWT token"
       },
       {
         "type": "action",
-        "description": "Simulate backend server disconnection or errors"
+        "description": "Perform logout action"
       },
       {
         "type": "assertion",
-        "description": "Verify UI properly handles errors and retries if applicable"
+        "description": "Verify JWT token is revoked or blacklisted server-side"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to access protected resources with old JWT token"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is denied requiring fresh authentication"
       }
     ]
   },
   {
     "id": "TC020",
-    "title": "Admin user system settings and user management",
-    "description": "Verify ADMIN users can access system settings pages, manage users including changing roles, and apply configuration changes.",
+    "title": "Offline Mode Functionality in PWA and Mobile",
+    "description": "Test that the application supports offline operations where applicable and syncs data correctly once the network is restored.",
     "category": "functional",
-    "priority": "High",
+    "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Log in as ADMIN user"
+        "description": "Access the application in PWA or mobile app online"
       },
       {
         "type": "action",
-        "description": "Navigate to system settings and user management pages"
+        "description": "Navigate to client or payment pages"
       },
       {
         "type": "action",
-        "description": "Create, edit, and delete user accounts and modify roles"
+        "description": "Disconnect network to simulate offline"
       },
       {
         "type": "assertion",
-        "description": "Verify changes persist and reflect correctly in the system"
+        "description": "Verify previously loaded data remains accessible and UI indicates offline mode"
+      },
+      {
+        "type": "action",
+        "description": "Create or edit client or record payments offline"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify changes are stored locally without errors"
+      },
+      {
+        "type": "action",
+        "description": "Reconnect network"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify offline changes synchronize with backend successfully"
       }
     ]
   }
