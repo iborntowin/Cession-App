@@ -1,5 +1,24 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// Additional console hiding for Windows
+#[cfg(windows)]
+fn hide_console_window() {
+    unsafe {
+        let console_window = winapi::um::wincon::GetConsoleWindow();
+        if !console_window.is_null() {
+            winapi::um::winuser::ShowWindow(console_window, winapi::um::winuser::SW_HIDE);
+        }
+        
+        // Also try to free the console
+        winapi::um::wincon::FreeConsole();
+    }
+}
+
+#[cfg(not(all(windows, not(debug_assertions))))]
+fn hide_console_window() {
+    // Do nothing on non-Windows or debug builds
+}
+
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
@@ -851,6 +870,7 @@ impl LoggingSystem {
         Ok(())
     }
     
+    #[allow(dead_code)]
     fn add_error_to_history(&self, error_info: ErrorRecoveryInfo) {
         let mut history = self.error_history.lock().unwrap();
         history.push(error_info);
@@ -889,12 +909,23 @@ impl LoggingSystem {
         let os = std::env::consts::OS.to_string();
         let arch = std::env::consts::ARCH.to_string();
         
-        let java_version = match std::process::Command::new("java").arg("-version").output() {
-            Ok(output) => {
-                let version_output = String::from_utf8_lossy(&output.stderr);
-                Some(version_output.lines().next().unwrap_or("Unknown").to_string())
+        let java_version = {
+            let mut java_cmd = std::process::Command::new("java");
+            java_cmd.arg("-version");
+            
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                java_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
             }
-            Err(_) => None,
+            
+            match java_cmd.output() {
+                Ok(output) => {
+                    let version_output = String::from_utf8_lossy(&output.stderr);
+                    Some(version_output.lines().next().unwrap_or("Unknown").to_string())
+                }
+                Err(_) => None,
+            }
         };
         
         // Simplified system info
@@ -962,9 +993,16 @@ fn verify_java() -> Result<PathBuf, String> {
         "Java Runtime Environment (JRE) not found. Please install Java 17 or higher from https://adoptium.net/".to_string()
     })?;
     
-    match std::process::Command::new(&java_path)
-        .arg("-version")
-        .output()
+    let mut version_cmd = std::process::Command::new(&java_path);
+    version_cmd.arg("-version");
+    
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        version_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    
+    match version_cmd.output()
     {
         Ok(output) => {
             let version_output = String::from_utf8_lossy(&output.stderr);
@@ -1538,6 +1576,13 @@ fn launch_backend_process(config: &BackendConfig) -> Result<BackendProcess, Stri
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
+    // Hide console window for Java process on Windows
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
     log::info!("Executing command: {:?}", cmd);
     log::info!("Working directory: {}", config.data_dir.display());
     
@@ -1840,6 +1885,10 @@ fn restart_backend_process(
 }
 
 fn main() {
+    // Hide console window on Windows
+    #[cfg(windows)]
+    hide_console_window();
+    
     let backend_status = Arc::new(Mutex::new(BackendStatus::Starting));
     let backend_status_clone = backend_status.clone();
 
@@ -1848,14 +1897,17 @@ fn main() {
             let logging_system = match LoggingSystem::new(&app.handle()) {
                 Ok(system) => system,
                 Err(e) => {
+                    #[cfg(debug_assertions)]
                     eprintln!("Failed to initialize logging system: {}", e);
                     return Err(e.into());
                 }
             };
             
             if let Err(e) = logging_system.setup_enhanced_logging() {
+                #[cfg(debug_assertions)]
                 eprintln!("Failed to setup enhanced logging: {}", e);
                 if let Err(e) = setup_logging(&app.handle()) {
+                    #[cfg(debug_assertions)]
                     eprintln!("Failed to setup basic logging: {}", e);
                 }
             }
