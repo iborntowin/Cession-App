@@ -1,5 +1,24 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+// Additional console hiding for Windows
+#[cfg(windows)]
+fn hide_console_window() {
+    unsafe {
+        let console_window = winapi::um::wincon::GetConsoleWindow();
+        if !console_window.is_null() {
+            winapi::um::winuser::ShowWindow(console_window, winapi::um::winuser::SW_HIDE);
+        }
+        
+        // Also try to free the console
+        winapi::um::wincon::FreeConsole();
+    }
+}
+
+#[cfg(not(windows))]
+fn hide_console_window() {
+    // No-op on non-Windows platforms
+}
+
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
@@ -1538,6 +1557,13 @@ fn launch_backend_process(config: &BackendConfig) -> Result<BackendProcess, Stri
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
+    // Hide console window for Java process on Windows
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
     log::info!("Executing command: {:?}", cmd);
     log::info!("Working directory: {}", config.data_dir.display());
     
@@ -1840,6 +1866,10 @@ fn restart_backend_process(
 }
 
 fn main() {
+    // Hide console window on Windows
+    #[cfg(windows)]
+    hide_console_window();
+
     let backend_status = Arc::new(Mutex::new(BackendStatus::Starting));
     let backend_status_clone = backend_status.clone();
 
@@ -1848,14 +1878,17 @@ fn main() {
             let logging_system = match LoggingSystem::new(&app.handle()) {
                 Ok(system) => system,
                 Err(e) => {
+                    #[cfg(debug_assertions)]
                     eprintln!("Failed to initialize logging system: {}", e);
                     return Err(e.into());
                 }
             };
             
             if let Err(e) = logging_system.setup_enhanced_logging() {
+                #[cfg(debug_assertions)]
                 eprintln!("Failed to setup enhanced logging: {}", e);
                 if let Err(e) = setup_logging(&app.handle()) {
+                    #[cfg(debug_assertions)]
                     eprintln!("Failed to setup basic logging: {}", e);
                 }
             }

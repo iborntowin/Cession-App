@@ -70,6 +70,9 @@
   let clientActivityMetrics = [];
   let predictiveInsights = [];
   let clientSegments = [];
+  
+  // UI state for job distribution
+  let showAllJobs = false;
 
   // Performance optimization
   let isLoadingClients = false;
@@ -1503,10 +1506,10 @@
                   </div>
                   <!-- Legend and Stats -->
                   <div class="space-y-3">
-                    {#each jobDistribution.slice(0, 8) as job, index}
+                    {#each (showAllJobs ? jobDistribution : jobDistribution.slice(0, 8)) as job, index}
                       <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                         <div class="flex items-center space-x-3">
-                          <div class="w-4 h-4 rounded-full" style="background: {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#06B6D4'][index % 8]};"></div>
+                          <div class="w-4 h-4 rounded-full" style="background: {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#06B6D4', '#8B5A2B', '#2D7D32', '#C2185B', '#7B1FA2', '#303F9F', '#0288D1', '#0097A7', '#00796B'][index % 16]};"></div>
                           <span class="font-medium text-gray-900 text-sm">{job.jobName}</span>
                         </div>
                         <div class="flex items-center space-x-2">
@@ -1516,8 +1519,23 @@
                       </div>
                     {/each}
                     {#if jobDistribution.length > 8}
-                      <div class="text-xs text-gray-500 text-center pt-2">
-                        +{jobDistribution.length - 8} more categories
+                      <div class="flex items-center justify-center pt-3">
+                        <button 
+                          on:click={() => showAllJobs = !showAllJobs}
+                          class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                          <span>
+                            {showAllJobs ? 'Show Less' : `Show ${jobDistribution.length - 8} More Categories`}
+                          </span>
+                          <svg 
+                            class="w-4 h-4 transform transition-transform duration-200 {showAllJobs ? 'rotate-180' : ''}" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
                       </div>
                     {/if}
                   </div>
@@ -1640,21 +1658,41 @@
               <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-6">Distribution by Job Category</h3>
                 <div class="space-y-4">
-                  {#each jobDistribution.slice(0, 8) as job}
+                  {#each (showAllJobs ? jobDistribution : jobDistribution.slice(0, 8)) as job, index}
                     <div class="flex items-center justify-between">
                       <div class="flex items-center space-x-3">
-                        <div class="w-4 h-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"></div>
+                        <div class="w-4 h-4 rounded-full" style="background: {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#06B6D4', '#8B5A2B', '#2D7D32', '#C2185B', '#7B1FA2', '#303F9F', '#0288D1', '#0097A7', '#00796B'][index % 16]};"></div>
                         <span class="font-medium text-gray-900">{job.jobName}</span>
                       </div>
                       <div class="flex items-center space-x-3">
                         <div class="w-32 bg-gray-200 rounded-full h-2">
-                          <div class="bg-gradient-to-r from-purple-600 to-indigo-600 h-2 rounded-full transition-all duration-500" style="width: {job.percentage}%"></div>
+                          <div class="h-2 rounded-full transition-all duration-500" style="width: {job.percentage}%; background: {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6366F1', '#EC4899', '#06B6D4', '#8B5A2B', '#2D7D32', '#C2185B', '#7B1FA2', '#303F9F', '#0288D1', '#0097A7', '#00796B'][index % 16]};"></div>
                         </div>
                         <span class="text-sm font-medium text-gray-600 w-12 text-right">{job.count}</span>
                         <span class="text-sm text-gray-500 w-12 text-right">{job.percentage.toFixed(1)}%</span>
                       </div>
                     </div>
                   {/each}
+                  {#if jobDistribution.length > 8}
+                    <div class="flex items-center justify-center pt-4">
+                      <button 
+                        on:click={() => showAllJobs = !showAllJobs}
+                        class="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      >
+                        <span>
+                          {showAllJobs ? 'Show Less' : `Show ${jobDistribution.length - 8} More Categories`}
+                        </span>
+                        <svg 
+                          class="w-4 h-4 transform transition-transform duration-200 {showAllJobs ? 'rotate-180' : ''}" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  {/if}
                 </div>
               </div>
 
