@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -61,15 +62,26 @@ public class AuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signupRequest) {
-        if (userRepository.existsByEmail(signupRequest.getEmail())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("message", "Error: Email is already in use!"));
-        }
+        try {
+            if (userRepository.existsByEmail(signupRequest.getEmail())) {
+                return ResponseEntity
+                        .badRequest()
+                        .body(Map.of("message", "Error: Email is already in use!"));
+            }
 
-        // Register user and return AuthResponse for immediate login
-        AuthResponse authResponse = authService.signup(signupRequest);
-        return ResponseEntity.ok(authResponse);
+            // Register user and return AuthResponse for immediate login
+            AuthResponse authResponse = authService.signup(signupRequest);
+            logger.info("User registered successfully: {}", signupRequest.getEmail());
+            return ResponseEntity.ok(authResponse);
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid signup data for email: {} - Error: {}", signupRequest.getEmail(), e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Invalid data: " + e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Signup failed for user: {} - Error: {}", signupRequest.getEmail(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Signup failed: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/users")
