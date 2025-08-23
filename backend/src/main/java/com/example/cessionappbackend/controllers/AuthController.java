@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "*", maxAge = 3600) // Consider removing if handled by SecurityConfig
+// Removed redundant @CrossOrigin as it's handled by SecurityConfig with proper restrictions
 public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
