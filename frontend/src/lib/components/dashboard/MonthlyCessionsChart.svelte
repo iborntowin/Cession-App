@@ -1,8 +1,22 @@
 <script lang="ts">
-  import Chart from 'chart.js/auto';
-  import { onMount } from 'svelte';
+  // Optimized import: only import what we need to reduce bundle size
+  import {
+    Chart,
+    BarElement,
+    LineElement,
+    PointElement,
+    LinearScale,
+    CategoryScale,
+    Tooltip,
+    Legend,
+    Filler
+  } from 'chart.js';
+  import { onMount, onDestroy } from 'svelte';
   import { quintOut } from 'svelte/easing';
   import { fade } from 'svelte/transition';
+  
+  // Register only the components we need
+  Chart.register(BarElement, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler);
   
   export let monthlyTrends = [];
   export let formatCurrency = (amount) => {
@@ -29,89 +43,100 @@
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
+    // Always destroy existing chart before creating new one
     if (chart) {
       chart.destroy();
+      chart = null;
     }
     
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: realTrends.map(t => `${t.month} ${t.year}`),
-        datasets: [
-          {
-            label: 'New Cessions',
-            data: realTrends.map(t => t.count),
-            backgroundColor: 'rgba(16, 185, 129, 0.8)',
-            borderColor: 'rgb(16, 185, 129)',
-            borderWidth: 1,
-            borderRadius: 4,
-            order: 2
-          },
-          {
-            label: 'Active Cessions',
-            data: realTrends.map(t => t.activeCessionsCount),
-            type: 'line',
-            borderColor: 'rgb(79, 70, 229)',
-            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            order: 1
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              usePointStyle: true,
-              padding: 16
+    try {
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: realTrends.map(t => `${t.month} ${t.year}`),
+          datasets: [
+            {
+              label: 'New Cessions',
+              data: realTrends.map(t => t.count),
+              backgroundColor: 'rgba(16, 185, 129, 0.8)',
+              borderColor: 'rgb(16, 185, 129)',
+              borderWidth: 1,
+              borderRadius: 4,
+              order: 2
+            },
+            {
+              label: 'Active Cessions',
+              data: realTrends.map(t => t.activeCessionsCount),
+              type: 'line',
+              borderColor: 'rgb(79, 70, 229)',
+              backgroundColor: 'rgba(79, 70, 229, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.4,
+              order: 1
             }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
           },
-          tooltip: {
-            padding: 12,
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            titleColor: '#1f2937',
-            titleFont: { weight: '600' },
-            bodyColor: '#6b7280',
-            borderColor: 'rgba(0, 0, 0, 0.1)',
-            borderWidth: 1,
-            callbacks: {
-              label: function(context) {
-                const datasetLabel = context.dataset.label;
-                const value = context.raw;
-                
-                if (datasetLabel === 'New Cessions') {
-                  return `${datasetLabel}: ${value} (${formatCurrency(realTrends[context.dataIndex].value)} DT)`;
-                } else {
-                  return `${datasetLabel}: ${value} (${formatCurrency(realTrends[context.dataIndex].activeValue)} DT/month)`;
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 16
+              }
+            },
+            tooltip: {
+              padding: 12,
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              titleColor: '#1f2937',
+              titleFont: { weight: '600' },
+              bodyColor: '#6b7280',
+              borderColor: 'rgba(0, 0, 0, 0.1)',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  const datasetLabel = context.dataset.label;
+                  const value = context.raw;
+                  
+                  if (datasetLabel === 'New Cessions') {
+                    return `${datasetLabel}: ${value} (${formatCurrency(realTrends[context.dataIndex].value)} DT)`;
+                  } else {
+                    return `${datasetLabel}: ${value} (${formatCurrency(realTrends[context.dataIndex].activeValue)} DT/month)`;
+                  }
                 }
               }
             }
-          }
-        },
-        scales: {
-          x: {
-            grid: {
-              display: false
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false
+              }
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
             }
           },
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'rgba(0, 0, 0, 0.05)'
-            }
+          // Performance optimizations
+          animation: {
+            duration: 300 // Reduce animation time
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Failed to create chart:', error);
+      chart = null;
+    }
   }
   
   $: if (realTrends.length > 0 && canvas) {
@@ -121,6 +146,19 @@
   onMount(() => {
     if (realTrends.length > 0) {
       initChart();
+    }
+  });
+  
+  // Add proper cleanup to prevent memory leaks
+  onDestroy(() => {
+    if (chart) {
+      try {
+        chart.destroy();
+      } catch (error) {
+        console.warn('Error destroying chart:', error);
+      } finally {
+        chart = null;
+      }
     }
   });
 </script>

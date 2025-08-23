@@ -51,16 +51,19 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // For production Tauri app, we need to allow all origins temporarily
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        // Alternative: specific origins for better security
-        // configuration.setAllowedOrigins(Arrays.asList(
-        //     "http://localhost:5173",
-        //     "http://127.0.0.1:5173",
-        //     "tauri://localhost",
-        //     "https://tauri.localhost",
-        //     "http://tauri.localhost"
-        // ));
+        // Secure CORS configuration - only allow specific known origins
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "tauri://localhost",
+            "https://tauri.localhost",
+            "http://tauri.localhost"
+        ));
+        // Note: For production deployment, add only the specific production domains
+        // For local development and Tauri app, these origins should be sufficient
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList(
             "Authorization",

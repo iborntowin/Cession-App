@@ -22,9 +22,11 @@ public class DefaultUserInitializer implements ApplicationRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultUserInitializer.class);
     
-    private static final String DEFAULT_EMAIL = "Mousser@gmail.com";
-    private static final String DEFAULT_PASSWORD = "123456";
-    private static final String DEFAULT_FULL_NAME = "Default Admin";
+    // SECURITY: Improved default credentials - still for development only
+    // TODO: For production, these should be set via environment variables or removed entirely
+    private static final String DEFAULT_EMAIL = "admin@cession-app.local";
+    private static final String DEFAULT_PASSWORD = "CessionApp2024!"; // Strong password for development
+    private static final String DEFAULT_FULL_NAME = "System Administrator";
     private static final String DEFAULT_ROLE = "ADMIN";
 
     @Autowired
@@ -59,8 +61,10 @@ public class DefaultUserInitializer implements ApplicationRunner {
             // Save the user to database
             User savedUser = userRepository.save(defaultUser);
             
-            logger.info("Default admin user created successfully:");
-            logger.info("  Email: {}", savedUser.getEmail());
+            logger.warn("⚠️  SECURITY WARNING: Default admin user created with hardcoded credentials!");
+            logger.warn("  Email: {}", savedUser.getEmail());
+            logger.warn("  Password: {} (CHANGE THIS IMMEDIATELY IN PRODUCTION!)", DEFAULT_PASSWORD);
+            logger.warn("  For production use, set credentials via environment variables or remove default user creation");
             logger.info("  Role: {}", savedUser.getRole());
             logger.info("  Active: {}", savedUser.isActive());
             logger.info("  Created At: {}", savedUser.getCreatedAt());

@@ -1,6 +1,17 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import Chart from 'chart.js/auto';
+  // Optimized import: only import what we need to reduce bundle size
+  import {
+    Chart,
+    ArcElement,
+    Tooltip,
+    Legend,
+    Title,
+    CategoryScale
+  } from 'chart.js';
+  
+  // Register only the components we need
+  Chart.register(ArcElement, Tooltip, Legend, Title, CategoryScale);
   
   export let data = null;
   export let type = 'pie';
@@ -11,9 +22,9 @@
   let chart = null;
   let mounted = false;
   
-  function initChart(data) {
-    if (!mounted || !canvas) {
-      console.log('Waiting for component to mount...');
+  // Consolidated chart creation/update function to eliminate code duplication
+  function createOrUpdateChart(data) {
+    if (!mounted || !canvas || !data) {
       return;
     }
     
@@ -23,125 +34,85 @@
       return;
     }
     
+    // Always destroy existing chart before creating new one
     if (chart) {
       chart.destroy();
+      chart = null;
     }
     
-    const chartData = {
-      labels: Object.keys(data.expensesByCategory || {}),
-      datasets: [
-        {
-          label: 'Expenses by Category',
-          data: Object.values(data.expensesByCategory || {}),
-          backgroundColor: [
-            '#FF6384',
-            '#36A2EB',
-            '#FFCE56',
-            '#4BC0C0',
-            '#9966FF',
-            '#FF9F40'
-          ],
-          borderWidth: 1
-        }
-      ]
-    };
-    
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
+    try {
+      const chartData = {
+        labels: Object.keys(data.expensesByCategory || {}),
+        datasets: [
+          {
+            label: 'Expenses by Category',
+            data: Object.values(data.expensesByCategory || {}),
+            backgroundColor: [
+              '#FF6384',
+              '#36A2EB',
+              '#FFCE56',
+              '#4BC0C0',
+              '#9966FF',
+              '#FF9F40'
+            ],
+            borderWidth: 1
+          }
+        ]
+      };
+      
+      const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          title: {
+            display: Boolean(title),
+            text: title || 'Monthly Financial Summary'
+          }
         },
-        title: {
-          display: true,
-          text: 'Monthly Financial Summary'
+        // Add error handling for chart rendering
+        onHover: undefined, // Disable hover to improve performance
+        animation: {
+          duration: 300 // Reduce animation time
         }
-      }
-    };
-    
-    chart = new Chart(ctx, {
-      type: 'pie',
-      data: chartData,
-      options
-    });
+      };
+      
+      chart = new Chart(ctx, {
+        type: type,
+        data: chartData,
+        options
+      });
+    } catch (error) {
+      console.error('Failed to create chart:', error);
+      // Clear chart reference on error to prevent memory leaks
+      chart = null;
+    }
   }
   
-  function updateChart(data) {
-    if (!mounted || !canvas) {
-      console.log('Waiting for component to mount...');
-      return;
-    }
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('Could not get 2D context from canvas');
-      return;
-    }
-    
-    if (chart) {
-      chart.destroy();
-    }
-    
-    const chartData = {
-      labels: Object.keys(data.expensesByCategory || {}),
-      datasets: [
-        {
-          label: 'Expenses by Category',
-          data: Object.values(data.expensesByCategory || {}),
-          backgroundColor: [
-            '#FF6384',
-            '#36A2EB',
-            '#FFCE56',
-            '#4BC0C0',
-            '#9966FF',
-            '#FF9F40'
-          ],
-          borderWidth: 1
-        }
-      ]
-    };
-    
-    const options = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        },
-        title: {
-          display: true,
-          text: 'Monthly Financial Summary'
-        }
-      }
-    };
-    
-    chart = new Chart(ctx, {
-      type: 'pie',
-      data: chartData,
-      options
-    });
-  }
-  
+  // Reactive statement with better performance
   $: if (data && !loading && mounted) {
-    console.log('Data changed, updating chart...');
-    updateChart(data);
+    createOrUpdateChart(data);
   }
   
   onMount(() => {
-    console.log('Component mounted');
     mounted = true;
-    if (data && !loading) {
-      console.log('Initializing chart on mount');
-      initChart(data);
-    }
+    // Initial chart creation will be handled by reactive statement
   });
   
   onDestroy(() => {
-    console.log('Component destroyed');
+    // Enhanced cleanup to prevent memory leaks
     if (chart) {
-      chart.destroy();
+      try {
+        chart.destroy();
+      } catch (error) {
+        console.warn('Error destroying chart:', error);
+      } finally {
+        chart = null;
+      }
     }
+    mounted = false;
   });
 </script>
 
