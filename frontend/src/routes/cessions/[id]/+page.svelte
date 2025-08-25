@@ -177,34 +177,76 @@
   }
   
   async function previewDocument() {
-    if (!cession) return;
+    if (!cession) {
+      console.error('No cession data available');
+      showAlert('Cession data not available', 'error');
+      return;
+    }
+
+    console.log('Cession data for PDF:', cession);
+    
+    // Validate essential data
+    if (!cession.clientName || !cession.clientNumber) {
+      showAlert('Missing essential client information', 'error');
+      return;
+    }
+    
+    // Count available vs missing data for user info
+    const dataFields = [
+      'courtName', 'bookNumber', 'pageNumber',
+      'supplierName', 'supplierAddress', 'supplierTaxId', 'supplierBankAccount',
+      'itemDescription', 'clientWorkplace', 'clientJob'
+    ];
+    
+    const availableFields = dataFields.filter(field => cession[field] && cession[field].trim() !== '');
+    const missingFields = dataFields.filter(field => !cession[field] || cession[field].trim() === '');
+    
+    console.log('Available fields:', availableFields.length, '/', dataFields.length);
+    console.log('Missing fields:', missingFields);
+    
+    if (missingFields.length > 6) {
+      console.warn('Many fields are missing. PDF will contain placeholder lines.');
+    }
     
     const pdfData = {
-      workerNumber: cession.clientNumber,
-      fullName: cession.clientName,
-      cin: cession.clientCin,
-      address: cession.clientAddress,
-      workplace: cession.clientWorkplace,
-      jobTitle: cession.clientJob,
-      bankAccountNumber: cession.bankOrAgency,
-      itemDescription: cession.itemDescription,
-      amountInWords: numberToArabicWords(cession.totalLoanAmount),
-      totalAmountNumeric: formatCurrency(cession.totalLoanAmount),
-      monthlyPayment: formatCurrency(cession.monthlyPayment),
-      firstDeductionMonthArabic: format(parseDate(cession.startDate), 'MMMM yyyy', { locale: ar }),
-      supplierName: cession.supplierName,
-      supplierTaxId: cession.supplierTaxId,
-      supplierAddress: cession.supplierAddress,
-      supplierBankAccount: cession.supplierBankAccount,
-      courtName: cession.courtName,
-      bookNumber: cession.bookNumber,
-      pageNumber: cession.pageNumber,
-      date: format(parseDate(cession.createdAt), 'dd/MM/yyyy')
+      // Court information (use real data if available, otherwise empty)
+      courtName: cession.courtName || '',
+      bookNumber: cession.bookNumber || '',
+      pageNumber: cession.pageNumber || '',
+      date: format(parseDate(cession.createdAt), 'dd/MM/yyyy'),
+      
+      // Supplier information (use real data only)
+      supplierTaxId: cession.supplierTaxId || '',
+      supplierName: cession.supplierName || '',
+      supplierAddress: cession.supplierAddress || '',
+      supplierBankAccount: cession.supplierBankAccount || '',
+      
+      // Worker/Client information (use real data from cession)
+      workerNumber: cession.clientNumber || '',
+      fullName: cession.clientName || '',
+      cin: cession.clientCin || '',
+      address: cession.clientAddress || '',
+      workplace: cession.clientWorkplace || '',
+      jobTitle: cession.clientJob || '',
+      employmentStatus: 'مباشر', // Default status
+      bankAccountNumber: cession.bankOrAgency || '',
+      
+      // Purchase information (use real data from cession)
+      itemDescription: cession.itemDescription || '',
+      amountInWords: cession.totalLoanAmount ? numberToArabicWords(cession.totalLoanAmount) : '',
+      totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
+      monthlyPayment: parseFloat(cession.monthlyPayment) || 0.0,
+      loanDuration: '18 شهراً', // Standard duration
+      firstDeductionMonthArabic: cession.startDate ? format(parseDate(cession.startDate), 'MMMM yyyy', { locale: ar }) : ''
     };
     
+    console.log('PDF Data being sent:', pdfData);
+
     try {
       await openPDF(pdfData);
+      showAlert('PDF document generated successfully', 'success');
     } catch (error) {
+      console.error('Error in previewDocument:', error);
       showAlert($t('cessions.errors.preview_failed'), 'error');
     }
   }

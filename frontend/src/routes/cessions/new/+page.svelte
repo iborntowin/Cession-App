@@ -350,8 +350,8 @@
       // Item and payment information
       itemDescription: '',
       amountInWords: numberToArabicWords(totalAmount),
-      totalAmountNumeric: formatCurrency(totalAmount),
-      monthlyPayment: formatCurrency(cession.monthlyPayment),
+      totalAmountNumeric: parseFloat(totalAmount) || 0.0,
+      monthlyPayment: parseFloat(cession.monthlyPayment) || 0.0,
       firstDeductionMonthArabic: format(addMonths(new Date(), 1), 'MMMM yyyy', { locale: ar })
     };
     

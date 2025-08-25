@@ -1,6 +1,9 @@
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { formatDate } from '$lib/utils';
+import { config } from '$lib/config';
+import { get } from 'svelte/store';
+import { token } from '$lib/stores';
 
 // Generate HTML content for the document
 function generateHTMLContent(data) {
@@ -44,6 +47,7 @@ function generateHTMLContent(data) {
           margin: 40px;
           direction: rtl;
           text-align: right;
+          unicode-bidi: bidi-override;
         }
         
         .header {
@@ -51,6 +55,8 @@ function generateHTMLContent(data) {
           font-weight: bold;
           text-align: center;
           margin-bottom: 20px;
+          direction: rtl;
+          unicode-bidi: bidi-override;
         }
         
         .subheader {
@@ -58,25 +64,37 @@ function generateHTMLContent(data) {
           font-weight: bold;
           text-align: center;
           margin-bottom: 20px;
+          direction: rtl;
+          unicode-bidi: bidi-override;
         }
         
         .section-header {
           font-size: 14px;
           font-weight: bold;
           margin: 20px 0 10px 0;
+          direction: rtl;
+          text-align: right;
+          unicode-bidi: bidi-override;
         }
         
         .field {
           margin-bottom: 8px;
+          direction: rtl;
+          text-align: right;
+          unicode-bidi: bidi-override;
         }
         
         .field-label {
           font-weight: bold;
           display: inline;
+          direction: rtl;
+          unicode-bidi: bidi-override;
         }
         
         .field-value {
           display: inline;
+          direction: rtl;
+          unicode-bidi: bidi-override;
         }
         
         .signature-section {
@@ -84,21 +102,29 @@ function generateHTMLContent(data) {
           justify-content: space-between;
           margin-top: 40px;
           text-align: center;
+          direction: rtl;
         }
         
         .signature-box {
           width: 30%;
           text-align: center;
+          direction: rtl;
+          unicode-bidi: bidi-override;
         }
         
         .court-signature {
           text-align: center;
           margin-top: 20px;
+          direction: rtl;
+          unicode-bidi: bidi-override;
         }
         
         .agreement-text {
           margin: 20px 0;
           line-height: 1.8;
+          direction: rtl;
+          text-align: right;
+          unicode-bidi: bidi-override;
         }
         
         @media print {
@@ -249,12 +275,194 @@ async function htmlToPdf(htmlContent) {
   }, 1000);
 }
 
-export function openPDF(data) {
-  const htmlContent = generateHTMLContent(data);
-  htmlToPdf(htmlContent);
+// Use backend PDF generation for better quality
+export async function openPDF(data) {
+  try {
+    // Prevent any accidental navigation of the current page
+    const originalLocation = window.location.href;
+    
+    console.log('Attempting backend PDF generation with data:', data);
+    
+    // Validate required data
+    if (!data.fullName && !data.workerNumber) {
+      throw new Error('Missing essential data for PDF generation');
+    }
+    
+    // Get authentication token if available
+    const authToken = get(token);
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    const response = await fetch(`${config.backendUrl}/api/v1/documents/salary-assignment`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend PDF generation failed:', response.status, response.statusText, errorText);
+      
+      // If backend fails, fall back to HTML method
+      console.log('Falling back to HTML PDF generation');
+      const htmlContent = generateHTMLContent(data);
+      return htmlToPdf(htmlContent);
+    }
+    
+    // Get the PDF blob
+    const pdfBlob = await response.blob();
+    console.log('PDF generated successfully, size:', pdfBlob.size, 'bytes');
+    
+    // Create a URL for the blob
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    
+    // Safety check: ensure we're still on the original page
+    if (window.location.href !== originalLocation) {
+      console.warn('Page navigation detected, restoring original location');
+      window.location.href = originalLocation;
+      return;
+    }
+    
+    // Try to open in a new tab first with better popup detection
+    let newWindow = null;
+    try {
+      // First attempt: open with about:blank and then navigate
+      newWindow = window.open('about:blank', '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes,menubar=yes,toolbar=yes,location=yes,status=yes');
+      
+      // Check if popup was actually opened
+      if (newWindow && !newWindow.closed) {
+        // Set proper PDF headers and navigate to the PDF
+        newWindow.document.write(`
+          <html>
+            <head>
+              <title>إحالة على الأجر تجارية</title>
+              <style>
+                body { margin: 0; padding: 0; }
+                iframe, embed, object { width: 100%; height: 100vh; border: none; }
+              </style>
+            </head>
+            <body>
+              <embed src="${pdfUrl}" type="application/pdf" width="100%" height="100%">
+              <object data="${pdfUrl}" type="application/pdf" width="100%" height="100%">
+                <iframe src="${pdfUrl}" width="100%" height="100%">
+                  <p>يرجى تحميل PDF لعرضه: <a href="${pdfUrl}">تحميل PDF</a></p>
+                </iframe>
+              </object>
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+        
+        // Focus the new window
+        newWindow.focus();
+        
+        console.log('PDF opened in new tab successfully');
+      } else {
+        throw new Error('Popup blocked or failed to open');
+      }
+    } catch (popupError) {
+      console.log('Popup blocked or failed, trying direct navigation:', popupError.message);
+      
+      // Second attempt: direct navigation to PDF URL
+      try {
+        newWindow = window.open(pdfUrl, '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes');
+        if (newWindow && !newWindow.closed) {
+          newWindow.focus();
+          console.log('PDF opened via direct navigation');
+        } else {
+          throw new Error('Direct navigation also blocked');
+        }
+      } catch (directError) {
+        console.log('All popup methods failed, downloading PDF instead:', directError.message);
+        
+        // Final fallback: force download with user notification
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.download = `إحالة_راتب_${data.fullName || 'وثيقة'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Show user feedback with instruction
+        const message = 'تم تحميل ملف PDF. يرجى فتح ملف PDF من مجلد التحميلات لعرضه في المتصفح.';
+        alert(message);
+        
+        // Optional: try to open downloads folder (works in some browsers)
+        try {
+          window.open('chrome://downloads/', '_blank');
+        } catch (e) {
+          // Ignore if this fails
+        }
+      }
+    }
+    
+    // Clean up the URL after a delay to allow the browser to load it
+    setTimeout(() => {
+      URL.revokeObjectURL(pdfUrl);
+    }, 5000);
+    
+  } catch (error) {
+    console.error('Error in PDF generation:', error);
+    // Fallback to HTML method
+    console.log('Using HTML fallback method');
+    const htmlContent = generateHTMLContent(data);
+    htmlToPdf(htmlContent);
+  }
 }
 
-export function downloadPDF(data) {
-  const htmlContent = generateHTMLContent(data);
-  htmlToPdf(htmlContent);
+export async function downloadPDF(data, filename = 'salary_assignment_document.pdf') {
+  try {
+    console.log('Downloading PDF data from backend:', data);
+    
+    // Get authentication token if available
+    const authToken = get(token);
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
+    const response = await fetch(`${config.backendUrl}/api/v1/documents/salary-assignment`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      console.error('Backend PDF generation failed:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Error details:', errorText);
+      
+      // Fallback to HTML method
+      const htmlContent = generateHTMLContent(data);
+      return htmlToPdf(htmlContent);
+    }
+    
+    // Get the PDF blob
+    const pdfBlob = await response.blob();
+    
+    // Create a download link
+    const link = document.createElement('a');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    link.href = pdfUrl;
+    link.download = filename;
+    link.click();
+    
+    // Clean up
+    URL.revokeObjectURL(pdfUrl);
+    
+  } catch (error) {
+    console.error('Error downloading PDF from backend:', error);
+    // Fallback to HTML method
+    const htmlContent = generateHTMLContent(data);
+    htmlToPdf(htmlContent);
+  }
 }

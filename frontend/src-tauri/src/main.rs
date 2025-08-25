@@ -218,6 +218,38 @@ pub struct AppState {
 
 // Enhanced Tauri commands for health monitoring
 #[tauri::command]
+async fn stop_backend_process(app_handle: tauri::AppHandle) -> Result<String, String> {
+    log::info!("Manual backend stop requested");
+    
+    let state = app_handle.state::<AppState>();
+    let mut process_guard = state.backend_process.lock().unwrap();
+    
+    if let Some(mut process) = process_guard.take() {
+        log::info!("Stopping backend process (PID: {})", process.pid);
+        
+        // First try graceful shutdown
+        if let Err(e) = process.child.kill() {
+            log::error!("Failed to kill backend process: {}", e);
+            return Err(format!("Failed to stop backend process: {}", e));
+        }
+        
+        match process.child.wait() {
+            Ok(exit_status) => {
+                log::info!("Backend process stopped with status: {}", exit_status);
+                Ok(format!("Backend process stopped successfully (exit status: {})", exit_status))
+            }
+            Err(e) => {
+                log::warn!("Error waiting for process termination: {}", e);
+                Ok("Backend process stopped (may have already terminated)".to_string())
+            }
+        }
+    } else {
+        Ok("No backend process is currently running".to_string())
+    }
+}
+
+// Enhanced Tauri commands for health monitoring
+#[tauri::command]
 async fn get_detailed_health_status(app_handle: tauri::AppHandle) -> Result<DetailedHealthStatus, String> {
     let state = app_handle.state::<AppState>();
     let status = state.backend_status.lock().unwrap().clone();
@@ -1540,7 +1572,8 @@ fn launch_backend_process(config: &BackendConfig) -> Result<BackendProcess, Stri
         .arg("--spring.jpa.hibernate.ddl-auto=update")
         .arg("--spring.datasource.url=jdbc:h2:file:./data/db;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE")
         .arg("--spring.h2.console.enabled=false")
-        .arg("--management.endpoints.web.exposure.include=health,info")
+        .arg("--management.endpoints.web.exposure.include=health,info,shutdown")
+        .arg("--management.endpoint.shutdown.enabled=true")
         .arg("--management.endpoint.health.show-details=always")
         .arg("--logging.file.name=./logs/backend.log")
         .arg("--spring.servlet.multipart.location=./temp")
@@ -1595,6 +1628,58 @@ fn is_port_in_use(port: u16) -> bool {
     
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     TcpListener::bind(addr).is_err()
+}
+
+fn cleanup_port_processes(port: u16) {
+    log::info!("Cleaning up processes using port {}", port);
+    
+    #[cfg(windows)]
+    {
+        // Find and kill processes using the port
+        let netstat_cmd = std::process::Command::new("netstat")
+            .args(["-ano"])
+            .output();
+        
+        if let Ok(output) = netstat_cmd {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            for line in output_str.lines() {
+                if line.contains(&format!(":{}", port)) && line.contains("LISTENING") {
+                    // Extract PID from the line (last column)
+                    if let Some(pid_str) = line.split_whitespace().last() {
+                        if let Ok(pid) = pid_str.parse::<u32>() {
+                            log::info!("Found process {} using port {}, terminating it", pid, port);
+                            let _ = std::process::Command::new("taskkill")
+                                .args(["/F", "/PID", &pid.to_string()])
+                                .output();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    #[cfg(unix)]
+    {
+        // Use lsof to find processes using the port
+        let lsof_cmd = std::process::Command::new("lsof")
+            .args(["-ti", &format!(":{}", port)])
+            .output();
+        
+        if let Ok(output) = lsof_cmd {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            for line in output_str.lines() {
+                if let Ok(pid) = line.trim().parse::<u32>() {
+                    log::info!("Found process {} using port {}, terminating it", pid, port);
+                    let _ = std::process::Command::new("kill")
+                        .args(["-15", &pid.to_string()])
+                        .output();
+                }
+            }
+        }
+    }
+    
+    // Wait a moment for processes to terminate
+    std::thread::sleep(std::time::Duration::from_millis(500));
 }
 
 async fn check_backend_health_detailed(port: u16) -> Result<HealthResponse, HealthCheckError> {
@@ -1884,12 +1969,12 @@ fn main() {
                 }
             };
             
-            if let Err(e) = logging_system.setup_enhanced_logging() {
+            if let Err(_e) = logging_system.setup_enhanced_logging() {
                 #[cfg(debug_assertions)]
-                eprintln!("Failed to setup enhanced logging: {}", e);
-                if let Err(e) = setup_logging(&app.handle()) {
+                eprintln!("Failed to setup enhanced logging: {}", _e);
+                if let Err(_e) = setup_logging(&app.handle()) {
                     #[cfg(debug_assertions)]
-                    eprintln!("Failed to setup basic logging: {}", e);
+                    eprintln!("Failed to setup basic logging: {}", _e);
                 }
             }
             
@@ -1904,6 +1989,48 @@ fn main() {
             match create_backend_config(&app.handle()) {
                 Ok(config) => {
                     log::info!("Backend configuration created successfully");
+                    
+                    // Check if port is available before starting
+                    if is_port_in_use(config.port) {
+                        log::warn!("Port {} is already in use, attempting cleanup...", config.port);
+                        
+                        // Try to clean up any existing processes on this port
+                        #[cfg(windows)]
+                        {
+                            let netstat_cmd = std::process::Command::new("netstat")
+                                .args(["-ano"])
+                                .output();
+                            
+                            if let Ok(output) = netstat_cmd {
+                                let output_str = String::from_utf8_lossy(&output.stdout);
+                                for line in output_str.lines() {
+                                    if line.contains(&format!(":{}", config.port)) && line.contains("LISTENING") {
+                                        if let Some(pid_str) = line.split_whitespace().last() {
+                                            if let Ok(pid) = pid_str.parse::<u32>() {
+                                                log::info!("Killing existing process {} on port {}", pid, config.port);
+                                                let _ = std::process::Command::new("taskkill")
+                                                    .args(["/F", "/PID", &pid.to_string()])
+                                                    .output();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Wait a moment for cleanup
+                        std::thread::sleep(std::time::Duration::from_secs(2));
+                        
+                        // Check again
+                        if is_port_in_use(config.port) {
+                            let error_msg = format!("Port {} is still in use after cleanup attempt. Please ensure no other applications are using this port.", config.port);
+                            log::error!("{}", error_msg);
+                            let mut status = backend_status.lock().unwrap();
+                            *status = BackendStatus::PortConflict;
+                            let _ = app.emit("backend-error", &error_msg);
+                            return Ok(());
+                        }
+                    }
                     
                     *app.state::<AppState>().backend_config.lock().unwrap() = Some(config.clone());
 
@@ -1977,29 +2104,39 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| match event {
-            tauri::WindowEvent::Destroyed => {
-                log::info!("Window destroyed, terminating backend process.");
+            tauri::WindowEvent::CloseRequested { .. } => {
+                log::info!("Window close requested, shutting down backend...");
                 
                 let state = window.state::<AppState>();
-                let mut process_guard = state.backend_process.lock().unwrap();
-                if let Some(mut process) = process_guard.take() {
-                    log::info!("Terminating backend process (PID: {})", process.pid);
-                    
-                    if let Err(e) = process.child.kill() {
-                        log::error!("Failed to kill backend process: {}", e);
+                
+                // Get the current port from config
+                let port = {
+                    let config_guard = state.backend_config.lock().unwrap();
+                    config_guard.as_ref().map(|c| c.port).unwrap_or(8082)
+                };
+                
+                // Step 1: Kill the managed process
+                {
+                    let mut process_guard = state.backend_process.lock().unwrap();
+                    if let Some(mut process) = process_guard.take() {
+                        log::info!("Killing backend process (PID: {})", process.pid);
+                        let _ = process.child.kill();
+                        let _ = process.child.wait();
                     }
-                    
-                    match process.child.wait() {
-                        Ok(exit_status) => log::info!("Backend process terminated with status: {}", exit_status),
-                        Err(e) => log::error!("Failed to wait for backend process termination: {}", e),
-                    }
-                } else {
-                    log::info!("No backend process to terminate");
                 }
+                
+                // Step 2: Clean up any remaining processes on the port
+                cleanup_port_processes(port);
+                
+                log::info!("Backend cleanup completed");
+            }
+            tauri::WindowEvent::Destroyed => {
+                log::info!("Window destroyed");
             }
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
+            stop_backend_process,
             get_detailed_health_status,
             trigger_health_check,
             start_health_monitoring,

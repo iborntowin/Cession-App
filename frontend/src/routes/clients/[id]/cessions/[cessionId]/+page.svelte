@@ -264,8 +264,8 @@
       // Item and payment information
       itemDescription: cession.itemDescription || '',
       amountInWords: numberToArabicWords(cession.totalLoanAmount),
-      totalAmountNumeric: formatCurrency(cession.totalLoanAmount),
-      monthlyPayment: formatCurrency(cession.monthlyDeduction),
+      totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
+      monthlyPayment: parseFloat(cession.monthlyDeduction) || 0.0,
       firstDeductionMonthArabic: cession.startDate ? format(new Date(cession.startDate), 'MMMM yyyy', { locale: ar }) : ''
     };
     
@@ -315,8 +315,8 @@
       // Item and payment information
       itemDescription: cession.itemDescription || '',
       amountInWords: numberToArabicWords(cession.totalLoanAmount),
-      totalAmountNumeric: formatCurrency(cession.totalLoanAmount),
-      monthlyPayment: formatCurrency(cession.monthlyDeduction),
+      totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
+      monthlyPayment: parseFloat(cession.monthlyDeduction) || 0.0,
       firstDeductionMonthArabic: cession.startDate ? format(new Date(cession.startDate), 'MMMM yyyy', { locale: ar }) : ''
     };
     
