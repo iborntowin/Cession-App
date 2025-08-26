@@ -35,6 +35,9 @@
       "back_to_salary_cessions": "Retour aux Cessions sur Salaire",
       "back_to_client_details": "Retour aux Détails du Client"
     },
+    "details": {
+      "view_full_details": "Voir Tous les Détails"
+    },
     "navigation": {
       "dashboard": "Tableau de bord",
       "clients": "Clients",
@@ -1465,6 +1468,59 @@
       "per_page": "par page",
       "page_of": "Page {current} sur {total}",
       "results": "résultats"
+    }
+  },
+  "cessions": {
+    "title": "Gestion des Cessions",
+    "subtitle": "Gérer et suivre tous les dossiers de cession",
+    "header": {
+      "total": "Total",
+      "active": "Actif"
+    },
+    "status": {
+      "active": "Actif",
+      "finished": "Terminé",
+      "cancelled": "Annulé", 
+      "pending": "En attente"
+    },
+    "new": "Nouvelle Cession",
+    "search": {
+      "placeholder": "Rechercher des cessions..."
+    },
+    "filters": {
+      "title": "Filtres",
+      "advanced": "Filtres Avancés",
+      "total_amount_slider": "Curseur Montant Total",
+      "total_amount_description": "Faites glisser pour filtrer par montant total du prêt",
+      "min_amount": "Montant Minimum",
+      "max_amount": "Montant Maximum",
+      "range": "Plage",
+      "selected": "Sélectionné",
+      "step": "Étape",
+      "active": "Actif",
+      "range_span": "Étendue de la Plage",
+      "coverage": "Couverture",
+      "steps": "Étapes",
+      "tip": "Astuce",
+      "total_amount_tip": "Cliquez sur les champs de saisie pour saisir des valeurs exactes, ou faites glisser les curseurs. Utilisez les touches fléchées pour des ajustements fins.",
+      "client_name": "Nom du Client",
+      "status": "Statut",
+      "all_status": "Tous les Statuts",
+      "date_range": "Plage de Dates",
+      "clear": "Effacer les Filtres"
+    },
+    "results": {
+      "total_value": "Valeur Totale",
+      "showing_results": "Affichage de {count} résultats"
+    },
+    "details": {
+      "title": "Détails de la Cession",
+      "client_info": "Informations Client",
+      "cession_info": "Informations de Cession",
+      "total_loan": "Prêt Total",
+      "monthly_payment": "Paiement Mensuel",
+      "start_date": "Date de Début",
+      "bank_agency": "Banque / Agence"
     }
   },
   "footer": {

@@ -1439,6 +1439,59 @@
       "results": "results"
     }
   },
+  "cessions": {
+    "title": "Cessions Management",
+    "subtitle": "Manage and track all cession records",
+    "header": {
+      "total": "Total",
+      "active": "Active"
+    },
+    "status": {
+      "active": "Active",
+      "finished": "Finished",
+      "cancelled": "Cancelled", 
+      "pending": "Pending"
+    },
+    "new": "New Cession",
+    "search": {
+      "placeholder": "Search cessions..."
+    },
+    "filters": {
+      "title": "Filters",
+      "advanced": "Advanced Filters",
+      "total_amount_slider": "Total Amount Slider",
+      "total_amount_description": "Drag to filter by total loan amount",
+      "min_amount": "Minimum Amount",
+      "max_amount": "Maximum Amount",
+      "range": "Range",
+      "selected": "Selected",
+      "step": "Step",
+      "active": "Active",
+      "range_span": "Range Span",
+      "coverage": "Coverage",
+      "steps": "Steps",
+      "tip": "Tip",
+      "total_amount_tip": "Click the input fields to type exact values, or drag the sliders. Use arrow keys for fine adjustments.",
+      "client_name": "Client Name",
+      "status": "Status",
+      "all_status": "All Statuses",
+      "date_range": "Date Range",
+      "clear": "Clear Filters"
+    },
+    "results": {
+      "total_value": "Total Value",
+      "showing_results": "Showing {count} results"
+    },
+    "details": {
+      "title": "Cession Details",
+      "client_info": "Client Information",
+      "cession_info": "Cession Information",
+      "total_loan": "Total Loan",
+      "monthly_payment": "Monthly Payment",
+      "start_date": "Start Date",
+      "bank_agency": "Bank / Agency"
+    }
+  },
   "footer": {
     "copyright": "© 2024 Cession Management. All rights reserved."
   }

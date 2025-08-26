@@ -42,8 +42,6 @@
   // 🔍 Smart Search & Filtering
   let searchQuery = '';
   let smartFilters = {
-    highValue: false,
-    recentlyCreated: false,
     nearExpiry: false,
     activeOnly: false
   };
@@ -59,12 +57,156 @@
       end: ''
     }
   };
+
+  // 💰 Advanced Financial Filters
+  let showMonthlyPaymentFilter = false;
+  let isMonthlyPaymentFilterVisible = false;
+  let monthlyPaymentSearchQuery = '';
   
+  // Monthly payment slider range (in dinars)
+  let monthlyPaymentMin = 0;
+  let monthlyPaymentMax = 15000;
+  let monthlyPaymentSliderMin = 0;
+  let monthlyPaymentSliderMax = 15000;
+  let monthlyPaymentStep = 100;
+  let isMonthlyPaymentSliderActive = false;
+  let filterDebounceTimer;
+  
+  // Enhanced dynamic range calculation with better error handling and no fake data
+  function calculateDynamicRanges() {
+    if (cessions && cessions.length > 0) {
+      try {
+        // Calculate monthly payment ranges
+        const monthlyPayments = cessions
+          .map(c => {
+            const payment = c.monthlyPayment || 0;
+            // Convert to number if it's a string, handle null/undefined
+            if (payment === null || payment === undefined) return 0;
+            return typeof payment === 'string' ? parseFloat(payment) : payment;
+          })
+          .filter(mp => mp > 0 && !isNaN(mp));
+        
+        // Update payment values
+        
+        if (monthlyPayments.length > 0) {
+          const calculatedMin = Math.min(...monthlyPayments);
+          const calculatedMax = Math.max(...monthlyPayments);
+          
+          // Add 5% buffer to min and 10% buffer to max for better UX
+          const bufferMin = Math.max(0, calculatedMin - (calculatedMin * 0.05));
+          const bufferMax = calculatedMax + (calculatedMax * 0.1);
+          
+          // Round to nice numbers for better UX
+          monthlyPaymentMin = Math.floor(bufferMin / 100) * 100;
+          monthlyPaymentMax = Math.ceil(bufferMax / 100) * 100;
+          
+          // Ensure minimum range for usability
+          if (monthlyPaymentMax - monthlyPaymentMin < 1000) {
+            monthlyPaymentMax = monthlyPaymentMin + 1000;
+          }
+          
+          // Initialize slider values only if they haven't been set by user interaction
+          if (!isMonthlyPaymentSliderActive) {
+            monthlyPaymentSliderMin = monthlyPaymentMin;
+            monthlyPaymentSliderMax = monthlyPaymentMax;
+          }
+          
+          // Adjust step size based on range
+          monthlyPaymentStep = monthlyPaymentMax > 10000 ? 100 : 50;
+        } else {
+          // Fallback values when no valid payments found (no fake data, just sensible defaults)
+          monthlyPaymentMin = 0;
+          monthlyPaymentMax = 5000; // More reasonable default for empty dataset
+          monthlyPaymentSliderMin = 0;
+          monthlyPaymentSliderMax = 5000;
+          monthlyPaymentStep = 100;
+        }
+      } catch (error) {
+        console.error('❌ Error calculating dynamic ranges:', error);
+        // Minimal fallback to default values (no fake data)
+        monthlyPaymentMin = 0;
+        monthlyPaymentMax = 5000;
+        monthlyPaymentSliderMin = 0;
+        monthlyPaymentSliderMax = 5000;
+        monthlyPaymentStep = 100;
+      }
+    } else {
+      // No cessions available - set minimal range
+      monthlyPaymentMin = 0;
+      monthlyPaymentMax = 1000;
+      monthlyPaymentSliderMin = 0;
+      monthlyPaymentSliderMax = 1000;
+      monthlyPaymentStep = 50;
+    }
+  }
+  
+  // 💰 Precise Total Calculation Function
+  function calculatePreciseTotal(cessionsList) {
+    if (!Array.isArray(cessionsList) || cessionsList.length === 0) {
+      return 0;
+    }
+    
+    // Use high-precision calculation to avoid floating point errors
+    let total = 0;
+    let processedCount = 0;
+    
+    for (const cession of cessionsList) {
+      const amount = cession.totalLoanAmount;
+      
+      // Handle different data types and ensure precision
+      if (amount !== null && amount !== undefined) {
+        const numericAmount = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
+        
+        // Only add valid numbers
+        if (!isNaN(numericAmount) && isFinite(numericAmount)) {
+          // Round to 2 decimal places to avoid floating point precision issues
+          total += Math.round(numericAmount * 100) / 100;
+          processedCount++;
+        }
+      }
+    }
+    
+    // Final rounding to ensure consistent display
+    const finalTotal = Math.round(total * 100) / 100;
+    
+    return finalTotal;
+  }
+  
+  // Filter ranges for total amounts (in dinars)
+  let totalAmountRanges = [
+    { id: 'under-10k', label: 'Under 10K DT', min: 0, max: 10000, selected: false },
+    { id: '10k-25k', label: '10K - 25K DT', min: 10000, max: 25000, selected: false },
+    { id: '25k-50k', label: '25K - 50K DT', min: 25000, max: 50000, selected: false },
+    { id: '50k-100k', label: '50K - 100K DT', min: 50000, max: 100000, selected: false },
+    { id: '100k-250k', label: '100K - 250K DT', min: 100000, max: 250000, selected: false },
+    { id: '250k-500k', label: '250K - 500K DT', min: 250000, max: 500000, selected: false },
+    { id: 'over-500k', label: 'Over 500K DT', min: 500000, max: Infinity, selected: false }
+  ];
+  
+  let filteredTotalAmountRanges = [...totalAmountRanges];
+
   // 📄 Pagination
   let currentPage = 1;
   let itemsPerPage = 12;
   let totalPages = 1;
   let paginatedCessions = [];
+
+  // Reactive pagination calculation
+  $: {
+    if (filteredCessions) {
+      totalPages = Math.max(1, Math.ceil(filteredCessions.length / itemsPerPage));
+      
+      // Ensure current page is within bounds
+      if (currentPage > totalPages && totalPages > 0) {
+        currentPage = Math.max(1, totalPages);
+      }
+      
+      // Calculate paginated results
+      const start = Math.max(0, (currentPage - 1) * itemsPerPage);
+      const end = Math.min(start + itemsPerPage, filteredCessions.length);
+      paginatedCessions = filteredCessions.slice(start, end);
+    }
+  }
   
   // 📊 Enhanced Analytics & Insights
   let analytics = {
@@ -191,14 +333,14 @@
       return cessionDate >= previousStartDate && cessionDate <= previousEndDate;
     });
     
-    // Calculate current period analytics
-    const totalValue = currentPeriodCessions.reduce((sum, c) => sum + (c.totalLoanAmount || 0), 0);
+    // Calculate current period analytics with precise calculations
+    const totalValue = calculatePreciseTotal(currentPeriodCessions);
     const activeCount = currentPeriodCessions.filter(c => c.status?.toUpperCase() === 'ACTIVE').length;
     const finishedCount = currentPeriodCessions.filter(c => c.status?.toUpperCase() === 'FINISHED').length;
     const completionRate = currentPeriodCessions.length > 0 ? (finishedCount / currentPeriodCessions.length) * 100 : 0;
     
-    // Calculate growth compared to previous period
-    const previousValue = previousPeriodCessions.reduce((sum, c) => sum + (c.totalLoanAmount || 0), 0);
+    // Calculate growth compared to previous period with precise calculations
+    const previousValue = calculatePreciseTotal(previousPeriodCessions);
     const growth = previousValue > 0 ? ((totalValue - previousValue) / previousValue) * 100 : 0;
     
     timeRangeAnalytics = {
@@ -227,11 +369,27 @@
     // Unsubscribe immediately since we only need it once
     unsubscribe();
   });
+
+  // 🔄 Reactive statements for dynamic filter management
+  $: if (cessions && cessions.length > 0) {
+    // Recalculate ranges when cessions data changes
+    calculateDynamicRanges();
+  }
+
+  // 🎯 Smart filter activation detection
+  $: if (monthlyPaymentSliderMin !== undefined && monthlyPaymentSliderMax !== undefined) {
+    checkFilterActivation();
+  }
+
+  // �📊 Auto-generate analytics when filtered data changes
+  $: if (filteredCessions) {
+    generateEnhancedAnalytics();
+  }
   
   // 🚀 Enhanced Analytics & Insights - Comprehensive Data Processing
   function generateEnhancedAnalytics() {
-    // Calculate basic analytics
-    const totalValue = cessions.reduce((sum, c) => sum + (c.totalLoanAmount || 0), 0);
+    // Calculate basic analytics with precise calculations
+    const totalValue = calculatePreciseTotal(cessions);
     const activeCount = cessions.filter(c => c.status?.toUpperCase() === 'ACTIVE').length;
     const finishedCount = cessions.filter(c => c.status?.toUpperCase() === 'FINISHED').length;
     const avgLoanAmount = cessions.length > 0 ? totalValue / cessions.length : 0;
@@ -980,7 +1138,9 @@
       sortOptions,
       currentPage,
       itemsPerPage,
-      cessionsLength: cessions.length
+      cessionsLength: cessions.length,
+      monthlyPaymentSlider: { min: monthlyPaymentSliderMin, max: monthlyPaymentSliderMax, active: isMonthlyPaymentSliderActive },
+      totalAmountRanges: totalAmountRanges.map(r => ({ id: r.id, selected: r.selected }))
     });
     
     // Return cached result if unchanged
@@ -995,21 +1155,8 @@
     let list = [...cessions];
     
     // Apply smart filters (optimized)
-    if (smartFilters.highValue && analytics.avgLoanAmount > 0) {
-      const threshold = analytics.avgLoanAmount * 1.5;
-      list = list.filter(c => (c.totalLoanAmount || 0) > threshold);
-    }
-    
     if (smartFilters.activeOnly) {
       list = list.filter(c => c.status?.toUpperCase() === 'ACTIVE');
-    }
-    
-    if (smartFilters.recentlyCreated) {
-      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      list = list.filter(c => {
-        const startDate = c.startDate ? new Date(c.startDate).getTime() : 0;
-        return startDate >= thirtyDaysAgo;
-      });
     }
     
     if (smartFilters.nearExpiry) {
@@ -1019,7 +1166,30 @@
         return endDate > 0 && endDate <= thirtyDaysFromNow;
       });
     }
-    
+
+    // Apply monthly payment slider filter with enhanced validation and proper sorting
+    if (isMonthlyPaymentSliderActive) {
+      const beforeCount = list.length;
+      list = list.filter(c => {
+        const monthlyPayment = c.monthlyPayment || 0;
+        // Convert to number if it's a string, handle null/undefined properly
+        const payment = typeof monthlyPayment === 'string' ? parseFloat(monthlyPayment) : monthlyPayment;
+        
+        // Check if payment is a valid number and within range (inclusive on both ends)
+        if (isNaN(payment) || payment < 0) return false;
+        return payment >= monthlyPaymentSliderMin && payment <= monthlyPaymentSliderMax;
+      });
+      
+      // Sort filtered results by monthly payment (ascending) for consistent ordering
+      list.sort((a, b) => {
+        const paymentA = parseFloat(a.monthlyPayment) || 0;
+        const paymentB = parseFloat(b.monthlyPayment) || 0;
+        return paymentA - paymentB;
+      });
+      
+      const afterCount = list.length;
+    }
+
     // Apply search query (optimized)
     if (searchQuery && searchQuery.length > 0) {
       const query = searchQuery.toLowerCase();
@@ -1057,8 +1227,15 @@
       });
     }
     
-    // Apply sorting (optimized)
-    if (sortOptions.field && sortOptions.order) {
+    // Apply sorting (optimized) - Enhanced with monthly payment filter context
+    if (isMonthlyPaymentSliderActive) {
+      // When monthly payment filter is active, sort by monthly payment ascending (lowest to highest)
+      list.sort((a, b) => {
+        const paymentA = parseFloat(a.monthlyPayment) || 0;
+        const paymentB = parseFloat(b.monthlyPayment) || 0;
+        return paymentA - paymentB; // Ascending order: 150, 151, 152, ..., 200
+      });
+    } else if (sortOptions.field && sortOptions.order) {
       list.sort((a, b) => {
         let aValue = a[sortOptions.field];
         let bValue = b[sortOptions.field];
@@ -1080,18 +1257,17 @@
           ? aValue > bValue ? 1 : aValue < bValue ? -1 : 0
           : aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
       });
+    } else {
+      // Default sort by creation date descending (most recent first)
+      list.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date || 0);
+        const dateB = new Date(b.createdAt || b.date || 0);
+        return dateB - dateA;
+      });
     }
     
     // Store filtered results
     filteredCessions = list;
-    
-    // Calculate pagination
-    totalPages = Math.max(1, Math.ceil(filteredCessions.length / itemsPerPage));
-    currentPage = Math.min(currentPage, totalPages);
-    
-    // Apply pagination
-    const start = (currentPage - 1) * itemsPerPage;
-    paginatedCessions = filteredCessions.slice(start, start + itemsPerPage);
     
     // Cache the results (limit cache size)
     if (filterCache.size > 10) {
@@ -1139,6 +1315,8 @@
           cessions = response;
           stableCessions = [...response]; // Create stable copy
           lastCessionsLoadTime = now;
+          // Calculate dynamic ranges based on actual data
+          calculateDynamicRanges();
           // Clear filter cache when data changes
           filterCache.clear();
           applyAdvancedFilters();
@@ -1171,8 +1349,6 @@
       }
     };
     smartFilters = {
-      highValue: false,
-      recentlyCreated: false,
       nearExpiry: false,
       activeOnly: false
     };
@@ -1181,9 +1357,291 @@
       field: 'startDate',
       order: 'desc'
     };
+    // Clear financial filters
+    monthlyPaymentSliderMin = monthlyPaymentMin;
+    monthlyPaymentSliderMax = monthlyPaymentMax;
+    isMonthlyPaymentSliderActive = false;
+    totalAmountRanges.forEach(range => range.selected = false);
+    totalAmountRanges = [...totalAmountRanges];
+    showMonthlyPaymentFilter = false;
+    isMonthlyPaymentFilterVisible = false;
+    monthlyPaymentSearchQuery = '';
     applyAdvancedFilters();
   }
-  
+
+  // 💰 Financial Filter Functions
+  function dismissMonthlyPaymentFilter() {
+    showMonthlyPaymentFilter = false;
+    setTimeout(() => isMonthlyPaymentFilterVisible = false, 300);
+    monthlyPaymentSliderMin = monthlyPaymentMin;
+    monthlyPaymentSliderMax = monthlyPaymentMax;
+    isMonthlyPaymentSliderActive = false;
+    applyAdvancedFilters();
+  }
+
+  function toggleMonthlyPaymentRange(value) {
+    // Toggle the slider active state and apply the filter
+    isMonthlyPaymentSliderActive = !isMonthlyPaymentSliderActive;
+    if (!isMonthlyPaymentSliderActive) {
+      // Reset slider to full range when deactivated
+      monthlyPaymentSliderMin = monthlyPaymentMin;
+      monthlyPaymentSliderMax = monthlyPaymentMax;
+    }
+    applyAdvancedFilters();
+  }
+
+  // Enhanced monthly payment slider change handler with validation and auto-apply
+  // Enhanced input handler to properly handle typing in both min and max fields
+  // Handle when user finishes typing (on blur or enter)
+  function handleMonthlyPaymentInputComplete(event, field) {
+    try {
+      let value = event.target.value;
+      
+      // If empty, set to boundary values
+      if (value === '' || value === null || value === undefined) {
+        if (field === 'min') {
+          monthlyPaymentSliderMin = monthlyPaymentMin;
+          event.target.value = monthlyPaymentMin;
+        } else {
+          monthlyPaymentSliderMax = monthlyPaymentMax;
+          event.target.value = monthlyPaymentMax;
+        }
+      } else {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          if (field === 'min') {
+            monthlyPaymentSliderMin = Math.max(monthlyPaymentMin, Math.min(numValue, monthlyPaymentMax));
+            event.target.value = monthlyPaymentSliderMin;
+          } else {
+            monthlyPaymentSliderMax = Math.max(monthlyPaymentMin, Math.min(numValue, monthlyPaymentMax));
+            event.target.value = monthlyPaymentSliderMax;
+          }
+        }
+      }
+      
+      // Ensure logical order
+      if (monthlyPaymentSliderMin >= monthlyPaymentSliderMax) {
+        if (field === 'min') {
+          monthlyPaymentSliderMax = Math.min(monthlyPaymentSliderMin + monthlyPaymentStep, monthlyPaymentMax);
+        } else {
+          monthlyPaymentSliderMin = Math.max(monthlyPaymentSliderMax - monthlyPaymentStep, monthlyPaymentMin);
+        }
+      }
+      
+      // Apply filter immediately when done typing
+      isMonthlyPaymentSliderActive = true;
+      clearTimeout(filterDebounceTimer);
+      applyAdvancedFilters();
+      
+    } catch (error) {
+      console.error('❌ Error in handleMonthlyPaymentInputComplete:', error);
+    }
+  }
+
+  function handleMonthlyPaymentSliderChange() {
+    try {
+      // Convert to numbers to ensure proper comparison
+      monthlyPaymentSliderMin = Number(monthlyPaymentSliderMin) || 0;
+      monthlyPaymentSliderMax = Number(monthlyPaymentSliderMax) || 0;
+      
+      // Validate bounds - prevent values outside the allowed range
+      monthlyPaymentSliderMin = Math.max(monthlyPaymentMin, Math.min(monthlyPaymentSliderMin, monthlyPaymentMax));
+      monthlyPaymentSliderMax = Math.max(monthlyPaymentMin, Math.min(monthlyPaymentSliderMax, monthlyPaymentMax));
+      
+      // Ensure logical order (min <= max)
+      if (monthlyPaymentSliderMin > monthlyPaymentSliderMax) {
+        const temp = monthlyPaymentSliderMin;
+        monthlyPaymentSliderMin = monthlyPaymentSliderMax;
+        monthlyPaymentSliderMax = temp;
+      }
+      
+      // Set filter as active when user interacts
+      isMonthlyPaymentSliderActive = true;
+      
+      // Apply filters immediately for instant feedback (auto-apply)
+      applyAdvancedFilters();
+      
+    } catch (error) {
+      console.error('❌ Error in handleMonthlyPaymentSliderChange:', error);
+      // Reset to safe values on error
+      monthlyPaymentSliderMin = monthlyPaymentMin;
+      monthlyPaymentSliderMax = monthlyPaymentMax;
+      isMonthlyPaymentSliderActive = false;
+    }
+  }
+
+  // Enhanced reset function for monthly payment filter
+  function resetMonthlyPaymentFilter() {
+    monthlyPaymentSliderMin = monthlyPaymentMin;
+    monthlyPaymentSliderMax = monthlyPaymentMax;
+    isMonthlyPaymentSliderActive = false;
+    applyAdvancedFilters();
+  }
+
+  // Separate input handlers for monthly payment to prevent value clearing
+  function handleMonthlyPaymentMinInput(event) {
+    try {
+      const rawValue = event.target.value;
+      
+      // Allow empty or partial typing
+      if (rawValue === '' || rawValue === '.') {
+        monthlyPaymentSliderMin = monthlyPaymentMin;
+        return;
+      }
+      
+      const value = Number(rawValue);
+      if (isNaN(value)) return; // Don't update on invalid input
+      
+      // Only apply bounds and validation on valid numbers
+      let newMin = Math.max(monthlyPaymentMin, Math.min(value, monthlyPaymentMax));
+      
+      // Don't auto-adjust max while user is typing min
+      if (newMin <= monthlyPaymentSliderMax) {
+        monthlyPaymentSliderMin = newMin;
+        isMonthlyPaymentSliderActive = true;
+        
+        // Debounce the filter application
+        clearTimeout(filterDebounceTimer);
+        filterDebounceTimer = setTimeout(() => {
+          applyAdvancedFilters();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('❌ Error in handleMonthlyPaymentMinInput:', error);
+    }
+  }
+
+  function handleMonthlyPaymentMaxInput(event) {
+    try {
+      const rawValue = event.target.value;
+      
+      // Allow empty or partial typing
+      if (rawValue === '' || rawValue === '.') {
+        monthlyPaymentSliderMax = monthlyPaymentMax;
+        return;
+      }
+      
+      const value = Number(rawValue);
+      if (isNaN(value)) return; // Don't update on invalid input
+      
+      // Only apply bounds and validation on valid numbers
+      let newMax = Math.max(monthlyPaymentMin, Math.min(value, monthlyPaymentMax));
+      
+      // Don't auto-adjust min while user is typing max
+      if (newMax >= monthlyPaymentSliderMin) {
+        monthlyPaymentSliderMax = newMax;
+        isMonthlyPaymentSliderActive = true;
+        
+        // Debounce the filter application
+        clearTimeout(filterDebounceTimer);
+        filterDebounceTimer = setTimeout(() => {
+          applyAdvancedFilters();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('❌ Error in handleMonthlyPaymentMaxInput:', error);
+    }
+  }
+
+  // Keyboard handler for fine-tuning slider values
+  function handleSliderKeydown(event, sliderType) {
+    const step = event.shiftKey ? monthlyPaymentStep * 10 : monthlyPaymentStep; // Shift for bigger steps
+    
+    switch (event.key) {
+      case 'ArrowLeft':
+      case 'ArrowDown':
+        event.preventDefault();
+        if (sliderType === 'min') {
+          monthlyPaymentSliderMin = Math.max(monthlyPaymentMin, monthlyPaymentSliderMin - step);
+        } else {
+          monthlyPaymentSliderMax = Math.max(monthlyPaymentSliderMin + monthlyPaymentStep, monthlyPaymentSliderMax - step);
+        }
+        handleMonthlyPaymentSliderChange();
+        break;
+      case 'ArrowRight':
+      case 'ArrowUp':
+        event.preventDefault();
+        if (sliderType === 'min') {
+          monthlyPaymentSliderMin = Math.min(monthlyPaymentSliderMax - monthlyPaymentStep, monthlyPaymentSliderMin + step);
+        } else {
+          monthlyPaymentSliderMax = Math.min(monthlyPaymentMax, monthlyPaymentSliderMax + step);
+        }
+        handleMonthlyPaymentSliderChange();
+        break;
+      case 'Home':
+        event.preventDefault();
+        if (sliderType === 'min') {
+          monthlyPaymentSliderMin = monthlyPaymentMin;
+        } else {
+          monthlyPaymentSliderMax = monthlyPaymentMax;
+        }
+        handleMonthlyPaymentSliderChange();
+        break;
+      case 'End':
+        event.preventDefault();
+        if (sliderType === 'min') {
+          monthlyPaymentSliderMin = monthlyPaymentSliderMax - monthlyPaymentStep;
+        } else {
+          monthlyPaymentSliderMax = monthlyPaymentMax;
+        }
+        handleMonthlyPaymentSliderChange();
+        break;
+    }
+  }
+
+  // Smart filter activation (detects when user moves away from full range)
+  function checkFilterActivation() {
+    const tolerance = (monthlyPaymentMax - monthlyPaymentMin) * 0.05; // 5% tolerance
+    const isFullRange = 
+      Math.abs(monthlyPaymentSliderMin - monthlyPaymentMin) < tolerance && 
+      Math.abs(monthlyPaymentSliderMax - monthlyPaymentMax) < tolerance;
+    
+    if (isFullRange && isMonthlyPaymentSliderActive) {
+      isMonthlyPaymentSliderActive = false;
+      applyAdvancedFilters();
+    }
+  }
+
+  // Handle keyboard navigation for range inputs (alias for compatibility)
+  function handleRangeKeyDown(event) {
+    // Handle Enter key for immediate apply
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      clearTimeout(filterDebounceTimer); // Cancel any pending debounced filter
+      isMonthlyPaymentSliderActive = true;
+      applyAdvancedFilters(); // Apply immediately
+      return;
+    }
+    
+    // Allow basic navigation and editing keys
+    const allowedKeys = [
+      'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+      'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'
+    ];
+    
+    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+    if (event.ctrlKey && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) {
+      return;
+    }
+    
+    // Allow numbers and decimal point
+    if ((event.key >= '0' && event.key <= '9') || event.key === '.') {
+      return;
+    }
+    
+    // Allow navigation keys
+    if (allowedKeys.includes(event.key)) {
+      return;
+    }
+    
+    // Block everything else
+    event.preventDefault();
+  }
+
+  function filterMonthlyPaymentRanges() {
+    // Not needed anymore with slider implementation
+  }
+
   function toggleFilters() {
     isFiltersVisible = !isFiltersVisible;
   }
@@ -1200,21 +1658,21 @@
   
   // Pagination functions
   function handlePageChange(page) {
-    currentPage = page;
-    applyAdvancedFilters();
+    const newPage = Number(page);
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      currentPage = newPage;
+    }
   }
   
   function nextPage() {
     if (currentPage < totalPages) {
-      currentPage++;
-      applyAdvancedFilters();
+      currentPage = currentPage + 1;
     }
   }
   
   function prevPage() {
     if (currentPage > 1) {
-      currentPage--;
-      applyAdvancedFilters();
+      currentPage = currentPage - 1;
     }
   }
   
@@ -1932,111 +2390,453 @@
         </div>
       {/if}
     {:else}
-      <!-- 🔍 Advanced Search & Filter Bar -->
-      <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
-        <div class="flex flex-col lg:flex-row gap-4">
-          <!-- Smart Search -->
+      <!-- 🔍 Clean Search & Filter Section -->
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mb-6">
+        <div class="flex flex-col lg:flex-row gap-4 items-center">
+          <!-- Compact Search Bar -->
           <div class="flex-1">
             <div class="relative">
               <input
                 type="text"
                 bind:value={searchQuery}
                 on:input={handleSearchChange}
-                placeholder="🔍 {$t('cessions.search.placeholder')}"
-                class="w-full pl-12 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
+                placeholder="✨ {$t('cessions.search.placeholder')}"
+                class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
                 style="text-align: {textAlign}"
               />
-              <div class="absolute inset-y-0 {isRTL ? 'right-0 pr-4' : 'left-0 pl-4'} flex items-center pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              
+              <!-- Search Icon -->
+              <div class="absolute inset-y-0 {isRTL ? 'right-0 pr-3' : 'left-0 pl-3'} flex items-center pointer-events-none">
+                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
               </div>
-              {#if isSearching}
-                <div class="absolute inset-y-0 {isRTL ? 'left-0 pl-4' : 'right-0 pr-4'} flex items-center">
-                  <svg class="animate-spin h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              {/if}
               
-              <!-- Search Suggestions -->
-              {#if showSearchSuggestions}
-                <div class="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-200 z-10" transition:slide={{ duration: 200 }}>
-                  {#each searchSuggestions as suggestion}
-                    <button
-                      on:click={() => { searchQuery = suggestion.value; showSearchSuggestions = false; handleSearchChange(); }}
-                      class="w-full px-4 py-3 text-{textAlign} hover:bg-gray-50 flex items-center space-x-3 first:rounded-t-xl last:rounded-b-xl"
-                      class:space-x-reverse={isRTL}
-                    >
-                      <div class="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
-                        {#if suggestion.type === 'client'}
-                          <svg class="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                          </svg>
-                        {:else}
-                          <svg class="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" clip-rule="evenodd"/>
-                          </svg>
-                        {/if}
-                      </div>
-                      <span class="text-sm text-gray-900">{suggestion.value}</span>
-                      <span class="text-xs text-gray-500 capitalize">{suggestion.type}</span>
-                    </button>
-                  {/each}
+              <!-- Clear Button -->
+              {#if searchQuery}
+                <div class="absolute inset-y-0 {isRTL ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center">
+                  <button
+                    on:click={() => { searchQuery = ''; handleSearchChange(); }}
+                    class="w-5 h-5 bg-gray-300 hover:bg-gray-400 rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
                 </div>
               {/if}
             </div>
-          </div>        
-          <!-- Smart Filters -->
-          <div class="flex flex-wrap gap-3">
-            <!-- Smart Filter Toggles -->
+          </div>
+          
+          <!-- Filter Pills -->
+          <div class="flex items-center gap-2">
+            <!-- Active Only Filter -->
             <button
               on:click={() => { smartFilters.activeOnly = !smartFilters.activeOnly; applyAdvancedFilters(); }}
-              class="px-4 py-2 rounded-xl border transition-all duration-200 {smartFilters.activeOnly ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}"
+              class="flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-colors {smartFilters.activeOnly ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}"
             >
-              <svg class="w-4 h-4 inline {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              {$t('cessions.filters.active_only')}
+              <div class="w-2 h-2 rounded-full {smartFilters.activeOnly ? 'bg-green-500' : 'bg-gray-400'} {isRTL ? 'ml-1.5' : 'mr-1.5'}"></div>
+              Active Only
             </button>
+
+            <!-- Monthly Payment Filter -->
             <button
-              on:click={() => { smartFilters.highValue = !smartFilters.highValue; applyAdvancedFilters(); }}
-              class="px-4 py-2 rounded-xl border transition-all duration-200 {smartFilters.highValue ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}"
+              on:click={() => {
+                showMonthlyPaymentFilter = !showMonthlyPaymentFilter;
+                if (!showMonthlyPaymentFilter) {
+                  resetMonthlyPaymentFilter();
+                }
+              }}
+              class="flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-colors {showMonthlyPaymentFilter ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}"
             >
-              <svg class="w-4 h-4 inline {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-              </svg>
-              {$t('cessions.filters.high_value')}
+              <div class="w-2 h-2 rounded-full {showMonthlyPaymentFilter ? 'bg-blue-500' : 'bg-gray-400'} {isRTL ? 'ml-1.5' : 'mr-1.5'}"></div>
+              Monthly Payment Filter
             </button>
+
+            <!-- Advanced Filters -->
             <button
-              on:click={() => { smartFilters.recentlyCreated = !smartFilters.recentlyCreated; applyAdvancedFilters(); }}
-              class="px-4 py-2 rounded-xl border transition-all duration-200 {smartFilters.recentlyCreated ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}"
+              on:click={() => { isFiltersVisible = !isFiltersVisible; }}
+              class="flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-colors {isFiltersVisible ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}"
             >
-              <svg class="w-4 h-4 inline {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              {$t('cessions.filters.recent')}
-            </button>
-            <button
-              on:click={() => isFiltersVisible = !isFiltersVisible}
-              class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-200 text-gray-700 font-medium"
-            >
-              <svg class="w-4 h-4 inline {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
-              </svg>
-              {$t('cessions.filters.advanced')}
+              <div class="w-2 h-2 rounded-full {isFiltersVisible ? 'bg-purple-500' : 'bg-gray-400'} {isRTL ? 'ml-1.5' : 'mr-1.5'}"></div>
+              Filtres Avancés
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Monthly Payment Slider Section -->
+
+        <!-- Monthly Payment Filter Panel -->
+        {#if showMonthlyPaymentFilter}
+          <div class="mb-8" transition:fly={{ y: -20, duration: 400, easing: cubicOut }}>
+            {#if showMonthlyPaymentFilter}
+              <div class="relative bg-gradient-to-br from-emerald-500/10 via-cyan-500/10 to-teal-500/10 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-2xl" transition:scale={{ duration: 300, easing: cubicOut }}>
+                <!-- Animated Background Pattern -->
+                <div class="absolute inset-0 rounded-3xl overflow-hidden">
+                  <div class="absolute inset-0 bg-gradient-to-r from-emerald-400/20 via-cyan-400/20 to-teal-400/20 animate-gradient-shift"></div>
+                  <div class="absolute top-0 left-0 w-full h-full">
+                    <div class="absolute top-4 left-8 w-3 h-3 bg-emerald-400/30 rounded-full animate-pulse delay-300"></div>
+                    <div class="absolute top-16 right-12 w-2 h-2 bg-cyan-400/40 rounded-full animate-pulse delay-700"></div>
+                    <div class="absolute bottom-8 left-16 w-4 h-4 bg-teal-400/25 rounded-full animate-pulse delay-500"></div>
+                    <div class="absolute bottom-16 right-8 w-2 h-2 bg-emerald-400/35 rounded-full animate-pulse delay-900"></div>
+                  </div>
+                </div>
+                
+                <!-- Content -->
+                <div class="relative z-10">
+                  <!-- Header -->
+                  <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-4">
+                      <div class="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 class="text-xl font-bold text-gray-800">Monthly Payment Slider</h3>
+                        <p class="text-emerald-600 text-sm font-medium">Drag to filter by monthly payment range</p>
+                      </div>
+                    </div>
+                    <button
+                      on:click={dismissMonthlyPaymentFilter}
+                      class="w-10 h-10 bg-white/80 hover:bg-white rounded-xl flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all duration-200 backdrop-blur-sm"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Slider Container -->
+                  <div class="bg-white/60 backdrop-blur-sm rounded-3xl p-8 border border-white/40">
+                    <!-- Enhanced Range Display with Editable Values -->
+                    <div class="text-center mb-8">
+                      <div class="inline-flex items-center space-x-4 bg-emerald-50/80 rounded-2xl px-6 py-3 border border-emerald-200/60">
+                        <div class="text-center">
+                          <p class="text-xs text-emerald-600 font-medium uppercase tracking-wide mb-1">From</p>
+                          <div class="relative group">
+                            <input
+                              type="number"
+                              bind:value={monthlyPaymentSliderMin}
+                              min={monthlyPaymentMin}
+                              max={monthlyPaymentSliderMax}
+                              step={monthlyPaymentStep}
+                              on:input={handleMonthlyPaymentMinInput}
+                              on:blur={(e) => handleMonthlyPaymentInputComplete(e, 'min')}
+                              on:keydown={(e) => e.key === 'Enter' && handleMonthlyPaymentInputComplete(e, 'min')}
+                              class="text-2xl font-bold text-emerald-800 editable-value rounded-xl px-2 py-1 text-center w-32"
+                              title="Click to edit min value"
+                            />
+                            <div class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              Click to edit
+                            </div>
+                          </div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                          <div class="w-8 h-0.5 bg-emerald-400 rounded-full mb-1"></div>
+                          <span class="text-xs text-emerald-600 font-medium">to</span>
+                        </div>
+                        <div class="text-center">
+                          <p class="text-xs text-emerald-600 font-medium uppercase tracking-wide mb-1">To</p>
+                          <div class="relative group">
+                            <input
+                              type="number"
+                              bind:value={monthlyPaymentSliderMax}
+                              min={monthlyPaymentSliderMin}
+                              max={monthlyPaymentMax}
+                              step={monthlyPaymentStep}
+                              on:input={handleMonthlyPaymentMaxInput}
+                              on:blur={(e) => handleMonthlyPaymentInputComplete(e, 'max')}
+                              on:keydown={(e) => e.key === 'Enter' && handleMonthlyPaymentInputComplete(e, 'max')}
+                              class="text-2xl font-bold text-emerald-800 editable-value rounded-xl px-2 py-1 text-center w-32"
+                              title="Click to edit max value"
+                            />
+                            <div class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              Click to edit
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Dynamic Range Summary -->
+                      <div class="mt-4 text-sm text-emerald-700">
+                        <span class="font-medium">Range:</span> 
+                        {formatCurrency(monthlyPaymentMin)} - {formatCurrency(monthlyPaymentMax)}
+                        <br>
+                        <span class="font-medium">Selected:</span> 
+                        {formatCurrency(monthlyPaymentSliderMin)} - {formatCurrency(monthlyPaymentSliderMax)}
+                        <br>
+                        <span class="font-medium">Step:</span> {monthlyPaymentStep}
+                        {#if isMonthlyPaymentSliderActive}
+                          <br>
+                          <span class="text-emerald-600 font-medium">✓ Filter Active</span>
+                        {/if}
+                      </div>
+                    </div>
+
+                    <!-- Enhanced Dual Range Slider with Distinct Pointers -->
+                    <div class="relative mb-8">
+                      <!-- Background Track -->
+                      <div class="h-3 bg-gray-200 rounded-full relative overflow-hidden shadow-inner">
+                        <!-- Active Range Highlight -->
+                        <div 
+                          class="absolute h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-300 shadow-sm"
+                          style="left: {((monthlyPaymentSliderMin - monthlyPaymentMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 100}%; 
+                                 right: {100 - ((monthlyPaymentSliderMax - monthlyPaymentMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 100}%;"
+                        ></div>
+                      </div>
+
+                      <!-- Enhanced Range Input Sliders with Distinct Styling -->
+                      <div class="absolute inset-0">
+                        <!-- Min Range Slider (Left Pointer) -->
+                        <input
+                          type="range"
+                          min={monthlyPaymentMin}
+                          max={monthlyPaymentMax}
+                          step={monthlyPaymentStep}
+                          bind:value={monthlyPaymentSliderMin}
+                          on:input={handleMonthlyPaymentSliderChange}
+                          on:keydown={(e) => handleSliderKeydown(e, 'min')}
+                          class="absolute w-full h-3 bg-transparent appearance-none cursor-pointer range-slider min-slider z-20"
+                          style="pointer-events: auto;"
+                          title="Drag to set minimum value (Shift+Arrow for bigger steps)"
+                          aria-label="Minimum monthly payment filter"
+                        />
+                        <!-- Max Range Slider (Right Pointer) -->
+                        <input
+                          type="range"
+                          min={monthlyPaymentMin}
+                          max={monthlyPaymentMax}
+                          step={monthlyPaymentStep}
+                          bind:value={monthlyPaymentSliderMax}
+                          on:input={handleMonthlyPaymentSliderChange}
+                          on:keydown={(e) => handleSliderKeydown(e, 'max')}
+                          class="absolute w-full h-3 bg-transparent appearance-none cursor-pointer range-slider max-slider z-20"
+                          style="pointer-events: auto;"
+                          title="Drag to set maximum value (Shift+Arrow for bigger steps)"
+                          aria-label="Maximum monthly payment filter"
+                        />
+                      </div>
+
+                      <!-- Enhanced Position Indicators with Values -->
+                      <div class="absolute -top-12 left-0 right-0 pointer-events-none">
+                        <!-- Min Value Indicator -->
+                        <div 
+                          class="absolute transform -translate-x-1/2 transition-all duration-300"
+                          style="left: {((monthlyPaymentSliderMin - monthlyPaymentMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 100}%;"
+                        >
+                          <div class="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-lg">
+                            {formatCurrency(monthlyPaymentSliderMin)}
+                          </div>
+                          <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-emerald-500 mx-auto"></div>
+                        </div>
+                        
+                        <!-- Max Value Indicator -->
+                        <div 
+                          class="absolute transform -translate-x-1/2 transition-all duration-300"
+                          style="left: {((monthlyPaymentSliderMax - monthlyPaymentMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 100}%;"
+                        >
+                          <div class="bg-cyan-500 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-lg">
+                            {formatCurrency(monthlyPaymentSliderMax)}
+                          </div>
+                          <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-cyan-500 mx-auto"></div>
+                        </div>
+                      </div>
+
+                      <!-- Dynamic Range Labels -->
+                      <div class="flex justify-between text-xs text-gray-500 mt-4">
+                        <div class="text-left">
+                          <span class="font-medium">Min:</span> {monthlyPaymentMin > 0 ? formatCurrency(monthlyPaymentMin) : '0'}
+                        </div>
+                        <div class="text-center">
+                          <span class="font-medium">Range:</span> {formatCurrency(monthlyPaymentSliderMax - monthlyPaymentSliderMin)}
+                        </div>
+                        <div class="text-right">
+                          <span class="font-medium">Max:</span> {monthlyPaymentMax > 0 ? formatCurrency(monthlyPaymentMax) : '300,000'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Enhanced Filter Status and Controls -->
+                    <div class="flex items-center justify-between bg-gradient-to-r from-emerald-50/50 to-cyan-50/50 rounded-2xl p-4 border border-emerald-200/30">
+                      <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                          <div class="w-3 h-3 rounded-full {isMonthlyPaymentSliderActive ? 'bg-emerald-500 animate-pulse shadow-lg' : 'bg-gray-300'}"></div>
+                          <span class="text-sm font-semibold {isMonthlyPaymentSliderActive ? 'text-emerald-700' : 'text-gray-500'}">
+                            {isMonthlyPaymentSliderActive ? 'Filter Active' : 'Filter Inactive'}
+                          </span>
+                        </div>
+                        {#if isMonthlyPaymentSliderActive}
+                          <div class="hidden sm:flex items-center space-x-2 text-xs text-emerald-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Auto-applying filter</span>
+                          </div>
+                        {/if}
+                      </div>
+                      <div class="flex items-center space-x-2">
+                        <button
+                          on:click={resetMonthlyPaymentFilter}
+                          class="px-4 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100/60 rounded-xl transition-all duration-200 border border-emerald-200/50 hover:border-emerald-300/60"
+                          title="Reset to full range"
+                        >
+                          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                          </svg>
+                          Reset
+                        </button>
+                        {#if !isMonthlyPaymentSliderActive}
+                          <button
+                            on:click={() => {
+                              isMonthlyPaymentSliderActive = true;
+                              applyAdvancedFilters();
+                            }}
+                            class="px-4 py-2 text-sm font-medium bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                          >
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z"/>
+                            </svg>
+                            Apply Filter
+                          </button>
+                        {/if}
+                      </div>
+                    </div>
+
+                    <!-- Live Results Summary -->
+                    {#if isMonthlyPaymentSliderActive}
+                      <div class="mt-4 p-3 bg-gradient-to-r from-emerald-100/60 to-cyan-100/60 rounded-xl border border-emerald-200/40">
+                        <div class="flex items-center justify-between text-sm">
+                          <span class="text-emerald-700 font-medium">
+                            📊 Results: {filteredCessions.length} cession{filteredCessions.length !== 1 ? 's' : ''} found
+                          </span>
+                          <span class="text-emerald-600">
+                            Range: {formatCurrency(monthlyPaymentSliderMax - monthlyPaymentSliderMin)}
+                          </span>
+                        </div>
+                      </div>
+                    {/if}
+
+                    <!-- Enhanced Dynamic Barometer Visualization -->
+                    <div class="mt-6 bg-gradient-to-r from-emerald-100 to-cyan-100 rounded-2xl p-4">
+                      <div class="flex items-center justify-center space-x-4">
+                        <!-- Dynamic Min Value Barometer -->
+                        <div class="flex items-center space-x-1">
+                          {#each Array(10) as _, i}
+                            {@const isActive = i < ((monthlyPaymentSliderMin - monthlyPaymentMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 10}
+                            <div 
+                              class="w-2 h-8 rounded-full transition-all duration-300 barometer-bar {isActive ? 'bg-emerald-500' : 'bg-gray-300'}"
+                              style="animation-delay: {i * 0.1}s"
+                            ></div>
+                          {/each}
+                          <div class="ml-2 text-xs text-emerald-600 font-medium">
+                            Min: {Math.round(((monthlyPaymentSliderMin - monthlyPaymentMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 100)}%
+                          </div>
+                        </div>
+                        
+                        <!-- Center Control Icon -->
+                        <div class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
+                          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                          </svg>
+                        </div>
+                        
+                        <!-- Dynamic Max Value Barometer -->
+                        <div class="flex items-center space-x-1">
+                          <div class="mr-2 text-xs text-cyan-600 font-medium">
+                            Max: {Math.round(((monthlyPaymentSliderMax - monthlyPaymentMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 100)}%
+                          </div>
+                          {#each Array(10) as _, i}
+                            {@const isActive = i < ((monthlyPaymentSliderMax - monthlyPaymentMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 10}
+                            <div 
+                              class="w-2 h-8 rounded-full transition-all duration-300 barometer-bar {isActive ? 'bg-cyan-500' : 'bg-gray-300'}"
+                              style="animation-delay: {i * 0.1}s"
+                            ></div>
+                          {/each}
+                        </div>
+                      </div>
+                      
+                      <!-- Dynamic Statistics -->
+                      <div class="mt-4 grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-white/60 rounded-xl p-3">
+                          <div class="text-lg font-bold text-emerald-600">
+                            {formatCurrency(monthlyPaymentSliderMax - monthlyPaymentSliderMin)}
+                          </div>
+                          <div class="text-xs text-gray-600">Range Span</div>
+                        </div>
+                        <div class="bg-white/60 rounded-xl p-3">
+                          <div class="text-lg font-bold text-cyan-600">
+                            {Math.round(((monthlyPaymentSliderMax - monthlyPaymentSliderMin) / (monthlyPaymentMax - monthlyPaymentMin)) * 100)}%
+                          </div>
+                          <div class="text-xs text-gray-600">Coverage</div>
+                        </div>
+                        <div class="bg-white/60 rounded-xl p-3">
+                          <div class="text-lg font-bold text-purple-600">
+                            {Math.ceil((monthlyPaymentSliderMax - monthlyPaymentSliderMin) / monthlyPaymentStep)}
+                          </div>
+                          <div class="text-xs text-gray-600">Steps</div>
+                        </div>
+                      </div>
+                      
+                      <!-- Usage Tips -->
+                      <div class="mt-4 text-center">
+                        <div class="inline-flex items-center space-x-2 text-xs text-emerald-600 bg-emerald-50/60 rounded-full px-4 py-2">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          <span>💡 Tip: Click values to edit directly • Use arrow keys for fine control • Shift+Arrow for bigger steps</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        <!-- Active Filters Display -->
+        {#if isMonthlyPaymentSliderActive}
+          <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 mb-8 border border-blue-200/50" transition:fly={{ y: -10, duration: 300 }}>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-4">
+                <h4 class="text-sm font-semibold text-gray-700">Active Financial Filters:</h4>
+                <div class="flex flex-wrap gap-2">
+                  {#if isMonthlyPaymentSliderActive}
+                    <div class="flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"/>
+                      </svg>
+                      Monthly: {formatCurrency(monthlyPaymentSliderMin)} - {formatCurrency(monthlyPaymentSliderMax)}
+                    </div>
+                  {/if}
+                </div>
+              </div>
+              <button
+                on:click={() => {
+                  monthlyPaymentSliderMin = monthlyPaymentMin;
+                  monthlyPaymentSliderMax = monthlyPaymentMax;
+                  isMonthlyPaymentSliderActive = false;
+                  totalAmountRanges.forEach(range => range.selected = false);
+                  totalAmountRanges = [...totalAmountRanges];
+                  applyAdvancedFilters();
+                }}
+                class="text-sm text-gray-500 hover:text-gray-700 underline transition-colors"
+              >
+                Clear Financial Filters
+              </button>
+            </div>
+          </div>
+        {/if}
         
         <!-- Advanced Filters Panel -->
         {#if isFiltersVisible}
           <div class="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200" transition:slide={{ duration: 300 }}>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">{$t('cessions.filters.client_name')}</label>
+                <label for="client-name-filter" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">{$t('cessions.filters.client_name')}</label>
                 <input
+                  id="client-name-filter"
                   type="text"
                   bind:value={searchFields.clientName}
                   on:input={handleSearchInput}
@@ -2046,8 +2846,9 @@
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">{$t('cessions.filters.status')}</label>
+                <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">{$t('cessions.filters.status')}</label>
                 <select 
+                  id="status-filter"
                   bind:value={searchFields.status} 
                   on:change={handleSearchInput}
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
@@ -2061,19 +2862,23 @@
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">{$t('cessions.filters.date_range')}</label>
+                <label for="date-range-start" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">{$t('cessions.filters.date_range')}</label>
                 <div class="flex space-x-2" class:space-x-reverse={isRTL}>
                   <input 
+                    id="date-range-start"
                     type="date" 
                     bind:value={searchFields.dateRange.start}
                     on:change={handleSearchInput}
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    aria-label="Start date"
                   />
                   <input 
+                    id="date-range-end"
                     type="date" 
                     bind:value={searchFields.dateRange.end}
                     on:change={handleSearchInput}
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    aria-label="End date"
                   />
                 </div>
               </div>
@@ -2088,7 +2893,8 @@
             </div>
           </div>
         {/if}
-      </div>    
+      
+      <!-- � Main Content Section -->
       
       <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20 mb-8">
         <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
@@ -2102,8 +2908,13 @@
                   {$t('common.showing_results', { count: filteredCessions.length })}
                 </p>
                 <p class="text-xs text-gray-500">
-                  {$t('cessions.results.total_value')}: {formatCurrency(filteredCessions.reduce((sum, c) => sum + (c.totalLoanAmount || 0), 0))}
+                  {$t('cessions.results.total_value')}: {formatCurrency(calculatePreciseTotal(filteredCessions))}
                 </p>
+                {#if isMonthlyPaymentSliderActive}
+                  <p class="text-xs text-blue-600 font-medium">
+                    Filtered by payment: {formatCurrency(monthlyPaymentSliderMin)} - {formatCurrency(monthlyPaymentSliderMax)}
+                  </p>
+                {/if}
               </div>
             </div>
             
@@ -2217,6 +3028,15 @@
                 class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
                 transition:scale={{ delay: i * 50, duration: 300 }}
                 on:click={() => showDetails(cession)}
+                on:keydown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    showDetails(cession);
+                  }
+                }}
+                role="button"
+                tabindex="0"
+                aria-label="View details for {cession.clientName || 'Unknown Client'}"
               >
                 <div class="flex items-start justify-between mb-4">
                   <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
@@ -2368,20 +3188,26 @@
                 <button
                   on:click={prevPage}
                   disabled={currentPage === 1}
-                  class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  class="px-3 py-1.5 text-xs bg-gray-100 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {$t('common.actions.previous')}
                 </button>
                 
                 <!-- Page Numbers -->
                 {#each Array.from({length: Math.min(5, totalPages)}, (_, i) => {
-                  const start = Math.max(1, currentPage - 2);
-                  const end = Math.min(totalPages, start + 4);
+                  const start = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
                   return start + i;
-                }).filter(page => page <= totalPages) as pageNum}
+                }).filter(page => page >= 1 && page <= totalPages) as pageNum}
                   <button
                     on:click={() => handlePageChange(pageNum)}
-                    class="px-3 py-2 text-sm border rounded-lg transition-colors {currentPage === pageNum ? 'bg-purple-600 text-white border-purple-600' : 'border-gray-300 hover:bg-gray-100'}"
+                    class="px-3 py-1.5 text-xs rounded-lg transition-colors font-medium border"
+                    class:bg-blue-500={currentPage === pageNum}
+                    class:text-white={currentPage === pageNum}
+                    class:border-blue-500={currentPage === pageNum}
+                    class:bg-gray-100={currentPage !== pageNum}
+                    class:text-gray-600={currentPage !== pageNum}
+                    class:border-gray-200={currentPage !== pageNum}
+                    class:hover:bg-gray-200={currentPage !== pageNum}
                   >
                     {pageNum}
                   </button>
@@ -2390,7 +3216,7 @@
                 <button
                   on:click={nextPage}
                   disabled={currentPage === totalPages}
-                  class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  class="px-3 py-1.5 text-xs bg-gray-100 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {$t('common.actions.next')}
                 </button>
@@ -2501,3 +3327,357 @@
     {/if}
   </div>
 </div>
+
+<style>
+  /* Custom Scrollbar for Futuristic Filters */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #10b981, #06d6a0);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #059669, #05a081);
+  }
+
+  /* Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #10b981 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Enhanced Backdrop Blur Support */
+  @supports (backdrop-filter: blur(20px)) {
+    .backdrop-blur-xl {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+  }
+
+  /* Animated Gradient Background */
+  @keyframes gradient-shift {
+    0%, 100% { 
+      background-position: 0% 50%;
+    }
+    50% { 
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient-shift {
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease-in-out infinite;
+  }
+
+  /* Floating Animation */
+  @keyframes float {
+    0%, 100% { 
+      transform: translateY(0px);
+    }
+    50% { 
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Pulse Glow Effect */
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+    50% { 
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+    }
+  }
+
+  /* Custom animations for filter containers */
+  .filter-container {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .filter-container:nth-child(odd) {
+    animation-delay: -3s;
+  }
+
+  /* Glassmorphism enhancement */
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Interactive hover effects */
+  .interactive-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Smooth transitions for all interactive elements */
+  * {
+    transition-property: transform, box-shadow, background-color, border-color;
+    transition-duration: 0.3s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Financial filter specific animations */
+  .monthly-payment-glow:hover {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .total-amount-glow:hover {
+    animation: pulse-glow 2s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+  }
+
+  /* Range selection animations */
+  .range-card {
+    transform-origin: center;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .range-card:hover {
+    transform: scale(1.02) translateY(-2px);
+  }
+
+  .range-card.selected {
+    transform: scale(1.05);
+    animation: selected-bounce 0.6s ease-out;
+  }
+
+  @keyframes selected-bounce {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1.05); }
+  }
+
+  /* Enhanced Dual Range Slider Styles */
+  .range-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  /* Min Slider (Left Pointer) Styles */
+  .min-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 24px;
+    width: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    cursor: grab;
+    border: 4px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), 0 0 0 2px rgba(16, 185, 129, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 30;
+  }
+
+  .min-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6), 0 0 0 4px rgba(16, 185, 129, 0.3);
+    border-width: 3px;
+  }
+
+  .min-slider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.25);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.8), 0 0 0 6px rgba(16, 185, 129, 0.4);
+    border-width: 2px;
+  }
+
+  /* Max Slider (Right Pointer) Styles */
+  .max-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 24px;
+    width: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    cursor: grab;
+    border: 4px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4), 0 0 0 2px rgba(6, 182, 212, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 30;
+  }
+
+  .max-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.6), 0 0 0 4px rgba(6, 182, 212, 0.3);
+    border-width: 3px;
+  }
+
+  .max-slider::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.25);
+    box-shadow: 0 8px 25px rgba(6, 182, 212, 0.8), 0 0 0 6px rgba(6, 182, 212, 0.4);
+    border-width: 2px;
+  }
+
+  /* Firefox Range Slider Styles */
+  .min-slider::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    cursor: grab;
+    border: 4px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    transition: all 0.3s ease;
+    -moz-appearance: none;
+  }
+
+  .max-slider::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    cursor: grab;
+    border: 4px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+    transition: all 0.3s ease;
+    -moz-appearance: none;
+  }
+
+  /* Remove default track styling */
+  .range-slider::-webkit-slider-track {
+    background: transparent;
+    height: 100%;
+  }
+
+  .range-slider::-moz-range-track {
+    background: transparent;
+    height: 100%;
+    border: none;
+  }
+
+  /* Focus styles for accessibility */
+  .range-slider:focus {
+    outline: none;
+  }
+
+  .min-slider:focus::-webkit-slider-thumb {
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), 0 0 0 4px rgba(16, 185, 129, 0.3);
+  }
+
+  .max-slider:focus::-webkit-slider-thumb {
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4), 0 0 0 4px rgba(6, 182, 212, 0.3);
+  }
+
+  /* Input number styling for editable values */
+  .editable-value {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .editable-value:hover {
+    background: rgba(16, 185, 129, 0.05);
+    border-color: rgba(16, 185, 129, 0.3);
+    transform: scale(1.02);
+  }
+
+  .editable-value:focus {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.5);
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+
+  /* Remove number input arrows */
+  .editable-value::-webkit-outer-spin-button,
+  .editable-value::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .editable-value[type=number] {
+    -moz-appearance: textfield;
+  }
+
+  /* Barometer animation */
+  @keyframes barometer-pulse {
+    0%, 100% { 
+      transform: scaleY(1);
+      opacity: 0.7;
+    }
+    50% { 
+      transform: scaleY(1.2);
+      opacity: 1;
+    }
+  }
+
+  .barometer-bar {
+    animation: barometer-pulse 2s ease-in-out infinite;
+  }
+
+  .barometer-bar:nth-child(odd) {
+    animation-delay: 0.1s;
+  }
+
+  .barometer-bar:nth-child(even) {
+    animation-delay: 0.2s;
+  }
+
+  /* Enhanced Filter Panel Animations */
+  @keyframes filter-glow {
+    0%, 100% { 
+      box-shadow: 0 10px 40px rgba(16, 185, 129, 0.2);
+    }
+    50% { 
+      box-shadow: 0 15px 50px rgba(16, 185, 129, 0.4);
+    }
+  }
+
+  .filter-panel-active {
+    animation: filter-glow 3s ease-in-out infinite;
+  }
+
+  /* Smooth transitions for all filter elements */
+  .filter-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Loading skeleton for filter values */
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .skeleton-loading {
+    animation: skeleton-pulse 2s ease-in-out infinite;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  }
+
+  /* Accessibility improvements */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Touch devices enhancements */
+  @media (hover: none) and (pointer: coarse) {
+    .slider-thumb-emerald::-webkit-slider-thumb {
+      height: 32px;
+      width: 32px;
+    }
+    
+    .slider-thumb-cyan::-webkit-slider-thumb {
+      height: 32px;
+      width: 32px;
+    }
+  }
+</style>

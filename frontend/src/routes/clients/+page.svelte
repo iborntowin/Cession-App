@@ -91,8 +91,20 @@
   // Filters
   let filters = {
     sortBy: 'fullName',
-    sortOrder: 'asc'
+    sortOrder: 'asc',
+    selectedWorkplace: null, // Single workplace selection
+    selectedJobs: []
   };
+
+  // Advanced Workplace and Job Filters
+  let isWorkplaceFilterVisible = false;
+  let isJobFilterVisible = false;
+  let showWorkplaceFilter = false;
+  let showJobFilter = false;
+  let workplaceSearchQuery = '';
+  let jobSearchQuery = '';
+  let filteredWorkplaces = [];
+  let filteredJobs = [];
 
   // Cleanup function
   function cleanup() {
@@ -176,6 +188,7 @@
       for (const w of workplaces) {
         workplacesMap[w.id] = w.name;
       }
+      filteredWorkplaces = [...workplaces];
     } catch (error) {
       console.error('Error loading workplaces:', error);
     }
@@ -188,6 +201,7 @@
       for (const j of jobs) {
         jobsMap[j.id] = j.name || j.title || `Job ${j.id}`;
       }
+      filteredJobs = [...jobs];
     } catch (error) {
       console.error('Error loading jobs:', error);
     }
@@ -242,7 +256,8 @@
       isSearching = true;
       
       // Check if we have any search terms
-      const hasQuery = searchQuery || searchCIN || searchWorkerNumber || searchClientNumber;
+      const hasQuery = searchQuery || searchCIN || searchWorkerNumber || searchClientNumber || 
+                      filters.selectedWorkplace || filters.selectedJobs.length > 0;
       hasSearchQuery = hasQuery;
       
       // Early return for no filters
@@ -279,6 +294,16 @@
 
           // Client number search
           if (normalizedClientNumber && !client.clientNumber?.toString().includes(normalizedClientNumber)) {
+            return false;
+          }
+
+          // Workplace filter (single selection)
+          if (filters.selectedWorkplace && filters.selectedWorkplace !== client.workplaceId) {
+            return false;
+          }
+
+          // Job filter
+          if (filters.selectedJobs.length > 0 && !filters.selectedJobs.includes(client.jobId)) {
             return false;
           }
 
@@ -389,12 +414,143 @@
     searchCIN = '';
     searchWorkerNumber = '';
     searchClientNumber = '';
+    filters.selectedWorkplace = null;
+    filters.selectedJobs = [];
+    workplaceSearchQuery = '';
+    jobSearchQuery = '';
+    showWorkplaceFilter = false;
+    showJobFilter = false;
+    isWorkplaceFilterVisible = false;
+    isJobFilterVisible = false;
     hasSearchQuery = false;
     
     // Immediate update without debounce
     filteredClients = [...clients];
     applySorting();
   }
+
+  // Workplace Filter Functions
+  function toggleWorkplaceFilter(workplaceId) {
+    // Single selection for workplace
+    if (filters.selectedWorkplace === workplaceId) {
+      filters.selectedWorkplace = null; // Deselect if already selected
+      // Also hide job filter when workplace is deselected
+      showJobFilter = false;
+      isJobFilterVisible = false;
+      // Clear selected jobs when workplace is deselected
+      filters.selectedJobs = [];
+    } else {
+      filters.selectedWorkplace = workplaceId; // Select new workplace
+      // Automatically show job filter when workplace is selected
+      showJobFilter = true;
+      isJobFilterVisible = true;
+      // Clear selected jobs when workplace changes
+      filters.selectedJobs = [];
+      // Update filtered jobs based on selected workplace
+      filterJobsByWorkplace();
+    }
+    performSearch();
+  }
+
+  // Filter visibility toggle functions
+  function toggleWorkplaceFilterVisibility() {
+    showWorkplaceFilter = !showWorkplaceFilter;
+    if (showWorkplaceFilter) {
+      isWorkplaceFilterVisible = true;
+      // Close job filter if open
+      if (showJobFilter) {
+        showJobFilter = false;
+        setTimeout(() => isJobFilterVisible = false, 300);
+      }
+    } else {
+      setTimeout(() => isWorkplaceFilterVisible = false, 300);
+    }
+  }
+
+  function toggleJobFilterVisibility() {
+    showJobFilter = !showJobFilter;
+    if (showJobFilter) {
+      isJobFilterVisible = true;
+      // Close workplace filter if open
+      if (showWorkplaceFilter) {
+        showWorkplaceFilter = false;
+        setTimeout(() => isWorkplaceFilterVisible = false, 300);
+      }
+    } else {
+      setTimeout(() => isJobFilterVisible = false, 300);
+    }
+  }
+
+  function dismissWorkplaceFilter() {
+    showWorkplaceFilter = false;
+    setTimeout(() => isWorkplaceFilterVisible = false, 300);
+    filters.selectedWorkplace = null;
+    performSearch();
+  }
+
+  function dismissJobFilter() {
+    showJobFilter = false;
+    setTimeout(() => isJobFilterVisible = false, 300);
+    filters.selectedJobs = [];
+    performSearch();
+  }
+
+  function filterWorkplaces() {
+    if (!workplaceSearchQuery.trim()) {
+      filteredWorkplaces = [...workplaces];
+    } else {
+      const query = workplaceSearchQuery.toLowerCase();
+      filteredWorkplaces = workplaces.filter(workplace => 
+        workplace.name?.toLowerCase().includes(query)
+      );
+    }
+  }
+
+  // Job Filter Functions
+  function toggleJobFilter(jobId) {
+    const index = filters.selectedJobs.indexOf(jobId);
+    if (index > -1) {
+      filters.selectedJobs.splice(index, 1);
+    } else {
+      filters.selectedJobs.push(jobId);
+    }
+    filters.selectedJobs = [...filters.selectedJobs];
+    performSearch();
+  }
+
+  function filterJobs() {
+    let jobsToFilter = jobs;
+    
+    // First filter by workplace if one is selected
+    if (filters.selectedWorkplace) {
+      jobsToFilter = jobs.filter(job => job.workplaceId === filters.selectedWorkplace);
+    }
+    
+    // Then filter by search query if provided
+    if (!jobSearchQuery.trim()) {
+      filteredJobs = [...jobsToFilter];
+    } else {
+      const query = jobSearchQuery.toLowerCase();
+      filteredJobs = jobsToFilter.filter(job => 
+        job.name?.toLowerCase().includes(query)
+      );
+    }
+  }
+
+  // Filter jobs by selected workplace
+  function filterJobsByWorkplace() {
+    if (filters.selectedWorkplace) {
+      filteredJobs = jobs.filter(job => job.workplaceId === filters.selectedWorkplace);
+    } else {
+      filteredJobs = [...jobs];
+    }
+    // Clear job search query when workplace changes
+    jobSearchQuery = '';
+  }
+
+  // Reactive statements to update filtered lists
+  $: if (workplaceSearchQuery !== undefined) filterWorkplaces();
+  $: if (jobSearchQuery !== undefined) filterJobs();
 
   // Client details functions with improved error handling
   let isLoadingClientDetails = false;
@@ -1274,6 +1430,262 @@
             class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors shadow-sm"
           >
             Clear All Filters
+          </button>
+        </div>
+      </div>
+    {/if}
+
+    <!-- Filter Toggle Controls -->
+    <div class="flex items-center justify-center space-x-4 mb-8">
+      <button
+        on:click={toggleWorkplaceFilterVisibility}
+        class="group relative px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 {showWorkplaceFilter ? 'ring-2 ring-purple-300 ring-offset-2' : ''}"
+      >
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2-2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <span class="font-semibold">Workplace Filter</span>
+          <div class="w-2 h-2 bg-white/60 rounded-full group-hover:bg-white transition-colors {showWorkplaceFilter ? 'bg-green-300' : ''}"></div>
+        </div>
+      </button>
+
+      <button
+        on:click={toggleJobFilterVisibility}
+        class="group relative px-6 py-3 bg-gradient-to-r from-indigo-500 to-teal-500 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 {showJobFilter ? 'ring-2 ring-indigo-300 ring-offset-2' : ''}"
+      >
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V2m0 4V2m0 4v2a2 2 0 01-2 2H8a2 2 0 01-2-2V6m8 0H8m8 12v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2m8 0v2H8v-2"/>
+            </svg>
+          </div>
+          <span class="font-semibold">Job Filter</span>
+          <div class="w-2 h-2 bg-white/60 rounded-full group-hover:bg-white transition-colors {showJobFilter ? 'bg-green-300' : ''}"></div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Workplace Filter Panel -->
+    {#if isWorkplaceFilterVisible}
+      <div class="mb-8" transition:fly={{ y: -20, duration: 400, easing: cubicOut }}>
+        {#if showWorkplaceFilter}
+          <div class="relative bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-indigo-500/10 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-2xl" transition:scale={{ duration: 300, easing: cubicOut }}>
+            <!-- Animated Background Pattern -->
+            <div class="absolute inset-0 rounded-3xl overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-blue-400/20 to-indigo-400/20 animate-pulse"></div>
+              <div class="absolute top-0 left-0 w-32 h-32 bg-purple-400/30 rounded-full blur-xl animate-bounce"></div>
+              <div class="absolute bottom-0 right-0 w-24 h-24 bg-blue-400/30 rounded-full blur-lg animate-pulse"></div>
+            </div>
+            
+            <!-- Content -->
+            <div class="relative z-10">
+              <!-- Header -->
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                      Workplace Filter
+                    </h3>
+                    <p class="text-sm text-gray-600">Select one workplace location</p>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  {#if filters.selectedWorkplace}
+                    <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                      1 selected
+                    </span>
+                  {/if}
+                  <button
+                    on:click={dismissWorkplaceFilter}
+                    class="w-8 h-8 bg-red-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-red-500/30 transition-colors shadow-md"
+                    title="Dismiss filter"
+                  >
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Search Input -->
+              <div class="relative mb-4">
+                <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input
+                  type="text"
+                  bind:value={workplaceSearchQuery}
+                  on:input={filterWorkplaces}
+                  placeholder="Search workplaces..."
+                  class="w-full pl-12 pr-4 py-3 bg-white/90 backdrop-blur-sm border-0 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:outline-none shadow-lg transition-all duration-300"
+                />
+              </div>
+
+              <!-- Workplace List (Single Selection) -->
+              <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                {#each filteredWorkplaces as workplace (workplace.id)}
+                  <button
+                    on:click={() => toggleWorkplaceFilter(workplace.id)}
+                    class="w-full flex items-center justify-between p-3 bg-white/60 backdrop-blur-sm rounded-xl hover:bg-white/80 transition-all duration-300 group {filters.selectedWorkplace === workplace.id ? 'ring-2 ring-purple-500 bg-purple-50/80' : ''}"
+                  >
+                    <div class="flex items-center space-x-3">
+                      <div class="w-4 h-4 rounded-full border-2 {filters.selectedWorkplace === workplace.id ? 'bg-purple-500 border-purple-500' : 'border-gray-300'} transition-colors flex items-center justify-center">
+                        {#if filters.selectedWorkplace === workplace.id}
+                          <div class="w-2 h-2 bg-white rounded-full"></div>
+                        {/if}
+                      </div>
+                      <span class="font-medium text-gray-800 group-hover:text-purple-600 transition-colors">{workplace.name}</span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      {clients.filter(c => c.workplaceId === workplace.id).length} clients
+                    </div>
+                  </button>
+                {/each}
+              </div>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Job Filter Panel -->
+    {#if isJobFilterVisible}
+      <div class="mb-8" transition:fly={{ y: -20, duration: 400, easing: cubicOut }}>
+        {#if showJobFilter}
+          <div class="relative bg-gradient-to-br from-indigo-500/10 via-cyan-500/10 to-teal-500/10 backdrop-blur-xl rounded-3xl p-6 border border-white/30 shadow-2xl" transition:scale={{ duration: 300, easing: cubicOut }}>
+            <!-- Animated Background Pattern -->
+            <div class="absolute inset-0 rounded-3xl overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-r from-indigo-400/20 via-cyan-400/20 to-teal-400/20 animate-pulse"></div>
+              <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-400/30 rounded-full blur-xl animate-bounce"></div>
+              <div class="absolute bottom-0 left-0 w-24 h-24 bg-cyan-400/30 rounded-full blur-lg animate-pulse"></div>
+            </div>
+            
+            <!-- Content -->
+            <div class="relative z-10">
+              <!-- Header -->
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 bg-gradient-to-r from-indigo-600 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V2m0 4V2m0 4v2a2 2 0 01-2 2H8a2 2 0 01-2-2V6m8 0H8m8 12v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2m8 0v2H8v-2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-bold bg-gradient-to-r from-indigo-600 to-teal-600 bg-clip-text text-transparent">
+                      Job Filter
+                    </h3>
+                    <p class="text-sm text-gray-600">Filter by job positions</p>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  {#if filters.selectedJobs.length > 0}
+                    <span class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-semibold">
+                      {filters.selectedJobs.length} selected
+                    </span>
+                  {/if}
+                  <button
+                    on:click={dismissJobFilter}
+                    class="w-8 h-8 bg-red-500/20 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-red-500/30 transition-colors shadow-md"
+                    title="Dismiss filter"
+                  >
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Search Input -->
+              <div class="relative mb-4">
+                <svg class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input
+                  type="text"
+                  bind:value={jobSearchQuery}
+                  on:input={filterJobs}
+                  placeholder="Search jobs..."
+                  class="w-full pl-12 pr-4 py-3 bg-white/90 backdrop-blur-sm border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-lg transition-all duration-300"
+                />
+              </div>
+
+              <!-- Job List (Multiple Selection) -->
+              <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                {#each filteredJobs as job (job.id)}
+                  <button
+                    on:click={() => toggleJobFilter(job.id)}
+                    class="w-full flex items-center justify-between p-3 bg-white/60 backdrop-blur-sm rounded-xl hover:bg-white/80 transition-all duration-300 group {filters.selectedJobs.includes(job.id) ? 'ring-2 ring-indigo-500 bg-indigo-50/80' : ''}"
+                  >
+                    <div class="flex items-center space-x-3">
+                      <div class="w-3 h-3 rounded-full {filters.selectedJobs.includes(job.id) ? 'bg-indigo-500' : 'bg-gray-300'} transition-colors"></div>
+                      <span class="font-medium text-gray-800 group-hover:text-indigo-600 transition-colors">{job.name || job.title || `Job ${job.id}`}</span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                      {clients.filter(c => c.jobId === job.id).length} clients
+                    </div>
+                  </button>
+                {/each}
+              </div>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Active Filters Display -->
+    {#if filters.selectedWorkplace || filters.selectedJobs.length > 0}
+      <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-4 mb-8 border border-purple-200/50" transition:fly={{ y: -10, duration: 300 }}>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <h4 class="text-sm font-semibold text-gray-700">Active Filters:</h4>
+            <div class="flex flex-wrap gap-2">
+              {#if filters.selectedWorkplace}
+                {@const workplace = workplaces.find(w => w.id === filters.selectedWorkplace)}
+                {#if workplace}
+                  <span class="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                    🏢 {workplace.name}
+                    <button
+                      on:click={() => toggleWorkplaceFilter(filters.selectedWorkplace)}
+                      class="ml-2 w-4 h-4 bg-purple-200 hover:bg-purple-300 rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </span>
+                {/if}
+              {/if}
+              {#each filters.selectedJobs as jobId}
+                {@const job = jobs.find(j => j.id === jobId)}
+                {#if job}
+                  <span class="inline-flex items-center px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium">
+                    💼 {job.name}
+                    <button
+                      on:click={() => toggleJobFilter(jobId)}
+                      class="ml-2 w-4 h-4 bg-indigo-200 hover:bg-indigo-300 rounded-full flex items-center justify-center transition-colors"
+                    >
+                      <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </span>
+                {/if}
+              {/each}
+            </div>
+          </div>
+          <button
+            on:click={clearAllFilters}
+            class="text-sm text-gray-500 hover:text-gray-700 underline transition-colors"
+          >
+            Clear All
           </button>
         </div>
       </div>
@@ -2246,3 +2658,99 @@
     </div>
   </div>
 {/if}
+
+<style>
+  /* Custom Scrollbar for Futuristic Filters */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  }
+
+  /* Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #8b5cf6 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Enhanced Backdrop Blur Support */
+  @supports (backdrop-filter: blur(20px)) {
+    .backdrop-blur-xl {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+  }
+
+  /* Animated Gradient Background */
+  @keyframes gradient-shift {
+    0%, 100% { 
+      background-position: 0% 50%;
+    }
+    50% { 
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Floating Animation */
+  @keyframes float {
+    0%, 100% { 
+      transform: translateY(0px);
+    }
+    50% { 
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Pulse Glow Effect */
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    }
+    50% { 
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+    }
+  }
+
+  /* Custom animations for filter containers */
+  .filter-container {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .filter-container:nth-child(odd) {
+    animation-delay: -3s;
+  }
+
+  /* Glassmorphism enhancement */
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Interactive hover effects */
+  .interactive-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Smooth transitions for all interactive elements */
+  * {
+    transition-property: transform, box-shadow, background-color, border-color;
+    transition-duration: 0.3s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+</style>
