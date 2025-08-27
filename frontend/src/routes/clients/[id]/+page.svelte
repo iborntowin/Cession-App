@@ -200,6 +200,10 @@
                   <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">{$t('clients.details.personal_info.title')}</h3>
                   <dl class="grid grid-cols-1 gap-4">
                     <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                      <dt class="text-sm font-medium text-purple-600">Client Number</dt>
+                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.clientNumber || $t('common.not_provided')}</dd>
+                    </div>
+                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
                       <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.full_name')}</dt>
                       <dd class="mt-1 text-sm text-gray-900 font-medium">{client.fullName}</dd>
                     </div>

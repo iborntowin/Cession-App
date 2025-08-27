@@ -66,6 +66,10 @@
       const result = await api.clients.getById(clientId);
       if (result.success) {
         client = result.data;
+        console.log('loadClient: Raw client data from API:', result.data);
+        console.log('loadClient: Client workerNumber:', client.workerNumber);
+        console.log('loadClient: Client clientNumber:', client.clientNumber);
+        console.log('loadClient: Client fullName:', client.fullName);
       } else {
         showAlert(result.error || 'Failed to load client', 'error');
       }
@@ -236,54 +240,9 @@
         return;
       }
       
-      console.log('Cession data:', cession);
-      
-    // Create the data object that matches what the PDF generator expects
-    const pdfData = {
-      // Court information
-      courtName: cession.courtName || '',
-      bookNumber: cession.bookNumber || '',
-      pageNumber: cession.pageNumber || '',
-      date: formatDate(cession.createdAt) || formatDate(new Date()),
-      
-      // Supplier information
-      supplierTaxId: cession.supplierTaxId || '',
-      supplierName: cession.supplierName || '',
-      supplierAddress: cession.supplierAddress || '',
-      supplierBankAccount: cession.supplierBankAccount || '',
-      
-      // Worker/Client information
-      workerNumber: cession.clientNumber || '',
-      fullName: cession.clientName || (client ? client.fullName : ''),
-      cin: cession.clientCin || (client ? client.cin : ''),
-      address: cession.clientAddress || (client ? client.address : ''),
-      workplace: cession.clientWorkplace || '',
-      jobTitle: cession.clientJob || '',
-      bankAccountNumber: cession.bankOrAgency || '',
-      
-      // Item and payment information
-      itemDescription: cession.itemDescription || '',
-      amountInWords: numberToArabicWords(cession.totalLoanAmount),
-      totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
-      monthlyPayment: parseFloat(cession.monthlyDeduction) || 0.0,
-      firstDeductionMonthArabic: cession.startDate ? format(new Date(cession.startDate), 'MMMM yyyy', { locale: ar }) : ''
-    };
-    
-    console.log('Generated PDF data:', pdfData);
-    
-    await openPDF(pdfData);
-    } catch (error) {
-      console.error('Error previewing document:', error);
-    showAlert('حدث خطأ أثناء معاينة المستند: ' + error.message, 'error');
-    }
-  }
-
-  async function downloadDocument() {
-    console.log('Starting document download...');
-    try {
-      if (!cession) {
-        console.error('Cession data is null or undefined');
-      showAlert('Cession data not available', 'error');
+      if (!client) {
+        console.error('Client data is null or undefined - waiting for client to load');
+        showAlert('Client data not available yet, please wait...', 'warning');
         return;
       }
       
@@ -303,12 +262,13 @@
       supplierAddress: cession.supplierAddress || '',
       supplierBankAccount: cession.supplierBankAccount || '',
       
-      // Worker/Client information
-      workerNumber: cession.clientNumber || '',
+      // Worker/Client information - Add clientId for backend lookup  
+      clientId: client ? client.id : (data.clientId || data.client?.id),
+      workerNumber: client ? client.workerNumber : '',
       fullName: cession.clientName || (client ? client.fullName : ''),
       cin: cession.clientCin || (client ? client.cin : ''),
       address: cession.clientAddress || (client ? client.address : ''),
-      workplace: cession.clientWorkplace || '',
+      workplace: client ? client.workplaceName : (cession.clientWorkplace || ''),
       jobTitle: cession.clientJob || '',
       bankAccountNumber: cession.bankOrAgency || '',
       
@@ -321,6 +281,72 @@
     };
     
     console.log('Generated PDF data:', pdfData);
+    console.log('Client data:', client);
+    console.log('Client worker number:', client ? client.workerNumber : 'no client');
+    console.log('Client ID being sent:', client ? client.id : data.clientId);
+    console.log('Cession clientNumber:', cession ? cession.clientNumber : 'no cession');
+    console.log('Cession clientName:', cession ? cession.clientName : 'no cession');
+    
+    await openPDF(pdfData);
+    } catch (error) {
+      console.error('Error previewing document:', error);
+    showAlert('حدث خطأ أثناء معاينة المستند: ' + error.message, 'error');
+    }
+  }
+
+  async function downloadDocument() {
+    console.log('Starting document download...');
+    try {
+      if (!cession) {
+        console.error('Cession data is null or undefined');
+      showAlert('Cession data not available', 'error');
+        return;
+      }
+      
+      if (!client) {
+        console.error('Client data is null or undefined - waiting for client to load');
+        showAlert('Client data not available yet, please wait...', 'warning');
+        return;
+      }
+      
+      console.log('Cession data:', cession);
+      
+    // Create the data object that matches what the PDF generator expects
+    const pdfData = {
+      // Court information
+      courtName: cession.courtName || '',
+      bookNumber: cession.bookNumber || '',
+      pageNumber: cession.pageNumber || '',
+      date: formatDate(cession.createdAt) || formatDate(new Date()),
+      
+      // Supplier information
+      supplierTaxId: cession.supplierTaxId || '',
+      supplierName: cession.supplierName || '',
+      supplierAddress: cession.supplierAddress || '',
+      supplierBankAccount: cession.supplierBankAccount || '',
+      
+      // Worker/Client information - Add clientId for backend lookup
+      clientId: client ? client.id : (data.clientId || data.client?.id),
+      workerNumber: client ? client.workerNumber : '',
+      fullName: cession.clientName || (client ? client.fullName : ''),
+      cin: cession.clientCin || (client ? client.cin : ''),
+      address: cession.clientAddress || (client ? client.address : ''),
+      workplace: client ? client.workplaceName : (cession.clientWorkplace || ''),
+      jobTitle: cession.clientJob || '',
+      bankAccountNumber: cession.bankOrAgency || '',
+      
+      // Item and payment information
+      itemDescription: cession.itemDescription || '',
+      amountInWords: numberToArabicWords(cession.totalLoanAmount),
+      totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
+      monthlyPayment: parseFloat(cession.monthlyDeduction) || 0.0,
+      firstDeductionMonthArabic: cession.startDate ? format(new Date(cession.startDate), 'MMMM yyyy', { locale: ar }) : ''
+    };
+    
+    console.log('Generated PDF data:', pdfData);
+    console.log('Client data:', client);
+    console.log('Client worker number:', client ? client.workerNumber : 'no client');
+    console.log('Client ID being sent:', client ? client.id : data.clientId);
     
     await downloadPDF(pdfData, `salary_assignment_${cession.id}.pdf`);
     } catch (error) {

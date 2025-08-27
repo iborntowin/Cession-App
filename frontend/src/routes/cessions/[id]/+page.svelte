@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { showAlert, loading } from '$lib/stores';
-  import { cessionsApi, api } from '$lib/api';
+  import { cessionsApi, clientsApi, api } from '$lib/api';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
   import PaymentSection from '$lib/components/PaymentSection.svelte';
@@ -114,60 +114,84 @@
   
   // Function to convert number to Arabic words
   function numberToArabicWords(number) {
-    const units = ['', 'ألف', 'مليون', 'مليار'];
     const digits = ['صفر', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
     const teens = ['عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
     const tens = ['', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
     const hundreds = ['', 'مائة', 'مئتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
     
-    if (number === 0) return digits[0];
+    if (number === 0) return 'صفر دينارا';
+    if (number === 1) return 'واحد دينارا';
+    if (number === 2) return 'اثنان دينارا';
     
     let words = '';
-    let unitIndex = 0;
+    const originalNumber = number;
     
-    while (number > 0) {
-      let group = number % 1000;
-      if (group !== 0) {
-        let groupWords = '';
-        
-        // Handle hundreds
-        if (group >= 100) {
-          groupWords += hundreds[Math.floor(group / 100)] + ' ';
-          group %= 100;
-        }
-        
-        // Handle tens and units
-        if (group > 0) {
-          if (group < 10) {
-            groupWords += digits[group];
-          } else if (group < 20) {
-            groupWords += teens[group - 10];
-          } else {
-            let unit = group % 10;
-            let ten = Math.floor(group / 10);
-            if (unit > 0) {
-              groupWords += digits[unit] + ' و ';
-            }
-            groupWords += tens[ten];
-          }
-        }
-        
-        if (unitIndex > 0) {
-          groupWords += ' ' + units[unitIndex];
-        }
-        
-        if (words) {
-          words = groupWords + ' و ' + words;
+    // Handle billions
+    if (number >= 1000000000) {
+      const billions = Math.floor(number / 1000000000);
+      if (billions === 1) words += 'مليار ';
+      else if (billions === 2) words += 'ملياران ';
+      else words += numberToArabicWordsHelper(billions) + ' مليار ';
+      number %= 1000000000;
+    }
+    
+    // Handle millions
+    if (number >= 1000000) {
+      const millions = Math.floor(number / 1000000);
+      if (millions === 1) words += 'مليون ';
+      else if (millions === 2) words += 'مليونان ';
+      else words += numberToArabicWordsHelper(millions) + ' مليون ';
+      number %= 1000000;
+    }
+    
+    // Handle thousands
+    if (number >= 1000) {
+      const thousands = Math.floor(number / 1000);
+      if (thousands === 1) words += 'ألف ';
+      else if (thousands === 2) words += 'ألفان ';
+      else words += numberToArabicWordsHelper(thousands) + ' ألف ';
+      number %= 1000;
+    }
+    
+    // Handle remaining hundreds, tens, units
+    if (number > 0) {
+      if (words) words += 'و ';
+      words += numberToArabicWordsHelper(number);
+    }
+    
+    return words.trim() + ' دينارا';
+    
+    // Helper function for numbers below 1000
+    function numberToArabicWordsHelper(num) {
+      if (num === 0) return '';
+      
+      let result = '';
+      
+      // Handle hundreds
+      if (num >= 100) {
+        const hundredDigit = Math.floor(num / 100);
+        result += hundreds[hundredDigit] + ' ';
+        num %= 100;
+      }
+      
+      // Handle tens and units
+      if (num > 0) {
+        if (num < 10) {
+          result += digits[num];
+        } else if (num < 20) {
+          result += teens[num - 10];
         } else {
-          words = groupWords;
+          const unit = num % 10;
+          const ten = Math.floor(num / 10);
+          if (unit > 0) {
+            result += digits[unit] + ' و ';
+          }
+          result += tens[ten];
         }
       }
       
-      number = Math.floor(number / 1000);
-      unitIndex++;
+      return result.trim();
     }
-    
-    return words + ' دينارا';
   }
   
   function parseDate(dateString) {
@@ -186,9 +210,26 @@
     console.log('Cession data for PDF:', cession);
     
     // Validate essential data
-    if (!cession.clientName || !cession.clientNumber) {
+    if (!cession.clientName || !cession.clientId) {
       showAlert('Missing essential client information', 'error');
       return;
+    }
+    
+    // Fetch client data to get the correct worker number
+    let clientData = null;
+    try {
+      console.log('Fetching client data for ID:', cession.clientId);
+      const clientResult = await clientsApi.getById(cession.clientId);
+      if (clientResult.success && clientResult.data) {
+        clientData = clientResult.data;
+        console.log('Client data fetched successfully:', clientData);
+      } else {
+        console.warn('Failed to fetch client data:', clientResult.error);
+        showAlert('Could not fetch client data for PDF generation', 'warning');
+      }
+    } catch (error) {
+      console.error('Error fetching client data:', error);
+      showAlert('Error fetching client data for PDF generation', 'warning');
     }
     
     // Count available vs missing data for user info
@@ -221,8 +262,8 @@
       supplierAddress: cession.supplierAddress || '',
       supplierBankAccount: cession.supplierBankAccount || '',
       
-      // Worker/Client information (use real data from cession)
-      workerNumber: cession.clientNumber || '',
+      // Worker/Client information (use client data if available, otherwise fallback to cession data)
+      workerNumber: (clientData && clientData.workerNumber) ? clientData.workerNumber : (cession.clientNumber || ''),
       fullName: cession.clientName || '',
       cin: cession.clientCin || '',
       address: cession.clientAddress || '',
@@ -241,6 +282,7 @@
     };
     
     console.log('PDF Data being sent:', pdfData);
+    console.log('Worker number source:', clientData && clientData.workerNumber ? 'client data' : 'cession data (fallback)');
 
     try {
       await openPDF(pdfData);

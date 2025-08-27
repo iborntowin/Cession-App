@@ -18,6 +18,7 @@ public class SalaryAssignmentDocumentDTO {
     private String supplierBankAccount;
 
     // Worker Information
+    private String clientId; // Add clientId to fetch correct worker number
     private String workerNumber;
     private String fullName;
     private String cin;
