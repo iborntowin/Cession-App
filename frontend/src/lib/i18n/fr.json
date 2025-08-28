@@ -299,6 +299,15 @@
     "title": "Clients",
     "subtitle": "Gérer vos clients",
     "new": "Nouveau Client",
+    "create_cession": "Créer une Cession",
+    "stats": {
+      "total": "Total Clients",
+      "active": "Clients Actifs",
+      "new": "Nouveaux Clients"
+    },
+    "filters": {
+      "title": "Filtres"
+    },
     "status": {
       "active": "Actif",
       "inactive": "Inactif"

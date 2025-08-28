@@ -1290,204 +1290,328 @@
   <!-- Main Content -->
   <div class="max-w-7xl mx-auto px-6 py-8">
 
-    <!-- Advanced Search Panel -->
+    <!-- Enhanced Advanced Search Panel -->
     {#if isSearchVisible}
-      <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-8" transition:fly={{ y: -20, duration: 300 }}>
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Advanced Search</h3>
-          <button
-            on:click={toggleSearch}
-            class="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <!-- Name Search -->
-          <div class="space-y-2">
-            <label for="nameSearch" class="block text-sm font-medium text-gray-700">
-              {$t('clients.search.name')}
-            </label>
-            <div class="relative">
-              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 mb-8 overflow-hidden" transition:fly={{ y: -20, duration: 400, easing: cubicOut }}>
+        <!-- Header with Enhanced Design -->
+        <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-100">
+          <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
               </svg>
-              <input
-                type="text"
-                id="nameSearch"
-                bind:value={searchQuery}
-                on:input={handleSearchInput}
-                placeholder={$t('clients.search.name_placeholder')}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-              />
+            </div>
+            <div>
+              <h3 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Advanced Search</h3>
+              <p class="text-sm text-gray-500 mt-1">Find clients using multiple criteria</p>
             </div>
           </div>
-          <!-- CIN Search -->
-          <div class="space-y-2">
-            <label for="cinSearch" class="block text-sm font-medium text-gray-700">
-              {$t('clients.search.cin')}
-            </label>
-            <div class="relative">
-              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
-              </svg>
-              <input
-                type="text"
-                id="cinSearch"
-                bind:value={searchCIN}
-                on:input={handleSearchInput}
-                placeholder={$t('clients.search.cin_placeholder')}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-              />
+          <div class="flex items-center space-x-3">
+            <!-- Search Tips -->
+            <div class="hidden md:block relative group">
+              <button class="w-8 h-8 text-gray-400 hover:text-purple-600 transition-colors rounded-lg hover:bg-purple-50 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </button>
+              <div class="absolute right-0 top-10 w-64 p-4 bg-gray-900 text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 shadow-xl">
+                <div class="font-semibold mb-2">Search Tips:</div>
+                <ul class="space-y-1 text-gray-300">
+                  <li>• Use partial names or numbers</li>
+                  <li>• Combine multiple criteria</li>
+                  <li>• Select workplace first for jobs</li>
+                  <li>• Press Enter to search instantly</li>
+                </ul>
+              </div>
             </div>
-          </div>
-          <!-- Worker Number Search -->
-          <div class="space-y-2">
-            <label for="workerNumberSearch" class="block text-sm font-medium text-gray-700">
-              {$t('clients.search.worker_number')}
-            </label>
-            <div class="relative">
-              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+            <button
+              on:click={toggleSearch}
+              class="w-10 h-10 text-gray-400 hover:text-gray-600 transition-all duration-200 rounded-xl hover:bg-gray-100 flex items-center justify-center"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
-              <input
-                type="text"
-                id="workerNumberSearch"
-                bind:value={searchWorkerNumber}
-                on:input={handleSearchInput}
-                placeholder={$t('clients.search.worker_number_placeholder')}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-              />
-            </div>
-          </div>
-          <!-- Client Number Search -->
-          <div class="space-y-2">
-            <label for="clientNumberSearch" class="block text-sm font-medium text-gray-700">
-              {$t('clients.search.client_number')}
-            </label>
-            <div class="relative">
-              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-              </svg>
-              <input
-                type="text"
-                id="clientNumberSearch"
-                bind:value={searchClientNumber}
-                on:input={handleSearchInput}
-                placeholder={$t('clients.search.client_number_placeholder')}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-              />
-            </div>
+            </button>
           </div>
         </div>
-        
-        <!-- Compact Workplace and Job Filters -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-100">
-          <!-- Compact Workplace Filter -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">
-              Workplace Filter
-            </label>
-            <div class="relative">
-              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+
+        <!-- Quick Search Bar -->
+        <div class="mb-8">
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
               </svg>
-              <select 
-                bind:value={filters.selectedWorkplace}
-                on:change={() => {
-                  if (filters.selectedWorkplace) {
-                    filters.selectedJobs = [];
-                    filterJobsByWorkplace();
-                  }
+            </div>
+            <input
+              type="text"
+              bind:value={searchQuery}
+              on:input={handleSearchInput}
+              on:keydown={(e) => {
+                if (e.key === 'Enter') {
                   performSearch();
-                }}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm appearance-none"
+                }
+              }}
+              placeholder="Quick search by name..."
+              class="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 bg-white/80 backdrop-blur-sm text-gray-900 rounded-2xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-300 shadow-sm hover:shadow-md"
+            />
+            {#if searchQuery}
+              <button
+                on:click={() => { searchQuery = ''; performSearch(); }}
+                class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
               >
-                <option value={null}>All Workplaces</option>
-                {#each workplaces as workplace (workplace.id)}
-                  <option value={workplace.id}>{workplace.name}</option>
-                {/each}
-              </select>
-              <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </div>
-            {#if filters.selectedWorkplace}
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-purple-600 font-medium">
-                  {clients.filter(c => c.workplaceId === filters.selectedWorkplace).length} clients
-                </span>
-                <button
-                  on:click={() => {
-                    filters.selectedWorkplace = null;
-                    filters.selectedJobs = [];
-                    performSearch();
-                  }}
-                  class="text-xs text-gray-500 hover:text-red-500 underline transition-colors"
-                >
-                  Clear
-                </button>
-              </div>
-            {/if}
-          </div>
-
-          <!-- Compact Job Filter -->
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">
-              Job Filter
-            </label>
-            <div class="relative">
-              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V2m0 4V2m0 4v2a2 2 0 01-2 2H8a2 2 0 01-2-2V6m8 0H8m8 12v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2m8 0v2H8v-2"/>
-              </svg>
-              <select 
-                multiple
-                bind:value={filters.selectedJobs}
-                on:change={performSearch}
-                class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm min-h-[48px] max-h-32 overflow-y-auto"
-                disabled={!filters.selectedWorkplace}
-              >
-                {#each (filters.selectedWorkplace ? jobs.filter(job => job.workplaceId === filters.selectedWorkplace) : jobs) as job (job.id)}
-                  <option value={job.id}>{job.name || job.title || `Job ${job.id}`}</option>
-                {/each}
-              </select>
-            </div>
-            {#if filters.selectedJobs.length > 0}
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-indigo-600 font-medium">
-                  {filters.selectedJobs.length} jobs selected
-                </span>
-                <button
-                  on:click={() => {
-                    filters.selectedJobs = [];
-                    performSearch();
-                  }}
-                  class="text-xs text-gray-500 hover:text-red-500 underline transition-colors"
-                >
-                  Clear
-                </button>
-              </div>
-            {/if}
-            {#if !filters.selectedWorkplace}
-              <p class="text-xs text-gray-500 italic">Select a workplace first to filter jobs</p>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
             {/if}
           </div>
         </div>
 
-        <!-- Search Actions -->
-        <div class="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
-          <div class="text-sm text-gray-500">
-            {filteredClients.length} of {clients.length} clients found
+        <!-- Search Criteria Cards -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <!-- Identity Search Card -->
+          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100/50">
+            <div class="flex items-center mb-4">
+              <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                </svg>
+              </div>
+              <h4 class="text-lg font-semibold text-gray-900">Identity Search</h4>
+            </div>
+            <div class="space-y-4">
+              <!-- CIN Search -->
+              <div class="relative">
+                <label for="cinSearch" class="block text-sm font-medium text-gray-700 mb-2">CIN (National ID)</label>
+                <div class="relative">
+                  <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                  </svg>
+                  <input
+                    type="text"
+                    id="cinSearch"
+                    bind:value={searchCIN}
+                    on:input={handleSearchInput}
+                    on:keydown={(e) => {
+                      if (e.key === 'Enter') {
+                        performSearch();
+                      }
+                    }}
+                    placeholder="Enter CIN number..."
+                    class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white/80 text-gray-900 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <!-- Worker Number Search -->
+              <div class="relative">
+                <label for="workerNumberSearch" class="block text-sm font-medium text-gray-700 mb-2">Worker Number</label>
+                <div class="relative">
+                  <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                  </svg>
+                  <input
+                    type="text"
+                    id="workerNumberSearch"
+                    bind:value={searchWorkerNumber}
+                    on:input={handleSearchInput}
+                    on:keydown={(e) => {
+                      if (e.key === 'Enter') {
+                        performSearch();
+                      }
+                    }}
+                    placeholder="Enter worker number..."
+                    class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white/80 text-gray-900 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <!-- Client Number Search -->
+              <div class="relative">
+                <label for="clientNumberSearch" class="block text-sm font-medium text-gray-700 mb-2">Client Number</label>
+                <div class="relative">
+                  <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                  </svg>
+                  <input
+                    type="text"
+                    id="clientNumberSearch"
+                    bind:value={searchClientNumber}
+                    on:input={handleSearchInput}
+                    on:keydown={(e) => {
+                      if (e.key === 'Enter') {
+                        performSearch();
+                      }
+                    }}
+                    placeholder="Enter client number..."
+                    class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white/80 text-gray-900 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          <button
-            type="button"
-            on:click={clearAllFilters}
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors shadow-sm"
-          >
-            Clear All Filters
-          </button>
+
+          <!-- Organization Filters Card -->
+          <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100/50">
+            <div class="flex items-center mb-4">
+              <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center mr-3">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-9 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+              </div>
+              <h4 class="text-lg font-semibold text-gray-900">Organization Filters</h4>
+            </div>
+            <div class="space-y-4">
+              <!-- Workplace Filter -->
+              <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Workplace</label>
+                <div class="relative">
+                  <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                  </svg>
+                  <select
+                    bind:value={filters.selectedWorkplace}
+                    on:change={() => {
+                      if (filters.selectedWorkplace) {
+                        filters.selectedJobs = [];
+                        filterJobsByWorkplace();
+                      }
+                      performSearch();
+                    }}
+                    class="w-full pl-10 pr-10 py-3 border border-gray-200 bg-white/80 text-gray-900 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 shadow-sm appearance-none"
+                  >
+                    <option value={null}>All Workplaces</option>
+                    {#each workplaces as workplace (workplace.id)}
+                      <option value={workplace.id}>{workplace.name}</option>
+                    {/each}
+                  </select>
+                  <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+                {#if filters.selectedWorkplace}
+                  <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-emerald-600 font-medium">
+                      {clients.filter(c => c.workplaceId === filters.selectedWorkplace).length} clients in this workplace
+                    </span>
+                    <button
+                      on:click={() => {
+                        filters.selectedWorkplace = null;
+                        filters.selectedJobs = [];
+                        performSearch();
+                      }}
+                      class="text-xs text-gray-500 hover:text-red-500 underline transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Job Filter -->
+              <div class="relative">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+                <div class="relative">
+                  <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V2m0 4V2m0 4v2a2 2 0 01-2 2H8a2 2 0 01-2-2V6m8 0H8m8 12v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2m8 0v2H8v-2"/>
+                  </svg>
+                  <select
+                    multiple
+                    bind:value={filters.selectedJobs}
+                    on:change={performSearch}
+                    class="w-full pl-10 pr-4 py-3 border border-gray-200 bg-white/80 text-gray-900 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 shadow-sm min-h-[48px] max-h-32 overflow-y-auto"
+                    disabled={!filters.selectedWorkplace}
+                  >
+                    {#each (filters.selectedWorkplace ? jobs.filter(job => job.workplaceId === filters.selectedWorkplace) : jobs) as job (job.id)}
+                      <option value={job.id}>{job.name || job.title || `Job ${job.id}`}</option>
+                    {/each}
+                  </select>
+                </div>
+                {#if filters.selectedJobs.length > 0}
+                  <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-emerald-600 font-medium">
+                      {filters.selectedJobs.length} job title{filters.selectedJobs.length > 1 ? 's' : ''} selected
+                    </span>
+                    <button
+                      on:click={() => {
+                        filters.selectedJobs = [];
+                        performSearch();
+                      }}
+                      class="text-xs text-gray-500 hover:text-red-500 underline transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                {/if}
+                {#if !filters.selectedWorkplace}
+                  <p class="text-xs text-gray-500 italic mt-2">Select a workplace first to filter by job titles</p>
+                {/if}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Filter Pills -->
+        <div class="mb-8">
+          <h4 class="text-sm font-semibold text-gray-700 mb-3">Quick Filters</h4>
+          <div class="flex flex-wrap gap-3">
+            <button
+              on:click={() => toggleFilter('activeOnly')}
+              class="flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {filters.activeOnly ? 'bg-purple-100 text-purple-800 border-2 border-purple-300' : 'bg-gray-100 text-gray-600 border-2 border-gray-200 hover:bg-gray-200'}"
+            >
+              <div class="w-2 h-2 rounded-full {filters.activeOnly ? 'bg-purple-500' : 'bg-gray-400'} mr-2"></div>
+              Active Clients Only
+            </button>
+            <button
+              on:click={() => toggleFilter('hasCessions')}
+              class="flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 {filters.hasCessions ? 'bg-blue-100 text-blue-800 border-2 border-blue-300' : 'bg-gray-100 text-gray-600 border-2 border-gray-200 hover:bg-gray-200'}"
+            >
+              <div class="w-2 h-2 rounded-full {filters.hasCessions ? 'bg-blue-500' : 'bg-gray-400'} mr-2"></div>
+              Has Cessions
+            </button>
+          </div>
+        </div>
+
+        <!-- Search Actions & Results -->
+        <div class="flex items-center justify-between pt-6 border-t border-gray-100">
+          <div class="flex items-center space-x-4">
+            <div class="text-sm text-gray-600">
+              {#if isSearching}
+                <div class="flex items-center space-x-2">
+                  <div class="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Searching...</span>
+                </div>
+              {:else}
+                <span class="font-medium text-gray-900">{filteredClients.length}</span>
+                <span>of</span>
+                <span class="font-medium text-gray-900">{clients.length}</span>
+                <span>clients found</span>
+              {/if}
+            </div>
+            {#if filteredClients.length > 0 && filteredClients.length < clients.length}
+              <div class="text-xs text-green-600 font-medium">
+                {((filteredClients.length / clients.length) * 100).toFixed(1)}% of total
+              </div>
+            {/if}
+          </div>
+          <div class="flex items-center space-x-3">
+            <button
+              on:click={performSearch}
+              class="flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+            >
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              Search Now
+            </button>
+            <button
+              on:click={clearAllFilters}
+              class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors shadow-sm"
+            >
+              Clear All
+            </button>
+          </div>
         </div>
       </div>
     {/if}

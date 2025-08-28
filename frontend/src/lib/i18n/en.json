@@ -276,6 +276,14 @@
     "subtitle": "Manage your clients",
     "new": "New Client",
     "create_cession": "Create Cession",
+    "stats": {
+      "total": "Total Clients",
+      "active": "Active Clients",
+      "new": "New Clients"
+    },
+    "filters": {
+      "title": "Filters"
+    },
     "search": {
       "title": "Search",
       "name": "Search by Name",
