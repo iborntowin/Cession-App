@@ -11,9 +11,15 @@
   import { format, addMonths } from 'date-fns';
   import { ar } from 'date-fns/locale';
   import { t } from '$lib/i18n';
+  import { language } from '$lib/stores/language';
   import { fade, fly, scale, slide } from 'svelte/transition';
   import { cubicOut, elasticOut } from 'svelte/easing';
   import { browser } from '$app/environment';
+
+  // RTL support
+  $: isRTL = $language.code === 'ar';
+  $: textDirection = isRTL ? 'rtl' : 'ltr';
+  $: textAlign = isRTL ? 'right' : 'left';
 
   // Inline editing state
   let isEditingStartDate = false;

@@ -690,8 +690,13 @@
             bind:value={formData.address}
             required
             class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-            readonly={selectedWorkplaceId !== null}
+            placeholder="Enter the client's address"
           />
+          {#if selectedWorkplaceId}
+            <p class="mt-1 text-xs text-gray-500">
+              💡 Address auto-filled from workplace. You can modify it if needed.
+            </p>
+          {/if}
         </div>
 
         <!-- Phone Number Input -->
