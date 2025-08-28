@@ -201,6 +201,10 @@ public class CessionService {
         }
         cession.setBankOrAgency(cessionDTO.getBankOrAgency().trim());
         
+        // Set PDF generation fields
+        cession.setItemDescription(cessionDTO.getItemDescription());
+        cession.setPersonalAddress(cessionDTO.getPersonalAddress());
+        
         // Apply calculations before saving
         Cession savedCession = calculationService.calculateAndUpdateCessionFields(cession);
         
@@ -270,6 +274,8 @@ public class CessionService {
         cession.setEndDate(dto.getEndDate());
         cession.setBankOrAgency(dto.getBankOrAgency());
         cession.setStatus(dto.getStatus());
+        cession.setItemDescription(dto.getItemDescription());
+        cession.setPersonalAddress(dto.getPersonalAddress());
     }
 
     private CessionDTO convertToDTO(Cession cession) {
@@ -309,6 +315,7 @@ public class CessionService {
         dto.setSupplierAddress(cession.getSupplierAddress());
         dto.setSupplierBankAccount(cession.getSupplierBankAccount());
         dto.setItemDescription(cession.getItemDescription());
+        dto.setPersonalAddress(cession.getPersonalAddress());
         dto.setAmountInWords(cession.getAmountInWords());
         dto.setLoanDuration(cession.getLoanDuration());
         dto.setFirstDeductionMonthArabic(cession.getFirstDeductionMonthArabic());

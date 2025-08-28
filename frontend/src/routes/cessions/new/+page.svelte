@@ -33,6 +33,7 @@
   
   // Editable item description for PDF generation
   let itemDescription = '';
+  let personalAddress = '';
   let selectedClientData = null;
   
   // 🔍 Advanced Search & UI State
@@ -66,6 +67,27 @@
   
   // Calculate total amount reactively
   $: totalAmount = cession.monthlyPayment ? cession.monthlyPayment * paymentPeriod : 0;
+  
+  // Handle personal address based on workplace
+  $: {
+    const workplace = (selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || 
+                     (cession && cession.clientWorkplace) || '';
+    
+    if (workplace === 'وزارة الدفاع الوطني') {
+      // Auto-populate for Ministry of Defense
+      personalAddress = 'وزارة الدفاع الوطني - تونس';
+    } else if (workplace && workplace !== 'وزارة الدفاع الوطني' && !personalAddress) {
+      // Clear auto-populated value when workplace changes from Ministry of Defense
+      personalAddress = '';
+    }
+  }
+  
+  // Show personal address field only when workplace is not Ministry of Defense
+  $: showPersonalAddressField = (() => {
+    const workplace = (selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || 
+                     (cession && cession.clientWorkplace) || '';
+    return workplace && workplace !== 'وزارة الدفاع الوطني';
+  })();
   
   // Debug reactive statement for job data
   $: if (currentStep === 3) {
@@ -151,7 +173,8 @@
     if (autoSaveEnabled && cession && cession.clientId) {
       const draftData = {
         ...cession,
-        itemDescription: itemDescription
+        itemDescription: itemDescription,
+        personalAddress: personalAddress
       };
       localStorage.setItem('cession_draft', JSON.stringify(draftData));
       lastSaved = new Date();
@@ -171,6 +194,10 @@
             // Also restore item description if it exists
             if (parsedDraft.itemDescription) {
               itemDescription = parsedDraft.itemDescription;
+            }
+            // Also restore personal address if it exists
+            if (parsedDraft.personalAddress) {
+              personalAddress = parsedDraft.personalAddress;
             }
             currentStep = 2;
             formProgress = 66;
@@ -203,6 +230,9 @@
     
     // Reset item description
     itemDescription = '';
+    
+    // Reset personal address
+    personalAddress = '';
     
     // Reset to first step
     currentStep = 1;
@@ -358,6 +388,10 @@
       return;
     }
     
+    // Add personal address to cession object
+    cession.personalAddress = personalAddress || '';
+    cession.itemDescription = itemDescription || '';
+    
     isSubmitting = true;
     try {
       const result = await cessionsApi.create(cession);
@@ -451,6 +485,7 @@
       workplace: (selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || cession.clientWorkplace || '',
       jobTitle: (selectedClientData && (selectedClientData.jobName || selectedClientData.jobTitle)) || cession.clientJob || '',
       bankAccountNumber: cession.bankOrAgency || '',
+      personalAddress: personalAddress || '',
       
       // Item and payment information
       itemDescription: itemDescription || '',
@@ -1169,6 +1204,111 @@
               </div>
             </div>
           </div>
+
+          <!-- 🏠 Personal Address Section -->
+          {#if showPersonalAddressField}
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200 mt-8">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-blue-900 flex items-center">
+                  <svg class="w-5 h-5 text-blue-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  العنوان الشخصي
+                  <span class="text-sm font-normal text-blue-700 ml-2">(Personal Address)</span>
+                </h3>
+                <div class="flex items-center text-sm text-blue-700">
+                  <svg class="w-4 h-4 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  مطلوب (Required)
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <div class="relative">
+                  <textarea
+                    bind:value={personalAddress}
+                    placeholder="أدخل العنوان الشخصي الكامل... (مثال: شارع الحبيب بورقيبة، منزل بورقيبة، تونس)"
+                    class="w-full px-4 py-3 bg-white/80 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 resize-none"
+                    rows="3"
+                    dir="rtl"
+                    style="text-align: right"
+                  ></textarea>
+                  <div class="absolute bottom-3 {isRTL ? 'left-3' : 'right-3'} flex items-center text-xs text-blue-600">
+                    <svg class="w-3 h-3 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                    </svg>
+                    سيظهر هذا العنوان في مستند PDF
+                  </div>
+                </div>
+
+                {#if personalAddress}
+                  <div class="flex items-center justify-between bg-blue-100 rounded-lg p-3">
+                    <div class="flex items-center text-sm text-blue-800">
+                      <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      تم إضافة العنوان الشخصي
+                    </div>
+                    <button
+                      on:click={() => personalAddress = ''}
+                      class="flex items-center px-3 py-1 bg-white hover:bg-gray-50 text-blue-700 rounded-md transition-colors text-sm font-medium"
+                    >
+                      <svg class="w-3 h-3 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                      مسح
+                    </button>
+                  </div>
+                {/if}
+
+                <div class="text-xs text-blue-700 bg-blue-100/50 rounded-lg p-3">
+                  <div class="flex items-start">
+                    <svg class="w-4 h-4 text-blue-600 mt-0.5 {isRTL ? 'ml-2' : 'mr-2'} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    <div>
+                      <p class="font-medium mb-1">نصيحة:</p>
+                      <p>أدخل العنوان الشخصي الكامل والدقيق. هذا العنوان سيظهر في مستند PDF الرسمي ويجب أن يكون صحيحاً للاستخدام القانوني.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {:else if (selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || (cession && cession.clientWorkplace)}
+            <!-- Show auto-populated message for Ministry of Defense -->
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200 mt-8">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-green-900 flex items-center">
+                  <svg class="w-5 h-5 text-green-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  العنوان الشخصي
+                  <span class="text-sm font-normal text-green-700 ml-2">(Personal Address)</span>
+                </h3>
+                <div class="flex items-center text-sm text-green-700">
+                  <svg class="w-4 h-4 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                  تم التعبئة تلقائياً (Auto-filled)
+                </div>
+              </div>
+
+              <div class="bg-green-100 rounded-lg p-4">
+                <div class="flex items-center text-sm text-green-800">
+                  <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <span class="font-medium">العنوان الشخصي:</span>
+                  <span class="mr-2">{personalAddress || 'وزارة الدفاع الوطني - تونس'}</span>
+                </div>
+                <p class="text-xs text-green-600 mt-2">
+                  تم تعبئة العنوان تلقائياً لأن الهيكل الإداري هو "وزارة الدفاع الوطني"
+                </p>
+              </div>
+            </div>
+          {/if}
 
           <!-- Step Navigation -->
           <div class="flex justify-between mt-8">

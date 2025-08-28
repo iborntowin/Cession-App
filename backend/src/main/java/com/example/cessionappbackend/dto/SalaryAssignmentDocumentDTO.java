@@ -22,7 +22,7 @@ public class SalaryAssignmentDocumentDTO {
     private String workerNumber;
     private String fullName;
     private String cin;
-    private String address;
+    private String personalAddress;
     private String workplace;
     private String jobTitle;
     private String employmentStatus;

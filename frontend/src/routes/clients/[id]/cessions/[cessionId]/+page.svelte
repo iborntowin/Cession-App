@@ -294,7 +294,8 @@
       amountInWords: numberToArabicWords(cession.totalLoanAmount),
       totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
       monthlyPayment: parseFloat(cession.monthlyDeduction) || 0.0,
-      firstDeductionMonthArabic: cession.startDate ? format(new Date(cession.startDate), 'MMMM yyyy', { locale: ar }) : ''
+      firstDeductionMonthArabic: cession.startDate ? format(new Date(cession.startDate), 'MMMM yyyy', { locale: ar }) : '',
+      personalAddress: cession.personalAddress || (cession.clientWorkplace === 'وزارة الدفاع الوطني' ? 'وزارة الدفاع الوطني - تونس' : '')
     };
     
     console.log('Generated PDF data:', pdfData);
@@ -357,7 +358,8 @@
       amountInWords: numberToArabicWords(cession.totalLoanAmount),
       totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
       monthlyPayment: parseFloat(cession.monthlyDeduction) || 0.0,
-      firstDeductionMonthArabic: cession.startDate ? format(new Date(cession.startDate), 'MMMM yyyy', { locale: ar }) : ''
+      firstDeductionMonthArabic: cession.startDate ? format(new Date(cession.startDate), 'MMMM yyyy', { locale: ar }) : '',
+      personalAddress: cession.personalAddress || (cession.clientWorkplace === 'وزارة الدفاع الوطني' ? 'وزارة الدفاع الوطني - تونس' : '')
     };
     
     console.log('Generated PDF data:', pdfData);

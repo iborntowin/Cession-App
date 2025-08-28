@@ -288,7 +288,7 @@ public class SalaryAssignmentPdfGeneratorService {
         addRightAlignedParagraph(document, "*المعرف الوحيد: " + safeGetValue(correctWorkerNumber));
         addRightAlignedParagraph(document, "*الإسم واللقب: " + safeGetValue(data.getFullName()));
         addRightAlignedParagraph(document, "*رقم بطاقة التعريف الوطنية: " + safeGetValue(data.getCin()));
-        addRightAlignedParagraph(document, "*العنوان الشخصي: " + safeGetValue(data.getAddress()));
+        addRightAlignedParagraph(document, "*العنوان الشخصي: " + safeGetValue(data.getPersonalAddress()));
         addRightAlignedParagraph(document, "*الهيكل الإداري المنتمي اليه: " + safeGetValue(data.getWorkplace()));
         addRightAlignedParagraph(document, "*الرتبة: " + safeGetValue(data.getJobTitle()));
         addRightAlignedParagraph(document, "*الوضعية المهنية: " + safeGetValue(data.getEmploymentStatus(), "مباشر"));

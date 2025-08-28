@@ -90,6 +90,7 @@ public class Cession {
     private String supplierAddress;
     private String supplierBankAccount;
     private String itemDescription;
+    private String personalAddress;
     private String amountInWords;
     private String loanDuration;
     private String firstDeductionMonthArabic;

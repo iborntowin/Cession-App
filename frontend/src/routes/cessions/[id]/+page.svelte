@@ -282,7 +282,8 @@
       totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
       monthlyPayment: parseFloat(cession.monthlyPayment) || 0.0,
       loanDuration: '18 شهراً', // Standard duration
-      firstDeductionMonthArabic: cession.startDate ? format(parseDate(cession.startDate), 'MMMM yyyy', { locale: ar }) : ''
+      firstDeductionMonthArabic: cession.startDate ? format(parseDate(cession.startDate), 'MMMM yyyy', { locale: ar }) : '',
+      personalAddress: cession.personalAddress || (cession.clientWorkplace === 'وزارة الدفاع الوطني' ? 'وزارة الدفاع الوطني - تونس' : '')
     };
     
     console.log('PDF Data being sent:', pdfData);
