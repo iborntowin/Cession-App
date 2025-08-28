@@ -2429,14 +2429,61 @@
           </div>
           
           <!-- Filter Pills -->
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-4">
             <!-- Active Only Filter -->
             <button
               on:click={() => { smartFilters.activeOnly = !smartFilters.activeOnly; applyAdvancedFilters(); }}
-              class="flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-colors {smartFilters.activeOnly ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}"
+              class="group relative flex items-center px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 overflow-hidden modern-button creative-button active-only-button {
+                smartFilters.activeOnly
+                  ? 'bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 text-white shadow-2xl shadow-emerald-500/30 border-2 border-emerald-400/50 transform scale-105'
+                  : 'bg-white/90 backdrop-blur-xl text-gray-700 border-2 border-gray-200/60 hover:border-emerald-300/60 hover:shadow-xl hover:shadow-emerald-500/20 transform hover:scale-105'
+              }"
+              style="box-shadow: {smartFilters.activeOnly ? '0 20px 40px rgba(16, 185, 129, 0.3), 0 0 30px rgba(16, 185, 129, 0.2)' : '0 8px 25px rgba(0, 0, 0, 0.1)'}"
             >
-              <div class="w-2 h-2 rounded-full {smartFilters.activeOnly ? 'bg-green-500' : 'bg-gray-400'} {isRTL ? 'ml-1.5' : 'mr-1.5'}"></div>
-              Active Only
+              <!-- Creative Background Effects -->
+              {#if !smartFilters.activeOnly}
+                <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-green-500/0 to-teal-500/0 group-hover:from-emerald-500/10 group-hover:via-green-500/5 group-hover:to-teal-500/10 transition-all duration-500 rounded-2xl"></div>
+                <div class="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+              {/if}
+
+              <!-- Animated Border Glow -->
+              <div class="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur-sm"></div>
+
+              <!-- Content -->
+              <div class="relative flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                <!-- Creative Icon with Animation -->
+                <div class="relative">
+                  <div class="w-3 h-3 rounded-full transition-all duration-300 flex items-center justify-center {
+                    smartFilters.activeOnly
+                      ? 'bg-white/90 shadow-lg scale-110'
+                      : 'bg-emerald-500 group-hover:bg-emerald-600 scale-100 group-hover:scale-110'
+                  }">
+                    {#if smartFilters.activeOnly}
+                      <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                    {/if}
+                  </div>
+                  {#if !smartFilters.activeOnly}
+                    <div class="absolute inset-0 w-3 h-3 bg-emerald-400 rounded-full animate-ping opacity-20"></div>
+                  {/if}
+                </div>
+
+                <span class="font-bold tracking-wide text-sm">Active Only</span>
+
+                <!-- Status Indicator -->
+                {#if smartFilters.activeOnly}
+                  <div class="flex items-center">
+                    <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Creative Hover Effects -->
+              {#if !smartFilters.activeOnly}
+                <div class="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-emerald-300/40 transition-all duration-300"></div>
+              {/if}
+
+              <!-- Shimmer Effect -->
+              <div class="absolute inset-0 -top-1 -bottom-1 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
             </button>
 
             <!-- Monthly Payment Filter -->
@@ -2447,19 +2494,113 @@
                   resetMonthlyPaymentFilter();
                 }
               }}
-              class="flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-colors {showMonthlyPaymentFilter ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}"
+              class="group relative flex items-center px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 overflow-hidden modern-button creative-button monthly-payment-button {
+                showMonthlyPaymentFilter
+                  ? 'bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-500 text-white shadow-2xl shadow-blue-500/30 border-2 border-blue-400/50 transform scale-105'
+                  : 'bg-white/90 backdrop-blur-xl text-gray-700 border-2 border-gray-200/60 hover:border-blue-300/60 hover:shadow-xl hover:shadow-blue-500/20 transform hover:scale-105'
+              }"
+              style="box-shadow: {showMonthlyPaymentFilter ? '0 20px 40px rgba(59, 130, 246, 0.3), 0 0 30px rgba(59, 130, 246, 0.2)' : '0 8px 25px rgba(0, 0, 0, 0.1)'}"
             >
-              <div class="w-2 h-2 rounded-full {showMonthlyPaymentFilter ? 'bg-blue-500' : 'bg-gray-400'} {isRTL ? 'ml-1.5' : 'mr-1.5'}"></div>
-              Monthly Payment Filter
+              <!-- Creative Background Effects -->
+              {#if !showMonthlyPaymentFilter}
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-sky-500/0 to-cyan-500/0 group-hover:from-blue-500/10 group-hover:via-sky-500/5 group-hover:to-cyan-500/10 transition-all duration-500 rounded-2xl"></div>
+                <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+              {/if}
+
+              <!-- Animated Border Glow -->
+              <div class="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-400 via-sky-400 to-cyan-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur-sm"></div>
+
+              <!-- Content -->
+              <div class="relative flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                <!-- Creative Icon with Animation -->
+                <div class="relative">
+                  <div class="w-3 h-3 rounded-full transition-all duration-300 flex items-center justify-center {
+                    showMonthlyPaymentFilter
+                      ? 'bg-white/90 shadow-lg scale-110'
+                      : 'bg-blue-500 group-hover:bg-blue-600 scale-100 group-hover:scale-110'
+                  }">
+                    {#if showMonthlyPaymentFilter}
+                      <div class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                    {/if}
+                  </div>
+                  {#if !showMonthlyPaymentFilter}
+                    <div class="absolute inset-0 w-3 h-3 bg-blue-400 rounded-full animate-ping opacity-20"></div>
+                  {/if}
+                </div>
+
+                <span class="font-bold tracking-wide text-sm">Monthly Payment</span>
+
+                <!-- Status Indicator -->
+                {#if showMonthlyPaymentFilter}
+                  <div class="flex items-center">
+                    <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Creative Hover Effects -->
+              {#if !showMonthlyPaymentFilter}
+                <div class="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-blue-300/40 transition-all duration-300"></div>
+              {/if}
+
+              <!-- Shimmer Effect -->
+              <div class="absolute inset-0 -top-1 -bottom-1 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
             </button>
 
             <!-- Advanced Filters -->
             <button
               on:click={() => { isFiltersVisible = !isFiltersVisible; }}
-              class="flex items-center px-3 py-1.5 rounded-full text-xs font-medium transition-colors {isFiltersVisible ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'}"
+              class="group relative flex items-center px-6 py-3 rounded-2xl font-semibold text-sm transition-all duration-300 overflow-hidden modern-button creative-button advanced-filters-button {
+                isFiltersVisible
+                  ? 'bg-gradient-to-r from-purple-500 via-violet-500 to-indigo-500 text-white shadow-2xl shadow-purple-500/30 border-2 border-purple-400/50 transform scale-105'
+                  : 'bg-white/90 backdrop-blur-xl text-gray-700 border-2 border-gray-200/60 hover:border-purple-300/60 hover:shadow-xl hover:shadow-purple-500/20 transform hover:scale-105'
+              }"
+              style="box-shadow: {isFiltersVisible ? '0 20px 40px rgba(147, 51, 234, 0.3), 0 0 30px rgba(147, 51, 234, 0.2)' : '0 8px 25px rgba(0, 0, 0, 0.1)'}"
             >
-              <div class="w-2 h-2 rounded-full {isFiltersVisible ? 'bg-purple-500' : 'bg-gray-400'} {isRTL ? 'ml-1.5' : 'mr-1.5'}"></div>
-              Filtres Avancés
+              <!-- Creative Background Effects -->
+              {#if !isFiltersVisible}
+                <div class="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-violet-500/0 to-indigo-500/0 group-hover:from-purple-500/10 group-hover:via-violet-500/5 group-hover:to-indigo-500/10 transition-all duration-500 rounded-2xl"></div>
+                <div class="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+              {/if}
+
+              <!-- Animated Border Glow -->
+              <div class="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-400 via-violet-400 to-indigo-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur-sm"></div>
+
+              <!-- Content -->
+              <div class="relative flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                <!-- Creative Icon with Animation -->
+                <div class="relative">
+                  <div class="w-3 h-3 rounded-full transition-all duration-300 flex items-center justify-center {
+                    isFiltersVisible
+                      ? 'bg-white/90 shadow-lg scale-110'
+                      : 'bg-purple-500 group-hover:bg-purple-600 scale-100 group-hover:scale-110'
+                  }">
+                    {#if isFiltersVisible}
+                      <div class="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></div>
+                    {/if}
+                  </div>
+                  {#if !isFiltersVisible}
+                    <div class="absolute inset-0 w-3 h-3 bg-purple-400 rounded-full animate-ping opacity-20"></div>
+                  {/if}
+                </div>
+
+                <span class="font-bold tracking-wide text-sm">Filtres Avancés</span>
+
+                <!-- Status Indicator -->
+                {#if isFiltersVisible}
+                  <div class="flex items-center">
+                    <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Creative Hover Effects -->
+              {#if !isFiltersVisible}
+                <div class="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-purple-300/40 transition-all duration-300"></div>
+              {/if}
+
+              <!-- Shimmer Effect -->
+              <div class="absolute inset-0 -top-1 -bottom-1 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
             </button>
           </div>
         </div>
@@ -3679,5 +3820,275 @@
       height: 32px;
       width: 32px;
     }
+  }
+
+  /* Modern Filter Button Styles */
+  .modern-filter-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modern-filter-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .modern-filter-button:hover::before {
+    left: 100%;
+  }
+
+  .modern-filter-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+  }
+
+  /* Enhanced Glassmorphism for Filter Buttons */
+  .glass-filter-button {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-filter-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* Smooth Scale Transform */
+  .scale-hover {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scale-hover:hover {
+    transform: scale(1.02);
+  }
+
+  .scale-hover:active {
+    transform: scale(0.98);
+  }
+
+  /* Enhanced Shadow Effects */
+  .shadow-glow {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 0 0 20px rgba(99, 102, 241, 0.1);
+  }
+
+  .shadow-glow:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 0 30px rgba(99, 102, 241, 0.2);
+  }
+
+  /* Pulse Animation for Active States */
+  @keyframes modern-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  .modern-pulse {
+    animation: modern-pulse 2s ease-in-out infinite;
+  }
+
+  /* Gradient Text Effect for Better Typography */
+  .gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Creative Button Styles */
+  .creative-button {
+    position: relative;
+    border-radius: 16px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .creative-button::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 18px;
+    padding: 2px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    -webkit-mask-composite: xor;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .creative-button:hover::after {
+    opacity: 1;
+  }
+
+  /* Active Only Button Specific Styles */
+  .active-only-button {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.8));
+  }
+
+  .active-only-button:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(20, 184, 166, 0.1));
+  }
+
+  /* Monthly Payment Button Specific Styles */
+  .monthly-payment-button {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.8));
+  }
+
+  .monthly-payment-button:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(56, 189, 248, 0.1));
+  }
+
+  /* Advanced Filters Button Specific Styles */
+  .advanced-filters-button {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.8));
+  }
+
+  .advanced-filters-button:hover {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.1), rgba(139, 92, 246, 0.1));
+  }
+
+  /* Modern Button Base Class */
+  .modern-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .modern-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+  }
+
+  .modern-button:hover::before {
+    left: 100%;
+  }
+
+  .modern-button > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Enhanced Active State Glow */
+  .modern-button.active-glow {
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.4), 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Button Press Effect */
+  .modern-button:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+
+  /* Creative Hover Glow Effects */
+  @keyframes creative-glow {
+    0%, 100% {
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1), 0 0 20px rgba(16, 185, 129, 0.1);
+    }
+    50% {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 0 30px rgba(16, 185, 129, 0.2);
+    }
+  }
+
+  .creative-button:hover {
+    animation: creative-glow 2s ease-in-out infinite;
+  }
+
+  /* Enhanced Focus States for Accessibility */
+  .modern-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.2);
+  }
+
+  /* Loading State Animation */
+  @keyframes button-loading {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  .modern-button.loading {
+    animation: button-loading 1.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Ripple Effect for Button Clicks */
+  .modern-button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+    z-index: 0;
+  }
+
+  .modern-button:active::after {
+    width: 300px;
+    height: 300px;
+  }
+
+  /* Enhanced Typography for Buttons */
+  .modern-button span {
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Icon Animation Enhancements */
+  .modern-button .icon-container {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modern-button:hover .icon-container {
+    transform: rotate(12deg) scale(1.1);
+  }
+
+  /* Gradient Border Effect */
+  .modern-button.gradient-border {
+    position: relative;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.8));
+    border: 2px solid transparent;
+  }
+
+  .modern-button.gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    -webkit-mask-composite: xor;
+    z-index: -1;
   }
 </style>

@@ -93,8 +93,19 @@
     sortBy: 'fullName',
     sortOrder: 'asc',
     selectedWorkplace: null, // Single workplace selection
-    selectedJobs: []
+    selectedJobs: [],
+    activeOnly: false,
+    hasCessions: false,
+    searchQuery: ''
   };
+
+  // Reactive statement for active filters count
+  $: activeFiltersCount = (filters.activeOnly ? 1 : 0) + (filters.hasCessions ? 1 : 0) + (filters.searchQuery ? 1 : 0);
+
+  // Sync searchQuery with filters.searchQuery
+  $: if (searchQuery !== filters.searchQuery) {
+    filters.searchQuery = searchQuery;
+  }
 
   // Cleanup function
   function cleanup() {
@@ -247,7 +258,8 @@
       
       // Check if we have any search terms
       const hasQuery = searchQuery || searchCIN || searchWorkerNumber || searchClientNumber || 
-                      filters.selectedWorkplace || filters.selectedJobs.length > 0;
+                      filters.selectedWorkplace || filters.selectedJobs.length > 0 ||
+                      filters.activeOnly || filters.hasCessions;
       hasSearchQuery = hasQuery;
       
       // Early return for no filters
@@ -294,6 +306,16 @@
 
           // Job filter
           if (filters.selectedJobs.length > 0 && !filters.selectedJobs.includes(client.jobId)) {
+            return false;
+          }
+
+          // Active only filter
+          if (filters.activeOnly && !hasActiveCessions(client.id)) {
+            return false;
+          }
+
+          // Has cessions filter
+          if (filters.hasCessions && (!cessionsByClient[client.id?.toString()] || cessionsByClient[client.id?.toString()].length === 0)) {
             return false;
           }
 
@@ -396,6 +418,20 @@
     }
   }
 
+  // New filter toggle functions
+  function toggleFilter(filterType) {
+    if (filterType === 'activeOnly') {
+      filters.activeOnly = !filters.activeOnly;
+    } else if (filterType === 'hasCessions') {
+      filters.hasCessions = !filters.hasCessions;
+    }
+    performSearch();
+  }
+
+  function toggleAdvancedSearch() {
+    isSearchVisible = !isSearchVisible;
+  }
+
   // FIXED: Clear all filters function
   function clearAllFilters() {
     cleanup(); // Clear any pending searches
@@ -406,6 +442,9 @@
     searchClientNumber = '';
     filters.selectedWorkplace = null;
     filters.selectedJobs = [];
+    filters.activeOnly = false;
+    filters.hasCessions = false;
+    filters.searchQuery = '';
     hasSearchQuery = false;
     
     // Immediate update without debounce
@@ -1123,26 +1162,70 @@
               <p class="text-sm text-gray-500 font-medium">{$t('clients.subtitle')}</p>
             </div>
           </div>
-        </div>
-        <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-          <!-- Quick Stats -->
-          <div class="hidden md:flex items-center space-x-4 px-4 py-2 bg-white/80 rounded-xl backdrop-blur-sm shadow-sm" class:space-x-reverse={isRTL}>
-            <div class="text-center">
-              <div class="text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">{clients.length}</div>
-              <div class="text-xs text-gray-500">Total</div>
+
+          <!-- Real-time Stats Pills -->
+          <div class="hidden lg:flex items-center space-x-3 ml-8" class:space-x-reverse={isRTL}>
+            <div class="flex items-center px-3 py-1.5 bg-purple-100 rounded-full">
+              <div class="w-2 h-2 bg-purple-500 rounded-full {isRTL ? 'ml-2' : 'mr-2'} animate-pulse"></div>
+              <span class="text-xs font-semibold text-purple-800">{clients.length} {$t('clients.stats.total')}</span>
             </div>
-            <div class="w-px h-8 bg-gray-300"></div>
-            <div class="text-center">
-              <div class="text-lg font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">{filteredClients.length}</div>
-              <div class="text-xs text-gray-500">Filtered</div>
+            <div class="flex items-center px-3 py-1.5 bg-green-100 rounded-full">
+              <div class="w-2 h-2 bg-green-500 rounded-full {isRTL ? 'ml-2' : 'mr-2'}"></div>
+              <span class="text-xs font-semibold text-green-800">{analytics.activeClients} {$t('clients.stats.active')}</span>
+            </div>
+            <div class="flex items-center px-3 py-1.5 bg-blue-100 rounded-full">
+              <div class="w-2 h-2 bg-blue-500 rounded-full {isRTL ? 'ml-2' : 'mr-2'}"></div>
+              <span class="text-xs font-semibold text-blue-800">{analytics.newClientsThisMonth} {$t('clients.stats.new')}</span>
             </div>
           </div>
-          <!-- Add Client Button -->
+        </div>
+
+        <!-- Action Center -->
+        <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+          <!-- View Mode Toggle -->
+          <div class="flex bg-gray-100 rounded-xl p-1">
+            <button
+              on:click={() => viewMode = 'grid'}
+              class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 {viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+              </svg>
+            </button>
+            <button
+              on:click={() => viewMode = 'list'}
+              class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 {viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+              </svg>
+            </button>
+            <button
+              on:click={() => viewMode = 'analytics'}
+              class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 {viewMode === 'analytics' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Quick Actions -->
+          <button
+            on:click={toggleSearch}
+            class="flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-200 font-medium text-gray-700"
+          >
+            <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            </svg>
+            {$t('clients.filters.title')}
+          </button>
+
           <a
             href="/clients/new"
             class="flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
             </svg>
             {$t('clients.new')}
@@ -1152,74 +1235,60 @@
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="max-w-7xl mx-auto px-6 py-8">
-    <!-- Enhanced Search and Filters -->
-    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 mb-8">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <!-- Search Bar -->
-        <div class="flex-1 max-w-md">
-          <div class="relative">
-            <svg class="absolute {isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
-            <input
-              type="text"
-              bind:value={searchQuery}
-              on:input={handleSearchInput}
-              placeholder={$t('clients.search.name_placeholder')}
-              class="w-full {isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-            />
-            {#if isSearching}
-              <div class="absolute {isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2">
-                <div class="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            {:else if hasSearchQuery && filteredClients.length > 0}
-              <div class="absolute {isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2">
-                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-              </div>
-            {/if}
+  <!-- Search and Filters Section -->
+  <div class="bg-white/50 backdrop-blur-sm border-b border-white/20">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex flex-col space-y-4">
+        <!-- Active Filters Display -->
+        {#if activeFiltersCount > 0}
+          <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
+            <span class="text-sm font-medium text-gray-600">{$t('clients.filters.active')}:</span>
+            <div class="flex flex-wrap gap-2">
+              {#if filters.activeOnly}
+                <div class="flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                  <span>{$t('clients.filters.activeOnly')}</span>
+                  <button on:click={() => toggleFilter('activeOnly')} class="ml-2 hover:bg-purple-200 rounded-full p-0.5">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              {/if}
+              {#if filters.hasCessions}
+                <div class="flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                  <span>{$t('clients.filters.hasCessions')}</span>
+                  <button on:click={() => toggleFilter('hasCessions')} class="ml-2 hover:bg-blue-200 rounded-full p-0.5">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              {/if}
+              {#if filters.searchQuery}
+                <div class="flex items-center px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
+                  <span>"{filters.searchQuery}"</span>
+                  <button on:click={() => { searchQuery = ''; filters.searchQuery = ''; }} class="ml-2 hover:bg-gray-200 rounded-full p-0.5">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </div>
+              {/if}
+            </div>
+            <button
+              on:click={clearAllFilters}
+              class="text-sm text-gray-500 hover:text-gray-700 font-medium underline"
+            >
+              {$t('clients.filters.clearAll')}
+            </button>
           </div>
-        </div>
-        <!-- View Toggle and Filters -->
-        <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-          <!-- Advanced Search Toggle -->
-          <button
-            on:click={toggleSearch}
-            class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2 shadow-sm {isSearchVisible ? 'bg-purple-50 border-purple-200 text-purple-700' : ''}" class:space-x-reverse={isRTL}
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"/>
-            </svg>
-            <span>Filters</span>
-          </button>
-          <!-- View Mode Toggle -->
-          <button
-            on:click={toggleViewMode}
-            class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors flex items-center space-x-2 shadow-sm" class:space-x-reverse={isRTL}
-          >
-            {#if viewMode === 'grid'}
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-              </svg>
-              <span>List</span>
-            {:else if viewMode === 'list'}
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-              </svg>
-              <span>Analytics</span>
-            {:else}
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-              </svg>
-              <span>Grid</span>
-            {/if}
-          </button>
-        </div>
+        {/if}
       </div>
     </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-6 py-8">
 
     <!-- Advanced Search Panel -->
     {#if isSearchVisible}
@@ -1300,7 +1369,7 @@
             </label>
             <div class="relative">
               <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
               </svg>
               <input
                 type="text"
@@ -1522,7 +1591,7 @@
             {:else}
               <button
                 on:click={clearAllFilters}
-                class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+                class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium"
               >
                 Clear Search Filters
               </button>
@@ -2210,7 +2279,7 @@
                   <!-- Client Avatar and Header -->
                   <div class="flex items-start justify-between mb-4">
                     <div class="flex items-center">
-                      <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                      <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
                         {client.fullName ? client.fullName.charAt(0).toUpperCase() : 'C'}
                       </div>
                       <div class="ml-3">
@@ -2242,7 +2311,7 @@
                     </div>
                     <div class="flex items-center text-sm text-gray-600">
                       <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-9 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                       </svg>
                       <span class="font-medium">Workplace:</span>
                       <span class="ml-1 truncate">{client.workplaceName || 'N/A'}</span>
@@ -2331,209 +2400,209 @@
       {/if}
     </div>
   </div>
-</div>
 
-<!-- Client Details Modal -->
-{#if isClientDetailsVisible && selectedClient}
-  <div 
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" 
-    transition:fade={{ duration: 200 }}
-    on:click|self={(e) => {
-      e.preventDefault();
-      closeClientDetails();
-    }}
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="client-modal-title"
-  >
+  <!-- Client Details Modal -->
+  {#if isClientDetailsVisible && selectedClient}
     <div 
-      class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" 
-      transition:scale={{ duration: 300 }}
-      on:click|stopPropagation
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" 
+      transition:fade={{ duration: 200 }}
+      on:click|self={(e) => {
+        e.preventDefault();
+        closeClientDetails();
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="client-modal-title"
     >
-      <div class="p-6 border-b border-gray-200">
-        <div class="flex items-center justify-between">
-          <h2 id="client-modal-title" class="text-2xl font-bold text-gray-900">Client Details</h2>
-          <button
-            on:click|stopPropagation={(e) => {
-              e.preventDefault();
-              closeClientDetails();
-            }}
-            class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
-            aria-label="Close modal"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
+      <div 
+        class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" 
+        transition:scale={{ duration: 300 }}
+        on:click|stopPropagation
+      >
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h2 id="client-modal-title" class="text-2xl font-bold text-gray-900">Client Details</h2>
+            <button
+              on:click|stopPropagation={(e) => {
+                e.preventDefault();
+                closeClientDetails();
+              }}
+              class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+              aria-label="Close modal"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
-      <div class="p-6">
-        <div class="space-y-6">
-          <!-- Client Info -->
-          <div class="flex items-center space-x-4">
-            <div class="w-16 h-16 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-              {selectedClient.fullName ? selectedClient.fullName.charAt(0).toUpperCase() : 'C'}
-            </div>
-            <div>
-              <h3 class="text-xl font-semibold text-gray-900">{selectedClient.fullName}</h3>
-              <p class="text-gray-600">{formatClientNumber(selectedClient.clientNumber)}</p>
-            </div>
-          </div>
-          
-          <!-- Details Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">CIN</label>
-                <p class="text-gray-900">{selectedClient.cin || 'N/A'}</p>
+        <div class="p-6">
+          <div class="space-y-6">
+            <!-- Client Info -->
+            <div class="flex items-center space-x-4">
+              <div class="w-16 h-16 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                {selectedClient.fullName ? selectedClient.fullName.charAt(0).toUpperCase() : 'C'}
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Worker Number</label>
-                <p class="text-gray-900">{selectedClient.workerNumber || 'N/A'}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <p class="text-gray-900">{selectedClient.phone || 'N/A'}</p>
+                <h3 class="text-xl font-semibold text-gray-900">{selectedClient.fullName}</h3>
+                <p class="text-gray-600">{formatClientNumber(selectedClient.clientNumber)}</p>
               </div>
             </div>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <p class="text-gray-900">{selectedClient.email || 'N/A'}</p>
+            
+            <!-- Details Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">CIN</label>
+                  <p class="text-gray-900">{selectedClient.cin || 'N/A'}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Worker Number</label>
+                  <p class="text-gray-900">{selectedClient.workerNumber || 'N/A'}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <p class="text-gray-900">{selectedClient.phone || 'N/A'}</p>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <p class="text-gray-900">{selectedClient.address || 'N/A'}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Workplace</label>
-                <p class="text-gray-900">{workplaceDetails?.name || selectedClient.workplaceName || 'N/A'}</p>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <p class="text-gray-900">{selectedClient.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <p class="text-gray-900">{selectedClient.address || 'N/A'}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Workplace</label>
+                  <p class="text-gray-900">{workplaceDetails?.name || selectedClient.workplaceName || 'N/A'}</p>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <!-- Actions -->
-          <div class="flex space-x-4 pt-6 border-t border-gray-200">
-            <button
-              on:click|stopPropagation={async (e) => {
-                e.preventDefault();
-                await viewFullDetails(selectedClient.id);
-              }}
-              class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!selectedClient?.id}
-            >
-              View Full Details
-            </button>
-            <button
-              on:click|stopPropagation={async (e) => {
-                e.preventDefault();
-                await createCession(selectedClient.id);
-              }}
-              class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!selectedClient?.id}
-            >
-              Create Cession
-            </button>
+            
+            <!-- Actions -->
+            <div class="flex space-x-4 pt-6 border-t border-gray-200">
+              <button
+                on:click|stopPropagation={async (e) => {
+                  e.preventDefault();
+                  await viewFullDetails(selectedClient.id);
+                }}
+                class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!selectedClient?.id}
+              >
+                View Full Details
+              </button>
+              <button
+                on:click|stopPropagation={async (e) => {
+                  e.preventDefault();
+                  await createCession(selectedClient.id);
+                }}
+                class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!selectedClient?.id}
+              >
+                Create Cession
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-{/if}
+  {/if}
 
-<style>
-  /* Custom Scrollbar for Futuristic Filters */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #8b5cf6, #6366f1);
-    border-radius: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
-  }
-
-  /* Firefox */
-  .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #8b5cf6 rgba(255, 255, 255, 0.1);
-  }
-
-  /* Enhanced Backdrop Blur Support */
-  @supports (backdrop-filter: blur(20px)) {
-    .backdrop-blur-xl {
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+  <style>
+    /* Custom Scrollbar for Futuristic Filters */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
     }
-  }
 
-  /* Animated Gradient Background */
-  @keyframes gradient-shift {
-    0%, 100% { 
-      background-position: 0% 50%;
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
     }
-    50% { 
-      background-position: 100% 50%;
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
     }
-  }
 
-  /* Floating Animation */
-  @keyframes float {
-    0%, 100% { 
-      transform: translateY(0px);
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
     }
-    50% { 
-      transform: translateY(-10px);
+
+    /* Firefox */
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: #8b5cf6 rgba(255, 255, 255, 0.1);
     }
-  }
 
-  /* Pulse Glow Effect */
-  @keyframes pulse-glow {
-    0%, 100% { 
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    /* Enhanced Backdrop Blur Support */
+    @supports (backdrop-filter: blur(20px)) {
+      .backdrop-blur-xl {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
     }
-    50% { 
-      box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+
+    /* Animated Gradient Background */
+    @keyframes gradient-shift {
+      0%, 100% { 
+        background-position: 0% 50%;
+      }
+      50% { 
+        background-position: 100% 50%;
+      }
     }
-  }
 
-  /* Custom animations for filter containers */
-  .filter-container {
-    animation: float 6s ease-in-out infinite;
-  }
+    /* Floating Animation */
+    @keyframes float {
+      0%, 100% { 
+        transform: translateY(0px);
+      }
+      50% { 
+        transform: translateY(-10px);
+      }
+    }
 
-  .filter-container:nth-child(odd) {
-    animation-delay: -3s;
-  }
+    /* Pulse Glow Effect */
+    @keyframes pulse-glow {
+      0%, 100% { 
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+      }
+      50% { 
+        box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+      }
+    }
 
-  /* Glassmorphism enhancement */
-  .glass-effect {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
+    /* Custom animations for filter containers */
+    .filter-container {
+      animation: float 6s ease-in-out infinite;
+    }
 
-  /* Interactive hover effects */
-  .interactive-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  }
+    .filter-container:nth-child(odd) {
+      animation-delay: -3s;
+    }
 
-  /* Smooth transitions for all interactive elements */
-  * {
-    transition-property: transform, box-shadow, background-color, border-color;
-    transition-duration: 0.3s;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  }
-</style>
+    /* Glassmorphism enhancement */
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Interactive hover effects */
+    .interactive-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Smooth transitions for all interactive elements */
+    * {
+      transition-property: transform, box-shadow, background-color, border-color;
+      transition-duration: 0.3s;
+      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</div>
