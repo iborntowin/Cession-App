@@ -183,11 +183,12 @@ export const clientsApi = {
     }
   },
 
-  checkDuplicate: async (cin, workerNumber) => {
+  checkDuplicate: async (cin, workerNumber, phoneNumber) => {
     try {
       const params = new URLSearchParams();
       if (cin) params.append('cin', cin);
       if (workerNumber) params.append('workerNumber', workerNumber);
+      if (phoneNumber) params.append('phoneNumber', phoneNumber);
 
       const response = await fetch(`${BACKEND_URL}/api/v1/clients/check-duplicate?${params.toString()}`, {
         headers: getAuthHeaders()

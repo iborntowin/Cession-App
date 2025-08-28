@@ -45,10 +45,12 @@
   // Reactive status calculations
   $: cinStatus = getCinStatusValue(cinLength, cinDuplicateCheck);
   $: workerNumberStatus = getWorkerNumberStatusValue(workerNumberLength, workerNumberDuplicateCheck);
+  $: phoneNumberStatus = getPhoneNumberStatusValue(phoneNumberLength, phoneNumberDuplicateCheck);
   
   // Reactive status messages
   $: cinStatusMessage = getCinStatusMessage(cinStatus, cinLength, cinDuplicateCheck);
   $: workerNumberStatusMessage = getWorkerNumberStatusMessage(workerNumberStatus, workerNumberLength, workerNumberDuplicateCheck);
+  $: phoneNumberStatusMessage = getPhoneNumberStatusMessage(phoneNumberStatus, phoneNumberLength, phoneNumberDuplicateCheck);
 
   // Functions to calculate status values
   function getCinStatusValue(length, duplicateCheck) {
@@ -85,9 +87,30 @@
     return 'empty';
   }
 
+  function getPhoneNumberStatusValue(length, duplicateCheck) {
+    if (length === 0) {
+      return 'empty';
+    } else if (length < 8) {
+      return 'invalid';
+    } else if (length === 8) {
+      if (duplicateCheck.checking) {
+        return 'checking';
+      } else if (duplicateCheck.exists) {
+        return 'duplicate';
+      } else {
+        return 'valid';
+      }
+    }
+    return 'empty';
+  }
+
   let phoneNumberLength = 0;
   let phoneNumberStatus = 'empty';
   let phoneNumberInput = '';
+  let phoneNumberDuplicateCheck = { exists: false, checking: false, clientId: null };
+
+  // Debounce timer for phone number duplicate checking
+  let phoneNumberDebounceTimer = null;
 
   onMount(async () => {
     try {
@@ -235,6 +258,30 @@
     }, 500); // 500ms debounce
   }
 
+  // Debounced function to check Phone Number duplicates
+  async function checkPhoneNumberDuplicate(phoneNumber) {
+    if (phoneNumberDebounceTimer) clearTimeout(phoneNumberDebounceTimer);
+
+    phoneNumberDebounceTimer = setTimeout(async () => {
+      phoneNumberDuplicateCheck = { exists: false, checking: true, clientId: null };
+      try {
+        const result = await clientsApi.checkDuplicate(null, null, phoneNumber);
+        if (result.success) {
+          phoneNumberDuplicateCheck = {
+            exists: result.data.phoneNumberExists,
+            checking: false,
+            clientId: result.data.phoneNumberClientId
+          };
+        } else {
+          phoneNumberDuplicateCheck = { exists: false, checking: false, clientId: null };
+        }
+      } catch (error) {
+        console.error('Error checking Phone Number duplicate:', error);
+        phoneNumberDuplicateCheck = { exists: false, checking: false, clientId: null };
+      }
+    }, 500); // 500ms debounce
+  }
+
   // Get color for the background track of the CIN bar - ALWAYS GRAY
   function getCinBarTrackColor() {
     return 'bg-gray-200';
@@ -281,13 +328,15 @@
       clientId = cinDuplicateCheck.clientId;
     } else if (type === 'workerNumber' && workerNumberDuplicateCheck.clientId) {
       clientId = workerNumberDuplicateCheck.clientId;
+    } else if (type === 'phoneNumber' && phoneNumberDuplicateCheck.clientId) {
+      clientId = phoneNumberDuplicateCheck.clientId;
     }
     
     if (clientId) {
       goto(`/clients/${clientId}`);
     } else {
       // Fallback to search if no client ID is available
-      const searchValue = type === 'cin' ? cinInput : workerNumberInput;
+      const searchValue = type === 'cin' ? cinInput : type === 'workerNumber' ? workerNumberInput : phoneNumberInput;
       goto(`/clients?search=${searchValue}`);
     }
   }
@@ -318,8 +367,13 @@
     const numValue = parseInt(phoneNumberInput);
     formData.phoneNumber = isNaN(numValue) ? '' : value; // Store as string
 
+    // Reset duplicate check when input changes
+    phoneNumberDuplicateCheck = { exists: false, checking: false };
+
+    // Determine status based on length
     if (phoneNumberLength === 8) {
-      phoneNumberStatus = 'valid';
+      // Check for duplicates if phone number is complete
+      checkPhoneNumberDuplicate(value);
     } else if (phoneNumberLength > 0) {
       phoneNumberStatus = 'invalid';
     } else {
@@ -329,23 +383,30 @@
 
   // Get color for the filling part of the Phone Number bar
   function getPhoneNumberBarFillColor() {
+    if (phoneNumberStatus === 'duplicate') return 'bg-red-500';
     if (phoneNumberStatus === 'valid') return 'bg-green-500';
+    if (phoneNumberStatus === 'checking') return 'bg-blue-500';
     if (phoneNumberStatus === 'invalid') return 'bg-yellow-500';
     return 'bg-gray-400';
   }
 
   // Get text color status for Phone Number
   function getPhoneNumberTextColor() {
+    if (phoneNumberStatus === 'duplicate') return 'text-red-600';
     if (phoneNumberStatus === 'valid') return 'text-green-600';
+    if (phoneNumberStatus === 'checking') return 'text-blue-600';
     if (phoneNumberStatus === 'invalid') return 'text-yellow-600';
     return 'text-gray-500';
   }
 
   // Get status message for Phone Number
-  function getPhoneNumberStatusMessage() {
-    switch (phoneNumberStatus) {
+  function getPhoneNumberStatusMessage(status, length, duplicateCheck) {
+    if (duplicateCheck.checking) return 'Checking if this phone number already exists...';
+    switch (status) {
+      case 'duplicate':
+        return '❌ This phone number already exists! Please use a different number.';
       case 'valid':
-        return '✅ Great! This phone number is valid.';
+        return '✅ Great! This phone number is valid and available.';
       case 'invalid':
         return phoneNumberLength < 8 ? `⚠️ Please enter ${8 - phoneNumberLength} more digit${8 - phoneNumberLength > 1 ? 's' : ''} (${phoneNumberLength}/8)` : 'Invalid phone number';
       default:
@@ -403,10 +464,16 @@
         return;
       }
 
-      // Validate worker number if provided - must be exactly 10 digits
-      if (!workerNumberInput || workerNumberInput.length !== 10) {
-        showAlert('Worker number must be exactly 10 digits', 'error');
-        return;
+      // Validate phone number if provided - must be exactly 8 digits
+      if (phoneNumberInput && phoneNumberInput.length > 0) {
+        if (phoneNumberInput.length !== 8) {
+          showAlert('Phone number must be exactly 8 digits', 'error');
+          return;
+        }
+        if (phoneNumberStatus === 'duplicate') {
+          showAlert('This phone number already exists. Please use a different number or leave it empty.', 'error');
+          return;
+        }
       }
 
       if (!selectedWorkplaceId) {
@@ -724,13 +791,30 @@
           </div>
           <div class="mt-2 h-2 w-full rounded-full bg-gray-200 relative overflow-hidden">
             <div
-              class={`absolute left-0 top-0 h-full ${getPhoneNumberBarFillColor()} transition-all duration-300 ease-out`}
-              style={`width: ${(phoneNumberLength / 8) * 100}%`}
+              class="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
+              class:bg-red-500={phoneNumberStatus === 'duplicate'}
+              class:bg-green-500={phoneNumberStatus === 'valid'}
+              class:bg-blue-500={phoneNumberStatus === 'checking'}
+              class:bg-yellow-500={phoneNumberStatus === 'invalid'}
+              class:bg-gray-400={phoneNumberStatus === 'empty'}
+              style="width: {(phoneNumberLength / 8) * 100}%"
             ></div>
           </div>
-          <p class={`mt-2 text-sm ${getPhoneNumberTextColor()}`}>
-            {getPhoneNumberStatusMessage()}
-          </p>
+          <div class={`mt-2 text-sm ${getPhoneNumberTextColor()}`}>
+            <p>{phoneNumberStatusMessage}</p>
+            {#if phoneNumberStatus === 'duplicate'}
+              <button
+                type="button"
+                on:click={() => viewDuplicateClient('phoneNumber')}
+                class="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                </svg>
+                View Profile
+              </button>
+            {/if}
+          </div>
         </div>
 
         <!-- File Uploads -->
@@ -825,7 +909,7 @@
         <div class="pt-6">
           <button
             type="submit"
-            disabled={isSaving || cinStatus !== 'valid' || workerNumberStatus !== 'valid' || !formData.fullName}
+            disabled={isSaving || cinStatus !== 'valid' || workerNumberStatus !== 'valid' || (phoneNumberLength > 0 && phoneNumberStatus === 'invalid') || (phoneNumberLength > 0 && phoneNumberStatus === 'checking') || !formData.fullName}
             class="w-full flex justify-center items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {#if isSaving}
