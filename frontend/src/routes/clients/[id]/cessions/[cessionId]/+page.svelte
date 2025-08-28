@@ -176,6 +176,7 @@
 
   function numberToArabicWords(number) {
     const digits = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
+    const digitsDual = ['', 'ألفان', 'ألفان', 'ثلاثة آلاف', 'أربعة آلاف', 'خمسة آلاف', 'ستة آلاف', 'سبعة آلاف', 'ثمانية آلاف', 'تسعة آلاف'];
     const teens = ['عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
     const tens = ['', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
     const hundreds = ['', 'مائة', 'مئتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
@@ -193,7 +194,8 @@
         
         // Handle hundreds
         if (group >= 100) {
-          groupWords += hundreds[Math.floor(group / 100)];
+          let hundredsValue = Math.floor(group / 100);
+          groupWords += hundreds[hundredsValue];
           group %= 100;
           // Add conjunction if there are remaining tens/units
           if (group > 0) {
@@ -217,7 +219,18 @@
           }
         }
         
-        if (unitIndex > 0) {
+        // Handle thousands with special dual forms
+        if (unitIndex === 1) { // Thousands
+          if (group === 1) {
+            groupWords = 'ألف';
+          } else if (group === 2) {
+            groupWords = 'ألفان';
+          } else if (group >= 3 && group <= 10) {
+            groupWords = digitsDual[group];
+          } else {
+            groupWords += ' ' + units[unitIndex];
+          }
+        } else if (unitIndex > 0) {
           groupWords += ' ' + units[unitIndex];
         }
         
