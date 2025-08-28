@@ -533,29 +533,74 @@
       "download_failed": "Échec du téléchargement du document"
     },
     "create": {
-      "title": "Créer une cession",
-      "subtitle": "Remplissez les informations pour créer une nouvelle cession.",
-      "select_client": "Sélectionner un client",
-      "selected_client": "Client sélectionné",
+      "title": "Créer une Nouvelle Cession",
+      "subtitle": "Sélectionnez un client et saisissez les détails de la cession ci-dessous",
+      "select_client": "Sélectionner un Client",
+      "search_client": "Rechercher des clients...",
+      "client_details": "Détails du Client",
+      "cession_details": "Détails de la Cession",
+      "selected_client": "Client Sélectionné",
       "name": "Nom",
-      "cin": "CIN",
-      "client_number": "Numéro du client",
+      "cin": "Numéro d'Identité",
+      "client_number": "Numéro de Client",
       "job": "Emploi",
-      "workplace": "Lieu de travail",
+      "workplace": "Lieu de Travail",
       "address": "Adresse",
-      "cession_details": "Détails de la cession",
-      "monthly_payment": "Paiement Mensuel",
-      "bank_agency": "Banque/Agence",
       "summary": "Résumé",
-      "total_amount": "Montant total",
+      "monthly_payment": "Paiement Mensuel",
+      "bank_agency": "Banque / Agence",
+      "total_amount": "Montant Total",
       "preview_pdf": "Aperçu PDF",
-      "create_cession": "Créer la cession",
-      "start_date_hint": "Laissez la date d'aujourd'hui ou choisissez une autre date.",
-      "validation": {
-        "required_fields": "Veuillez remplir tous les champs obligatoires.",
-        "success": "Cession créée avec succès !"
-      },
-      "search_client": "Rechercher un client"
+      "create_cession": "Créer la Cession",
+      "change_client": "Changer de Client",
+      "select_client_description": "Rechercher et sélectionner un client pour créer une cession",
+      "enter_financial_details": "Saisir les détails financiers de cette cession",
+      "review_details": "Vérifier tous les détails avant de créer la cession",
+      "no_clients_found": "Aucun client trouvé",
+      "no_clients_description": "Aucun client ne correspond à vos critères de recherche.",
+      "try_searching": "Essayez de rechercher par nom complet, CIN ou numéro d'employé.",
+      "search_placeholder": "Veuillez saisir au moins 2 caractères pour rechercher.",
+      "search_for_client": "Rechercher un client",
+      "search_description": "Commencez à taper pour rechercher par nom, CIN ou numéro d'employé",
+      "selected_client_label": "Client Sélectionné",
+      "calculation_summary": "Résumé du Calcul",
+      "payment_period": "Période de Paiement",
+      "leave_today_date": "Laisser la date d'aujourd'hui ou en choisir une autre",
+      "client_information": "Informations du Client",
+      "cession_summary": "Détails de la Cession",
+      "pdf_item_description": "Description de l'Article pour le PDF",
+      "optional": "Optionnel",
+      "item_description_placeholder": "Écrivez la description de l'article qui apparaîtra dans le document PDF final... (ex. : marchandises diverses, services de conseil, etc.)",
+      "item_description_note": "Ce texte apparaîtra dans le document PDF",
+      "tip": "Astuce :",
+      "clear_description": "Effacer",
+      "item_description_added": "Description de l'article ajoutée",
+      "pdf_description_help": "Écrivez une description claire et concise des biens ou services. Ce texte apparaîtra dans le document PDF officiel et doit être approprié pour un usage juridique.",
+      "not_specified": "Non spécifié",
+      "refresh": "Actualiser",
+      "bank_agency_label": "Banque/Agence",
+      "start_date": "Date de Début",
+      "not_set": "Non défini",
+      "pdf_generation_success": "Document PDF généré avec succès",
+      "pdf_generation_error": "Erreur lors de la génération du document PDF",
+      "client_data_fetch_error": "Impossible de récupérer les données du client pour la génération du PDF",
+      "client_data_fetch_error_desc": "Erreur lors de la récupération des données du client pour la génération du PDF",
+      "draft_restore_prompt": "Un brouillon sauvegardé a été trouvé. Voulez-vous le restaurer ?",
+      "search_min_chars": "Veuillez saisir au moins 2 caractères pour rechercher.",
+      "no_clients_search": "Aucun client trouvé",
+      "no_clients_search_desc": "Aucun client ne correspond à vos critères de recherche.",
+      "search_by_criteria": "Essayez de rechercher par nom complet, CIN ou numéro d'employé.",
+      "search_clients_title": "Rechercher un client",
+      "search_clients_desc": "Commencez à taper pour rechercher par nom, CIN ou numéro d'employé",
+      "review_submit_title": "Vérifier et Soumettre",
+      "review_submit_desc": "Vérifier tous les détails avant de créer la cession",
+      "search_error": "Échec de la recherche de clients. Veuillez réessayer."
+    },
+    "validation": {
+      "select_client": "Veuillez sélectionner un client",
+      "required_fields": "Veuillez remplir tous les champs obligatoires",
+      "success": "Cession créée avec succès",
+      "error": "Échec de la création de la cession"
     }
   },
   "inventory": {
@@ -788,34 +833,6 @@
     "sell_product": {
       "title": "Vendre un produit",
       "select_product": "Sélectionner un produit",
-      "quantity": "Quantité",
-      "selling_price": "Prix de vente",
-      "submit": "Vendre le produit",
-      "success": "{quantity} unité(s) de {product} vendue(s) avec succès !",
-      "error": "Erreur lors de la vente du produit : {error}"
-    },
-    "validation": {
-      "select_product": "Veuillez sélectionner un produit à vendre.",
-      "invalid_quantity": "Quantité invalide. Veuillez entrer une valeur positive inférieure ou égale au stock actuel.",
-      "invalid_price": "Le prix de vente doit être supérieur ou égal à 0."
-    },
-    "recent_sales": {
-      "title": "Ventes récentes",
-      "no_sales": "Aucune vente trouvée",
-      "columns": {
-        "date": "Date",
-        "product": "Produit",
-        "quantity": "Quantité",
-        "price": "Prix",
-        "profit": "Bénéfice"
-      }
-    },
-    "actions": {
-      "quick_sell": "Vente Rapide"
-    },
-    "sell_product": {
-      "title": "Vendre un produit",
-      "select_product": "Sélectionner un produit",
       "select_product_placeholder": "Sélectionner un produit",
       "quantity": "Quantité",
       "selling_price": "Prix de vente",
@@ -984,52 +1001,6 @@
     "recent_sales": "Ventes récentes",
     "recent_expenses": "Dépenses récentes",
     "month_picker": "Choisir le mois",
-    "stats": {
-      "total_sales": "Ventes totales",
-      "total_profit": "Bénéfice total",
-      "total_expenses": "Dépenses totales",
-      "net_income": "Revenu net",
-      "net_profit": "Bénéfice net",
-      "net_worth": "Valeur nette"
-    },
-    "expenses": {
-      "title": "Dépenses",
-      "add": "Ajouter une dépense",
-      "no_expenses": "Aucune dépense trouvée",
-      "no_data": "Aucune donnée de dépense disponible",
-      "columns": {
-        "date": "Date",
-        "category": "Catégorie",
-        "description": "Description",
-        "amount": "Montant"
-      }
-    },
-    "sales": {
-      "title": "Ventes",
-      "no_sales": "Aucune vente trouvée",
-      "trend": "Tendance des ventes",
-      "columns": {
-        "date": "Date",
-        "product": "Produit",
-        "quantity": "Quantité",
-        "price": "Prix",
-        "profit": "Bénéfice"
-      }
-    },
-    "charts": {
-      "title": "Dépenses par catégorie",
-      "no_data": "Aucune donnée disponible",
-      "expenses_by_category": "Dépenses par catégorie",
-      "sales_trend": "Tendance des ventes",
-      "income_by_category": "Revenus par catégorie",
-      "profit_trend": "Tendance du bénéfice",
-      "download": "Télécharger le rapport",
-      "print": "Imprimer le rapport"
-    },
-    "validation": {
-      "login_required": "Veuillez vous connecter pour accéder à cette page",
-      "load_error": "Erreur de chargement des données financières"
-    },
     "table_headers": {
       "date": "Date",
       "category": "Catégorie",
@@ -1054,51 +1025,6 @@
       "previous": "Précédent",
       "next": "Suivant",
       "page": "Page {current} sur {total}"
-    },
-    
-    "sort": {
-      "date": "Date",
-      "category": "Catégorie",
-      "description": "Description",
-      "amount": "Montant"
-    },
-    "views": {
-      "dashboard": "Tableau de bord",
-      "analytics": "Analyses",
-      "reports": "Rapports",
-      "insights": "Insights"
-    },
-    "actions": {
-      "quick_actions": "Actions rapides",
-      "track_expense": "Suivre une nouvelle dépense",
-      "record_income": "Enregistrer un nouveau revenu",
-      "export_report": "Exporter le rapport",
-      "download_data": "Télécharger les données financières"
-    },
-    "loading": {
-      "title": "Chargement des données financières",
-      "subtitle": "Veuillez patienter pendant que nous collectons les dernières informations"
-    },
-    "analytics": {
-      "vs_last_month": "par rapport au mois dernier",
-      "title": "Analyses Financières",
-      "subtitle": "Insights avancés et métriques de performance",
-      "revenue_trends": "Tendances des Revenus",
-      "expense_analysis": "Analyse des Dépenses",
-      "profit_margins": "Marges Bénéficiaires",
-      "growth_metrics": "Métriques de Croissance",
-      "performance_indicators": "Indicateurs Clés de Performance",
-      "monthly_comparison": "Comparaison Mensuelle",
-      "category_breakdown": "Répartition par Catégorie",
-      "trend_analysis": "Analyse des Tendances",
-      "forecasting": "Prévision des Revenus",
-      "total_sales":"Total Ventes",
-      "total_expenses":"Total expences",
-      "efficiency_metrics": "Métriques d'Efficacité",
-      "cost_analysis": "Analyse des Coûts",
-      "roi_analysis": "Analyse du ROI",
-      "coming_soon": "Bientôt disponible",
-      "description": "Des analyses avancées et des insights prédictifs seront bientôt disponibles pour vous aider à prendre de meilleures décisions financières."
     },
     "reports": {
       "title": "Rapports Financiers",
@@ -1125,87 +1051,7 @@
       "include_details": "Inclure les Détails",
       "coming_soon": "Bientôt disponible",
       "description": "Des rapports détaillés et des options d'exportation seront bientôt disponibles pour vous aider à suivre vos performances financières."
-    },
-    "insights": {
-      "title": "Insights Financiers",
-      "subtitle": "Recommandations et prédictions alimentées par l'IA",
-      "recommendations": "Recommandations Intelligentes",
-      "predictions": "Prédictions Financières",
-      "alerts": "Alertes Financières",
-      "opportunities": "Opportunités de Croissance",
-      "risks": "Analyse des Risques",
-      "optimization": "Optimisation des Coûts",
-      "budget_insights": "Insights Budgétaires",
-      "spending_patterns": "Modèles de Dépenses",
-      "revenue_opportunities": "Opportunités de Revenus",
-      "cost_savings": "Potentiel d'Économies",
-      "market_trends": "Tendances du Marché",
-      "seasonal_analysis": "Analyse Saisonnière",
-      "predictive_analytics": "Analyses Prédictives",
-      "financial_health": "Score de Santé Financière",
-      "cash_flow_forecast": "Prévision de Flux de Trésorerie",
-      "expense_optimization": "Optimisation des Dépenses",
-      "revenue_growth": "Potentiel de Croissance des Revenus",
-      "risk_assessment": "Évaluation des Risques",
-      "investment_suggestions": "Suggestions d'Investissement",
-      "tax_optimization": "Conseils d'Optimisation Fiscale"
-    },
-    "export": {
-      "format": "Format d'exportation",
-      "include_charts": "Inclure les graphiques",
-      "include_details": "Inclure les détails des transactions"
-    },
-    "expense": {
-      "add_title": "Ajouter une nouvelle dépense",
-      "add_subtitle": "Suivez efficacement vos dépenses d'entreprise",
-      "success_title": "Dépense ajoutée avec succès !",
-      "success_message": "Votre dépense a été enregistrée et sera reflétée dans vos rapports financiers.",
-      "step_category": "Catégorie",
-      "step_details": "Détails",
-      "step_review": "Révision",
-      "category": "Catégorie",
-      "search_category": "Rechercher des catégories...",
-      "description": "Description",
-      "description_placeholder": "Entrez la description de la dépense...",
-      "amount": "Montant (TND)",
-      "formatted_amount": "Montant formaté",
-      "date": "Date",
-      "notes": "Notes supplémentaires",
-      "notes_placeholder": "Ajoutez des détails supplémentaires sur cette dépense...",
-      "review_title": "Réviser votre dépense",
-      "adding": "Ajout en cours...",
-      "add_button": "Ajouter la dépense",
-      "success": "Dépense ajoutée avec succès",
-      "error": "Échec de l'ajout de la dépense"
-    },
-    "categories": {
-      "water": "Eau",
-      "electricity": "Électricité",
-      "transport": "Transport",
-      "rent": "Loyer",
-      "supplies": "Fournitures",
-      "maintenance": "Maintenance",
-      "salaries": "Salaires",
-      "insurance": "Assurance",
-      "taxes": "Taxes",
-      "marketing": "Marketing",
-      "other": "Autre"
-    },
-    "validation": {
-      "category_required": "Veuillez sélectionner une catégorie",
-      "description_required": "La description doit contenir au moins 3 caractères",
-      "amount_required": "Veuillez entrer un montant valide supérieur à 0",
-      "date_required": "Veuillez sélectionner une date",
-      "fix_errors": "Veuillez corriger les erreurs avant de soumettre"
-    },
-    "modals": {
-      "add_expense": "Ajouter une dépense"
-    },
-    "error": {
-      "load_data": "Erreur de chargement des données :",
-      "load_summary": "Échec du chargement du résumé financier"
-    },
-    "unknown_product": "Produit inconnu"
+    }
   },
   "payments": {
     "title": "Intelligence des Paiements",
@@ -1474,81 +1320,6 @@
       "per_page": "par page",
       "page_of": "Page {current} sur {total}",
       "results": "résultats"
-    }
-  },
-  "cessions": {
-    "title": "Gestion des Cessions",
-    "subtitle": "Gérer et suivre tous les dossiers de cession",
-    "header": {
-      "total": "Total",
-      "active": "Actif"
-    },
-    "status": {
-      "active": "Actif",
-      "finished": "Terminé",
-      "cancelled": "Annulé", 
-      "pending": "En attente"
-    },
-    "new": "Nouvelle Cession",
-    "search": {
-      "placeholder": "Rechercher des cessions..."
-    },
-    "filters": {
-      "title": "Filtres",
-      "advanced": "Filtres Avancés",
-      "total_amount_slider": "Curseur Montant Total",
-      "total_amount_description": "Faites glisser pour filtrer par montant total du prêt",
-      "min_amount": "Montant Minimum",
-      "max_amount": "Montant Maximum",
-      "range": "Plage",
-      "selected": "Sélectionné",
-      "step": "Étape",
-      "active": "Actif",
-      "range_span": "Étendue de la Plage",
-      "coverage": "Couverture",
-      "steps": "Étapes",
-      "tip": "Astuce",
-      "total_amount_tip": "Cliquez sur les champs de saisie pour saisir des valeurs exactes, ou faites glisser les curseurs. Utilisez les touches fléchées pour des ajustements fins.",
-      "client_name": "Nom du Client",
-      "status": "Statut",
-      "all_status": "Tous les Statuts",
-      "date_range": "Plage de Dates",
-      "clear": "Effacer les Filtres"
-    },
-    "results": {
-      "total_value": "Valeur Totale",
-      "showing_results": "Affichage de {count} résultats"
-    },
-    "details": {
-      "title": "Détails de la Cession",
-      "client_info": "Informations Client",
-      "cession_info": "Informations de Cession",
-      "total_loan": "Prêt Total",
-      "monthly_payment": "Paiement Mensuel",
-      "start_date": "Date de Début",
-      "end_date": "Date de Fin",
-      "bank_agency": "Banque / Agence",
-      "progress_info": "Informations de Progression",
-      "current_progress": "Progression Actuelle",
-      "remaining_balance": "Solde Restant",
-      "months_remaining": "Mois Restants",
-      "expected_payoff": "Remboursement Attendu",
-      "client": "Client",
-      "view_profile": "Voir le Profil",
-      "actions": {
-        "back": "Retour",
-        "preview_document": "Aperçu PDF",
-        "download_document": "Télécharger le Document",
-        "edit": "Modifier la Cession",
-        "delete": "Supprimer la Cession",
-        "view_details": "Voir les Détails"
-      },
-      "status": {
-        "active": "Actif",
-        "finished": "Terminé",
-        "cancelled": "Annulé",
-        "pending": "En attente"
-      }
     }
   },
   "footer": {

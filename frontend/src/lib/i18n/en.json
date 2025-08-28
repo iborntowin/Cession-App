@@ -497,12 +497,48 @@
       "preview_pdf": "Preview PDF",
       "create_cession": "Create Cession",
       "change_client": "Change Client",
-      "validation": {
-        "select_client": "Please select a client first",
-        "required_fields": "Please fill all required fields",
-        "success": "Cession created successfully",
-        "error": "Failed to create cession"
-      }
+      "select_client_description": "Search and select a client to create a cession for",
+      "enter_financial_details": "Enter the financial details for this cession",
+      "review_details": "Review all details before creating the cession",
+      "no_clients_found": "No clients found",
+      "no_clients_description": "No clients match your search criteria.",
+      "try_searching": "Try searching by full name, CIN, or worker number.",
+      "search_placeholder": "Please enter at least 2 characters to search.",
+      "search_for_client": "Search for a client",
+      "search_description": "Start typing to search by name, CIN, or worker number",
+      "selected_client_label": "Selected Client",
+      "calculation_summary": "Calculation Summary",
+      "payment_period": "Payment Period",
+      "leave_today_date": "Leave as today or pick another date",
+      "client_information": "Client Information",
+      "cession_summary": "Cession Details",
+      "pdf_item_description": "Item Description for PDF",
+      "optional": "Optional",
+      "item_description_placeholder": "Write the item description that will appear in the final PDF document... (e.g., various goods, consulting services, etc.)",
+      "item_description_note": "This text will appear in the PDF document",
+      "tip": "Tip:",
+      "clear_description": "Clear",
+      "item_description_added": "Item description added",
+      "pdf_description_help": "Write a clear and concise description of the goods or service. This text will appear in the official PDF document and should be appropriate for legal use.",
+      "not_specified": "Not specified",
+      "refresh": "Refresh",
+      "bank_agency_label": "Bank/Agency",
+      "start_date": "Start Date",
+      "not_set": "Not set",
+      "pdf_generation_success": "PDF document generated successfully",
+      "pdf_generation_error": "Error generating PDF document",
+      "client_data_fetch_error": "Could not fetch client data for PDF generation",
+      "client_data_fetch_error_desc": "Error fetching client data for PDF generation",
+      "draft_restore_prompt": "Found a saved draft. Would you like to restore it?",
+      "search_min_chars": "Please enter at least 2 characters to search.",
+      "no_clients_search": "No clients found",
+      "no_clients_search_desc": "No clients match your search criteria.",
+      "search_by_criteria": "Try searching by full name, CIN, or worker number.",
+      "search_clients_title": "Search for a client",
+      "search_clients_desc": "Start typing to search by name, CIN, or worker number",
+      "review_submit_title": "Review & Submit",
+      "review_submit_desc": "Review all details before creating the cession",
+      "search_error": "Failed to search clients. Please try again."
     },
     "errors": {
       "invalid_id": "Invalid cession ID",
@@ -586,6 +622,7 @@
       "reason": "Reason",
       "reason_placeholder": "Enter reason for restocking",
       "submit": "Restock",
+      "cancel": "Cancel",
       "success": "Successfully restocked {quantity} units of {product}",
       "error": "Failed to restock product",
       "invalid_quantity": "Please enter a valid quantity greater than 0",
@@ -598,64 +635,6 @@
       "percentage": "Profit %",
       "margin": "Profit Margin",
       "expected": "Expected Profit"
-    },
-    "edit": {
-      "title": "Edit Product",
-      "success": "Product updated successfully",
-      "error": "Failed to update product",
-      "steps": {
-        "basic_info": "Basic Information",
-        "pricing": "Pricing",
-        "inventory": "Inventory",
-        "details": "Additional Details"
-      },
-      "fields": {
-        "name": "Product Name",
-        "sku": "SKU",
-        "description": "Description",
-        "category": "Category",
-        "select_category": "Select category",
-        "purchase_price": "Purchase Price",
-        "selling_price": "Selling Price",
-        "stock_quantity": "Stock Quantity",
-        "reorder_point": "Reorder Point",
-        "supplier": "Supplier",
-        "supplier_placeholder": "Enter supplier name",
-        "specs": "Specifications",
-        "specs_placeholder": "Enter product specifications",
-        "image_url": "Image URL",
-        "image_url_placeholder": "Enter image URL"
-      },
-      "step_count": "Step {current} of {total}",
-      "previous": "Previous",
-      "next": "Next",
-      "save": "Save Changes",
-      "submit": "Save Product",
-      "validation": {
-        "name_required": "Product name is required",
-        "sku_required": "SKU is required",
-        "category_required": "Category is required",
-        "purchase_price_invalid": "Purchase price must be 0 or greater",
-        "selling_price_invalid": "Selling price must be 0 or greater",
-        "selling_price_less_than_purchase": "Selling price cannot be less than purchase price",
-        "stock_quantity_invalid": "Stock quantity must be 0 or greater",
-        "reorder_point_invalid": "Reorder point must be 0 or greater"
-      }
-    },
-    "restock": {
-      "title": "Restock Product",
-      "quantity": "Restock Quantity",
-      "reason": "Reason",
-      "submit": "Restock",
-      "cancel": "Cancel",
-      "success": "Successfully restocked {quantity} units of {product}",
-      "error": "Failed to restock product",
-      "invalid_quantity": "Please enter a valid restock quantity"
-    },
-    "profit": {
-      "expected": "Expected Profit",
-      "percentage": "Profit %",
-      "margin": "Profit Margin"
     },
     "actions": {
       "restock": "Restock",
@@ -889,189 +868,6 @@
       "download": "Download Report",
       "print": "Print Report"
     },
-    "analytics": {
-      "total_sales": "Total Sales",
-      "total_expenses": "Total Expenses",
-      "transactions": "Transactions",
-      "net_profit": "Net Profit",
-      "this_month": "This Month",
-      "profit_margin": "Profit Margin",
-      "efficiency": "Efficiency",
-      "top_categories": "Top Categories",
-      "category": "Category",
-      "spent": "Spent",
-      "vs_last_month": "vs last month",
-      "no_data": "No data available"
-    },
-    "sales": {
-      "title": "Sales",
-      "total": "sales",
-      "no_data": "No sales data available",
-      "no_sales": "No sales found",
-      "trend": "Sales Trend",
-      "columns": {
-        "date": "Date",
-        "product": "Product",
-        "quantity": "Quantity",
-        "price": "Price",
-        "profit": "Profit"
-      }
-    },
-    "export": {
-      "title": "Export Data",
-      "description": "Choose your preferred export format",
-      "options": {
-        "pdf": "PDF Report",
-        "excel": "Excel Spreadsheet",
-        "csv": "CSV File"
-      },
-      "generate": "Generate Export"
-    },
-    "income": {
-      "add": "Add Income",
-      "form_placeholder": "Income form will be available soon"
-    },
-    "buttons": {
-      "add_expense": "Add Expense",
-      "export_data": "Export Data"
-    },
-    "expenses": {
-      "title": "Expenses",
-      "add": "Add Expense"
-    },
-    "categories": {
-      "water": "Water",
-      "electricity": "Electricity",
-      "transport": "Transport",
-      "rent": "Rent",
-      "supplies": "Supplies",
-      "maintenance": "Maintenance",
-      "salaries": "Salaries",
-      "insurance": "Insurance",
-      "taxes": "Taxes",
-      "marketing": "Marketing",
-      "other": "Other",
-      "WATER": "Water",
-      "ELECTRICITY": "Electricity",
-      "TRANSPORT": "Transport",
-      "RENT": "Rent",
-      "SUPPLIES": "Supplies",
-      "MAINTENANCE": "Maintenance",
-      "SALARIES": "Salaries",
-      "INSURANCE": "Insurance",
-      "TAXES": "Taxes",
-      "MARKETING": "Marketing",
-      "OTHER": "Other"
-    },
-    "month_selector": "Select Month",
-    "recent_sales": "Recent Sales",
-    "recent_expenses": "Recent Expenses",
-    "month_picker": "Select Month",
-    "stats": {
-      "total_sales": "Total Sales",
-      "total_profit": "Total Profit",
-      "total_expenses": "Total Expenses",
-      "net_income": "Net Income",
-      "net_profit": "Net Profit",
-      "net_worth": "Net Worth"
-    },
-    "expenses": {
-      "title": "Expenses",
-      "add": "Add Expense",
-      "no_expenses": "No expenses found",
-      "no_data": "No expense data available",
-      "columns": {
-        "date": "Date",
-        "category": "Category",
-        "description": "Description",
-        "amount": "Amount"
-      }
-    },
-    "charts": {
-      "title": "Expenses by Category",
-      "no_data": "No data available",
-      "expenses_by_category": "Expenses by Category",
-      "sales_trend": "Sales Trend",
-      "income_by_category": "Income by Category",
-      "profit_trend": "Profit Trend",
-      "download": "Download Report",
-      "print": "Print Report"
-    },
-    "validation": {
-      "login_required": "Please login to access this page",
-      "load_error": "Error loading financial data"
-    },
-    "table_headers": {
-      "date": "Date",
-      "category": "Category",
-      "description": "Description",
-      "product": "Product",
-      "quantity": "Quantity",
-      "price": "Price",
-      "profit": "Profit",
-      "amount": "Amount"
-    },
-    "modals": {
-      "expense": {
-        "title": "Add Expense",
-        "submit": "Add Expense"
-      },
-      "income": {
-        "title": "Add Income",
-        "submit": "Add Income"
-      }
-    },
-    "pagination": {
-      "previous": "Previous",
-      "next": "Next",
-      "page": "Page {current} of {total}"
-    },
-    "buttons": {
-      "add_expense": "Add Expense",
-      "add_income": "Add Income"
-    },
-    "sort": {
-      "date": "Date",
-      "category": "Category",
-      "description": "Description",
-      "amount": "Amount"
-    },
-    "views": {
-      "dashboard": "Dashboard",
-      "analytics": "Analytics",
-      "reports": "Reports",
-      "insights": "Insights"
-    },
-    "actions": {
-      "quick_actions": "Quick Actions",
-      "track_expense": "Track new expense",
-      "record_income": "Record new income",
-      "export_report": "Export Report",
-      "download_data": "Download financial data"
-    },
-    "loading": {
-      "title": "Loading Financial Data",
-      "subtitle": "Please wait while we gather the latest information"
-    },
-    "analytics": {
-      "vs_last_month": "vs last month",
-      "title": "Financial Analytics",
-      "subtitle": "Advanced insights and performance metrics",
-      "revenue_trends": "Revenue Trends",
-      "expense_analysis": "Expense Analysis",
-      "profit_margins": "Profit Margins",
-      "growth_metrics": "Growth Metrics",
-      "performance_indicators": "Key Performance Indicators",
-      "monthly_comparison": "Monthly Comparison",
-      "category_breakdown": "Category Breakdown",
-      "trend_analysis": "Trend Analysis",
-      "forecasting": "Revenue Forecasting",
-      "efficiency_metrics": "Efficiency Metrics",
-      "cost_analysis": "Cost Analysis",
-      "roi_analysis": "ROI Analysis",
-      "coming_soon": "Coming Soon",
-      "description": "Advanced analytics and predictive insights will be available soon to help you make better financial decisions."
-    },
     "reports": {
       "title": "Financial Reports",
       "subtitle": "Comprehensive reporting and data export",
@@ -1099,6 +895,14 @@
       "description": "Detailed reports and export options will be available soon to help you track your financial performance."
     },
     "export": {
+      "title": "Export Data",
+      "description": "Choose your preferred export format",
+      "options": {
+        "pdf": "PDF Report",
+        "excel": "Excel Spreadsheet",
+        "csv": "CSV File"
+      },
+      "generate": "Generate Export",
       "format": "Export Format",
       "include_charts": "Include Charts",
       "include_details": "Include Transaction Details"
@@ -1172,10 +976,6 @@
     },
     "modals": {
       "add_expense": "Add Expense"
-    },
-    "error": {
-      "load_data": "Error loading data:",
-      "load_summary": "Failed to load financial summary"
     },
     "unknown_product": "Unknown Product"
   },
@@ -1437,59 +1237,6 @@
       "per_page": "per page",
       "page_of": "Page {current} of {total}",
       "results": "results"
-    }
-  },
-  "cessions": {
-    "title": "Cessions Management",
-    "subtitle": "Manage and track all cession records",
-    "header": {
-      "total": "Total",
-      "active": "Active"
-    },
-    "status": {
-      "active": "Active",
-      "finished": "Finished",
-      "cancelled": "Cancelled", 
-      "pending": "Pending"
-    },
-    "new": "New Cession",
-    "search": {
-      "placeholder": "Search cessions..."
-    },
-    "filters": {
-      "title": "Filters",
-      "advanced": "Advanced Filters",
-      "total_amount_slider": "Total Amount Slider",
-      "total_amount_description": "Drag to filter by total loan amount",
-      "min_amount": "Minimum Amount",
-      "max_amount": "Maximum Amount",
-      "range": "Range",
-      "selected": "Selected",
-      "step": "Step",
-      "active": "Active",
-      "range_span": "Range Span",
-      "coverage": "Coverage",
-      "steps": "Steps",
-      "tip": "Tip",
-      "total_amount_tip": "Click the input fields to type exact values, or drag the sliders. Use arrow keys for fine adjustments.",
-      "client_name": "Client Name",
-      "status": "Status",
-      "all_status": "All Statuses",
-      "date_range": "Date Range",
-      "clear": "Clear Filters"
-    },
-    "results": {
-      "total_value": "Total Value",
-      "showing_results": "Showing {count} results"
-    },
-    "details": {
-      "title": "Cession Details",
-      "client_info": "Client Information",
-      "cession_info": "Cession Information",
-      "total_loan": "Total Loan",
-      "monthly_payment": "Monthly Payment",
-      "start_date": "Start Date",
-      "bank_agency": "Bank / Agency"
     }
   },
   "footer": {

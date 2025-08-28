@@ -166,7 +166,7 @@
         const parsedDraft = JSON.parse(draft);
         if (parsedDraft && parsedDraft.clientId) {
           // Ask user if they want to restore draft
-          if (confirm('Found a saved draft. Would you like to restore it?')) {
+          if (confirm($t('cessions.create.draft_restore_prompt'))) {
             cession = { ...cession, ...parsedDraft };
             // Also restore item description if it exists
             if (parsedDraft.itemDescription) {
@@ -313,7 +313,7 @@
         
       } catch (error) {
         console.error('Search error:', error);
-        showAlert('Failed to search clients. Please try again.', 'error');
+        showAlert($t('cessions.create.search_error'), 'error');
         clients = [];
       } finally {
         isSearching = false;
@@ -404,12 +404,12 @@
   
   async function previewPDF() {
     if (!cession || !cession.clientId) {
-      showAlert('Please select a client first', 'error');
+      showAlert($t('cessions.create.validation.select_client'), 'error');
       return;
     }
     
     if (!cession.monthlyPayment || !cession.bankOrAgency) {
-      showAlert('Please fill in all required fields', 'error');
+      showAlert($t('cessions.create.validation.required_fields'), 'error');
       return;
     }
     
@@ -423,11 +423,11 @@
         console.log('Client data fetched successfully:', clientData);
       } else {
         console.warn('Failed to fetch client data:', clientResult.error);
-        showAlert('Could not fetch client data for PDF generation', 'warning');
+        showAlert($t('cessions.create.client_data_fetch_error'), 'warning');
       }
     } catch (error) {
       console.error('Error fetching client data:', error);
-      showAlert('Error fetching client data for PDF generation', 'warning');
+      showAlert($t('cessions.create.client_data_fetch_error_desc'), 'warning');
     }
     
     const pdfData = {
@@ -465,10 +465,10 @@
     
     try {
       await openPDF(pdfData);
-      showAlert('PDF document generated successfully', 'success');
+      showAlert($t('cessions.create.pdf_generation_success'), 'success');
     } catch (error) {
       console.error('Error in previewPDF:', error);
-      showAlert('Error generating PDF document', 'error');
+      showAlert($t('cessions.create.pdf_generation_error'), 'error');
     }
   }
   
@@ -628,7 +628,7 @@
     <!-- 📊 Progress Bar -->
     <div class="mb-8 bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
       <div class="flex items-center justify-between mb-4" class:flex-row-reverse={isRTL}>
-        <h2 class="text-lg font-semibold text-gray-900">Create New Cession</h2>
+        <h2 class="text-lg font-semibold text-gray-900">{$t('cessions.create.title')}</h2>
         <span class="text-sm text-gray-500">{Math.round(formProgress)}% Complete</span>
       </div>
       
@@ -758,13 +758,13 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0118 12a8 8 0 10-8 8 7.962 7.962 0 01-5.291-2z"/>
                     </svg>
                   </div>
-                  <h3 class="text-lg font-semibold text-gray-900 mb-2">No clients found</h3>
-                  <p class="text-gray-500 mb-4">No clients match your search criteria.</p>
-                  <p class="text-sm text-gray-400">Try searching by full name, CIN, or worker number.</p>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('cessions.create.no_clients_found')}</h3>
+                  <p class="text-gray-500 mb-4">{$t('cessions.create.no_clients_description')}</p>
+                  <p class="text-sm text-gray-400">{$t('cessions.create.try_searching')}</p>
                 </div>
               {:else if searchTerm.length > 0 && searchTerm.length < 2}
                 <div class="text-center py-8">
-                  <p class="text-gray-500">Please enter at least 2 characters to search.</p>
+                  <p class="text-gray-500">{$t('cessions.create.search_min_chars')}</p>
                 </div>
               {:else}
                 <div class="text-center py-12">
@@ -773,8 +773,8 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                   </div>
-                  <h3 class="text-lg font-semibold text-gray-900 mb-2">Search for a client</h3>
-                  <p class="text-gray-500">Start typing to search by name, CIN, or worker number</p>
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('cessions.create.search_for_client')}</h3>
+                  <p class="text-gray-500">{$t('cessions.create.search_description')}</p>
                 </div>
               {/if}
             </div>
@@ -788,7 +788,7 @@
                   </div>
                   <div>
                     <h3 class="text-xl font-bold text-emerald-900">{cession && cession.clientName}</h3>
-                    <p class="text-emerald-700">Selected Client</p>
+                    <p class="text-emerald-700">{$t('cessions.create.selected_client')}</p>
                   </div>
                 </div>
                 <button
@@ -824,7 +824,7 @@
                   <p class="text-sm font-semibold text-emerald-900">
                     {(selectedClientData && (selectedClientData.jobName || selectedClientData.jobTitle)) || 
                      (cession && cession.clientJob) || 
-                     'Not specified'}
+                     $t('cessions.create.not_specified')}
                   </p>
                 </div>
                 <div>
@@ -832,12 +832,12 @@
                   <p class="text-sm font-semibold text-emerald-900">
                     {(selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || 
                      (cession && cession.clientWorkplace) || 
-                     'Not specified'}
+                     $t('cessions.create.not_specified')}
                   </p>
                 </div>
                 <div class="md:col-span-2">
                   <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Address</p>
-                  <p class="text-sm font-semibold text-emerald-900">{(selectedClientData && selectedClientData.address) || (cession && cession.clientAddress) || 'Not specified'}</p>
+                  <p class="text-sm font-semibold text-emerald-900">{(selectedClientData && selectedClientData.address) || (cession && cession.clientAddress) || $t('cessions.create.not_specified')}</p>
                 </div>
               </div>
             </div>
@@ -880,7 +880,7 @@
             <div class="space-y-6">
               <div>
                 <label for="monthlyPayment" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
-                  {$t('cessions.details.monthly_payment')}
+                  {$t('cessions.create.monthly_payment')}
                 </label>
                 <div class="relative">
                   <input
@@ -905,7 +905,7 @@
 
               <div>
                 <label for="bankOrAgency" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
-                  {$t('cessions.details.bank_agency')}
+                  {$t('cessions.create.bank_agency')}
                 </label>
                 <input
                   type="text"
@@ -923,7 +923,7 @@
 
               <div>
                 <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
-                  {$t('cessions.details.start_date')}
+                  {$t('cessions.create.start_date')}
                 </label>
                 <input
                   type="date"
@@ -934,25 +934,25 @@
                   max="9999-12-31"
                 />
                 <p class="text-xs text-gray-500 mt-1" style="text-align: {textAlign}">
-                  Leave as today or pick another date
+                  {$t('cessions.create.leave_today_date')}
                 </p>
               </div>
             </div>
 
             <!-- Calculation Preview -->
             <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
-              <h3 class="text-lg font-semibold text-purple-900 mb-4">Calculation Summary</h3>
+              <h3 class="text-lg font-semibold text-purple-900 mb-4">{$t('cessions.create.calculation_summary')}</h3>
               <div class="space-y-4">
                 <div class="flex justify-between items-center py-3 border-b border-purple-200">
-                  <span class="text-purple-700 font-medium">Monthly Payment</span>
+                  <span class="text-purple-700 font-medium">{$t('cessions.create.monthly_payment')}</span>
                   <span class="text-2xl font-bold text-purple-900">{formatCurrency(cession && cession.monthlyPayment || 0)}</span>
                 </div>
                 <div class="flex justify-between items-center py-3 border-b border-purple-200">
-                  <span class="text-purple-700 font-medium">Payment Period</span>
+                  <span class="text-purple-700 font-medium">{$t('cessions.create.payment_period')}</span>
                   <span class="text-lg font-semibold text-purple-900">{paymentPeriod} months</span>
                 </div>
                 <div class="flex justify-between items-center py-3 bg-purple-100 rounded-xl px-4">
-                  <span class="text-purple-800 font-bold">Total Amount</span>
+                  <span class="text-purple-800 font-bold">{$t('cessions.create.total_amount')}</span>
                   <span class="text-3xl font-bold text-purple-900">{formatCurrency(totalAmount)}</span>
                 </div>
               </div>
@@ -995,8 +995,8 @@
               </svg>
             </div>
             <div>
-              <h2 class="text-2xl font-bold text-gray-900" style="text-align: {textAlign}">Review & Submit</h2>
-              <p class="text-gray-500" style="text-align: {textAlign}">Review all details before creating the cession</p>
+              <h2 class="text-2xl font-bold text-gray-900" style="text-align: {textAlign}">{$t('cessions.create.review_submit_title')}</h2>
+              <p class="text-gray-500" style="text-align: {textAlign}">{$t('cessions.create.review_submit_desc')}</p>
             </div>
           </div>
 
@@ -1009,7 +1009,7 @@
                   <svg class="w-5 h-5 text-blue-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                   </svg>
-                  Client Information
+                  {$t('cessions.create.client_information')}
                 </h3>
                 <button
                   type="button"
@@ -1020,36 +1020,36 @@
                   <svg class="w-4 h-4 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                   </svg>
-                  Refresh
+                  {$t('cessions.create.refresh')}
                 </button>
               </div>
               <div class="space-y-3">
                 <div class="flex justify-between">
-                  <span class="text-blue-700 font-medium">Name</span>
+                  <span class="text-blue-700 font-medium">{$t('common.name')}</span>
                   <span class="text-blue-900 font-semibold">{cession && cession.clientName}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-blue-700 font-medium">CIN</span>
+                  <span class="text-blue-700 font-medium">{$t('common.cin')}</span>
                   <span class="text-blue-900 font-semibold">{cession && cession.clientCin}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-blue-700 font-medium">Client Number</span>
+                  <span class="text-blue-700 font-medium">{$t('common.client_number')}</span>
                   <span class="text-blue-900 font-semibold">{cession && cession.clientNumber}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-blue-700 font-medium">Job</span>
+                  <span class="text-blue-700 font-medium">{$t('cessions.create.job')}</span>
                   <span class="text-blue-900 font-semibold">
                     {(selectedClientData && (selectedClientData.jobName || selectedClientData.jobTitle)) || 
                      (cession && cession.clientJob) || 
-                     'Not specified'}
+                     $t('cessions.create.not_specified')}
                   </span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-blue-700 font-medium">Workplace</span>
+                  <span class="text-blue-700 font-medium">{$t('cessions.create.workplace')}</span>
                   <span class="text-blue-900 font-semibold">
                     {(selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || 
                      (cession && cession.clientWorkplace) || 
-                     'Not specified'}
+                     $t('cessions.create.not_specified')}
                   </span>
                 </div>
               </div>
@@ -1061,27 +1061,27 @@
                 <svg class="w-5 h-5 text-purple-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                Cession Details
+                {$t('cessions.create.cession_summary')}
               </h3>
               <div class="space-y-3">
                 <div class="flex justify-between">
-                  <span class="text-purple-700 font-medium">Monthly Payment</span>
+                  <span class="text-purple-700 font-medium">{$t('cessions.details.monthly_payment')}</span>
                   <span class="text-purple-900 font-semibold">{formatCurrency(cession && cession.monthlyPayment)}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-purple-700 font-medium">Payment Period</span>
+                  <span class="text-purple-700 font-medium">{$t('cessions.create.payment_period')}</span>
                   <span class="text-purple-900 font-semibold">{paymentPeriod} months</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-purple-700 font-medium">Bank/Agency</span>
+                  <span class="text-purple-700 font-medium">{$t('cessions.create.bank_agency_label')}</span>
                   <span class="text-purple-900 font-semibold">{cession && cession.bankOrAgency}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-purple-700 font-medium">Start Date</span>
-                  <span class="text-purple-900 font-semibold">{cession && cession.startDate ? format(new Date(cession.startDate), 'dd/MM/yyyy') : 'Not set'}</span>
+                  <span class="text-purple-700 font-medium">{$t('cessions.create.start_date')}</span>
+                  <span class="text-purple-900 font-semibold">{cession && cession.startDate ? format(new Date(cession.startDate), 'dd/MM/yyyy') : $t('cessions.create.not_set')}</span>
                 </div>
                 <div class="flex justify-between pt-3 border-t border-purple-200">
-                  <span class="text-purple-800 font-bold">Total Amount</span>
+                  <span class="text-purple-800 font-bold">{$t('cessions.create.total_amount')}</span>
                   <span class="text-2xl font-bold text-purple-900">{formatCurrency(totalAmount)}</span>
                 </div>
               </div>
