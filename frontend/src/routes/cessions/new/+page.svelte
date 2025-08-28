@@ -31,6 +31,10 @@
     startDate: new Date().toISOString().split('T')[0] // YYYY-MM-DD
   };
   
+  // Editable item description for PDF generation
+  let itemDescription = '';
+  let selectedClientData = null;
+  
   // 🔍 Advanced Search & UI State
   let searchTerm = '';
   let clients = [];
@@ -62,6 +66,19 @@
   
   // Calculate total amount reactively
   $: totalAmount = cession.monthlyPayment ? cession.monthlyPayment * paymentPeriod : 0;
+  
+  // Debug reactive statement for job data
+  $: if (currentStep === 3) {
+    console.log('Review step - Current job data:');
+    console.log('selectedClientData.jobName:', selectedClientData?.jobName);
+    console.log('selectedClientData.jobTitle:', selectedClientData?.jobTitle);
+    console.log('selectedClientData.workplaceName:', selectedClientData?.workplaceName);
+    console.log('selectedClientData.workplace:', selectedClientData?.workplace);
+    console.log('cession.clientJob:', cession?.clientJob);
+    console.log('cession.clientWorkplace:', cession?.clientWorkplace);
+    console.log('Final job display value:', (selectedClientData && (selectedClientData.jobName || selectedClientData.jobTitle)) || (cession && cession.clientJob) || 'Not specified');
+    console.log('Final workplace display value:', (selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || (cession && cession.clientWorkplace) || 'Not specified');
+  }
   
   // 🎯 Step Management
   function nextStep() {
@@ -131,8 +148,12 @@
   
   // 💾 Auto-save functionality
   function autoSave() {
-    if (autoSaveEnabled && cession.clientId) {
-      localStorage.setItem('cession_draft', JSON.stringify(cession));
+    if (autoSaveEnabled && cession && cession.clientId) {
+      const draftData = {
+        ...cession,
+        itemDescription: itemDescription
+      };
+      localStorage.setItem('cession_draft', JSON.stringify(draftData));
       lastSaved = new Date();
     }
   }
@@ -143,10 +164,14 @@
     if (draft) {
       try {
         const parsedDraft = JSON.parse(draft);
-        if (parsedDraft.clientId) {
+        if (parsedDraft && parsedDraft.clientId) {
           // Ask user if they want to restore draft
           if (confirm('Found a saved draft. Would you like to restore it?')) {
             cession = { ...cession, ...parsedDraft };
+            // Also restore item description if it exists
+            if (parsedDraft.itemDescription) {
+              itemDescription = parsedDraft.itemDescription;
+            }
             currentStep = 2;
             formProgress = 66;
           }
@@ -161,6 +186,27 @@
   function clearDraft() {
     localStorage.removeItem('cession_draft');
     lastSaved = null;
+    
+    // Reset cession object to initial state
+    if (cession) {
+      cession.clientId = null;
+      cession.clientName = null;
+      cession.clientNumber = null;
+      cession.clientCin = null;
+      cession.clientJob = null;
+      cession.clientWorkplace = null;
+      cession.clientAddress = null;
+      cession.monthlyPayment = null;
+      cession.bankOrAgency = null;
+      cession.startDate = new Date().toISOString().split('T')[0];
+    }
+    
+    // Reset item description
+    itemDescription = '';
+    
+    // Reset to first step
+    currentStep = 1;
+    formProgress = 33;
   }
   
   // Format currency
@@ -184,14 +230,14 @@
     isLoading = true;
     try {
       const result = await clientsApi.getById(clientId);
-      if (result.success) {
+      if (result && result.success && result.data) {
         const client = result.data;
         selectClient(client);
       } else {
-        showAlert(result.error || 'Failed to load client', 'error');
+        showAlert(result?.error || 'Failed to load client', 'error');
       }
     } catch (error) {
-      showAlert(error.message || 'Failed to load client', 'error');
+      showAlert(error?.message || 'Failed to load client', 'error');
     } finally {
       isLoading = false;
     }
@@ -276,19 +322,33 @@
   }
   
   function selectClient(client) {
+    if (!client) {
+      console.error('selectClient called with null/undefined client');
+      return;
+    }
+    
+    // Store the full client data for later use
+    selectedClientData = { ...client };
+    
     cession.clientId = client.id;
     cession.clientName = client.fullName;
     cession.clientNumber = client.clientNumber;
     cession.clientCin = client.cin;
-    cession.clientJob = client.jobTitle;
-    cession.clientWorkplace = client.workplace;
+    cession.clientJob = client.jobName || client.jobTitle; // Handle both field names
+    cession.clientWorkplace = client.workplaceName || client.workplace; // Handle both field names
     cession.clientAddress = client.address;
+    
+    console.log('Client selected:', client);
+    console.log('Job name during selection:', client.jobName || client.jobTitle);
+    console.log('Workplace name during selection:', client.workplaceName || client.workplace);
+    console.log('Selected client data after selection:', selectedClientData);
+    
     clients = []; // Clear search results
     searchTerm = ''; // Clear search term
   }
   
   async function handleSubmit() {
-    if (!cession.clientId) {
+    if (!cession || !cession.clientId) {
       showAlert($t('cessions.create.validation.select_client'), 'error');
       return;
     }
@@ -314,8 +374,36 @@
     }
   }
   
+  // Function to refresh client data for review step
+  async function refreshClientData() {
+    if (!cession.clientId) return;
+    
+    try {
+      const clientResult = await clientsApi.getById(cession.clientId);
+      if (clientResult.success && clientResult.data) {
+        const freshClientData = clientResult.data;
+        selectedClientData = freshClientData;
+        
+        // Update cession data with fresh client information
+        cession.clientName = freshClientData.fullName;
+        cession.clientNumber = freshClientData.clientNumber;
+        cession.clientCin = freshClientData.cin;
+        cession.clientJob = freshClientData.jobName || freshClientData.jobTitle; // Handle both field names
+        cession.clientWorkplace = freshClientData.workplaceName || freshClientData.workplace; // Handle both field names
+        cession.clientAddress = freshClientData.address;
+        
+        console.log('Client data refreshed:', freshClientData);
+        console.log('Job name from API:', freshClientData.jobName || freshClientData.jobTitle);
+        console.log('Workplace name from API:', freshClientData.workplaceName || freshClientData.workplace);
+        console.log('Selected client data after refresh:', selectedClientData);
+      }
+    } catch (error) {
+      console.error('Error refreshing client data:', error);
+    }
+  }
+  
   async function previewPDF() {
-    if (!cession.clientId) {
+    if (!cession || !cession.clientId) {
       showAlert('Please select a client first', 'error');
       return;
     }
@@ -323,6 +411,23 @@
     if (!cession.monthlyPayment || !cession.bankOrAgency) {
       showAlert('Please fill in all required fields', 'error');
       return;
+    }
+    
+    // Fetch client data to get the correct worker number
+    let clientData = null;
+    try {
+      console.log('Fetching client data for ID:', cession.clientId);
+      const clientResult = await clientsApi.getById(cession.clientId);
+      if (clientResult.success && clientResult.data) {
+        clientData = clientResult.data;
+        console.log('Client data fetched successfully:', clientData);
+      } else {
+        console.warn('Failed to fetch client data:', clientResult.error);
+        showAlert('Could not fetch client data for PDF generation', 'warning');
+      }
+    } catch (error) {
+      console.error('Error fetching client data:', error);
+      showAlert('Error fetching client data for PDF generation', 'warning');
     }
     
     const pdfData = {
@@ -338,24 +443,33 @@
       supplierAddress: '',
       supplierBankAccount: '',
       
-      // Worker/Client information
-      workerNumber: cession.clientNumber,
-      fullName: cession.clientName,
-      cin: cession.clientCin,
-      address: cession.clientAddress,
-      workplace: cession.clientWorkplace,
-      jobTitle: cession.clientJob,
-      bankAccountNumber: cession.bankOrAgency,
+      // Worker/Client information (use client data if available, otherwise fallback to cession data)
+      workerNumber: (clientData && clientData.workerNumber) ? clientData.workerNumber : (cession.clientNumber || ''),
+      fullName: cession.clientName || '',
+      cin: cession.clientCin || '',
+      address: (selectedClientData && selectedClientData.address) || cession.clientAddress || '',
+      workplace: (selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || cession.clientWorkplace || '',
+      jobTitle: (selectedClientData && (selectedClientData.jobName || selectedClientData.jobTitle)) || cession.clientJob || '',
+      bankAccountNumber: cession.bankOrAgency || '',
       
       // Item and payment information
-      itemDescription: '',
+      itemDescription: itemDescription || '',
       amountInWords: numberToArabicWords(totalAmount),
       totalAmountNumeric: parseFloat(totalAmount) || 0.0,
       monthlyPayment: parseFloat(cession.monthlyPayment) || 0.0,
       firstDeductionMonthArabic: format(addMonths(new Date(), 1), 'MMMM yyyy', { locale: ar })
     };
     
-    await openPDF(pdfData);
+    console.log('PDF Data being sent:', pdfData);
+    console.log('Worker number source:', clientData && clientData.workerNumber ? 'client data' : 'cession data (fallback)');
+    
+    try {
+      await openPDF(pdfData);
+      showAlert('PDF document generated successfully', 'success');
+    } catch (error) {
+      console.error('Error in previewPDF:', error);
+      showAlert('Error generating PDF document', 'error');
+    }
   }
   
   function numberToArabicWords(number) {
@@ -377,8 +491,13 @@
         
         // Handle hundreds
         if (group >= 100) {
-          groupWords += hundreds[Math.floor(group / 100)] + ' ';
+          let hundredsValue = Math.floor(group / 100);
+          groupWords += hundreds[hundredsValue];
           group %= 100;
+          // Add conjunction if there are remaining tens/units
+          if (group > 0) {
+            groupWords += ' و ';
+          }
         }
         
         // Handle tens and units
@@ -413,6 +532,16 @@
     }
     
     return words + ' دينارا';
+  }
+  
+  function handleKeydownItemDescription(event, action) {
+    if (event.key === 'Enter' && event.ctrlKey) {
+      event.preventDefault();
+      action();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelEditItemDescription();
+    }
   }
 </script>
 
@@ -456,29 +585,15 @@
           </div>
         </div>
         
-        <!-- Action Center -->
-        <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
-          <!-- Auto-save Toggle -->
-          <button
-            on:click={() => autoSaveEnabled = !autoSaveEnabled}
-            class="p-2 rounded-xl {autoSaveEnabled ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'} hover:scale-105 transition-all duration-200"
-            title="Auto Save"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
-            </svg>
-          </button>
-
-          <a
-            href="/cessions"
-            class="flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-200 font-medium text-gray-700"
-          >
-            <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-            </svg>
-            {$t('common.actions.back')}
-          </a>
-        </div>
+        <a
+          href="/cessions"
+          class="flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-200 font-medium text-gray-700"
+        >
+          <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          {$t('common.actions.back')}
+        </a>
       </div>
     </div>
   </div>
@@ -559,10 +674,9 @@
       </div>
     </div>
 
-  <!-- ...existing code... -->
-
     <!-- 🎯 Multi-Step Form Content -->
-    <form on:submit|preventDefault={handleSubmit} class="space-y-8">
+    <div class="space-y-8">
+      <form on:submit|preventDefault={handleSubmit} class="space-y-8">
       <!-- Step 1: Client Selection -->
       {#if currentStep === 1}
         <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/20" transition:fade={{ duration: 300 }}>
@@ -624,8 +738,8 @@
                               {#if client.clientNumber}
                                 <span class="text-sm text-gray-500">#{client.clientNumber}</span>
                               {/if}
-                              {#if client.jobTitle}
-                                <span class="text-sm text-emerald-600">{client.jobTitle}</span>
+                              {#if client.jobName || client.jobTitle}
+                                <span class="text-sm text-emerald-600">{client.jobName || client.jobTitle}</span>
                               {/if}
                             </div>
                           </div>
@@ -670,10 +784,10 @@
               <div class="flex items-start justify-between">
                 <div class="flex items-center space-x-4" class:space-x-reverse={isRTL}>
                   <div class="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                    {(cession.clientName || 'U').charAt(0)}
+                    {(cession && cession.clientName) ? (cession.clientName).charAt(0) : 'U'}
                   </div>
                   <div>
-                    <h3 class="text-xl font-bold text-emerald-900">{cession.clientName}</h3>
+                    <h3 class="text-xl font-bold text-emerald-900">{cession && cession.clientName}</h3>
                     <p class="text-emerald-700">Selected Client</p>
                   </div>
                 </div>
@@ -687,6 +801,7 @@
                     cession.clientJob = null;
                     cession.clientWorkplace = null;
                     cession.clientAddress = null;
+                    selectedClientData = null; // Reset selected client data
                   }}
                   class="p-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100 rounded-lg transition-colors"
                 >
@@ -698,23 +813,31 @@
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                 <div>
                   <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide">CIN</p>
-                  <p class="text-sm font-semibold text-emerald-900">{cession.clientCin}</p>
+                  <p class="text-sm font-semibold text-emerald-900">{cession && cession.clientCin}</p>
                 </div>
                 <div>
                   <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Client Number</p>
-                  <p class="text-sm font-semibold text-emerald-900">{cession.clientNumber}</p>
+                  <p class="text-sm font-semibold text-emerald-900">{cession && cession.clientNumber}</p>
                 </div>
                 <div>
                   <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Job</p>
-                  <p class="text-sm font-semibold text-emerald-900">{cession.clientJob || 'Not specified'}</p>
+                  <p class="text-sm font-semibold text-emerald-900">
+                    {(selectedClientData && (selectedClientData.jobName || selectedClientData.jobTitle)) || 
+                     (cession && cession.clientJob) || 
+                     'Not specified'}
+                  </p>
                 </div>
                 <div>
                   <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Workplace</p>
-                  <p class="text-sm font-semibold text-emerald-900">{cession.clientWorkplace || 'Not specified'}</p>
+                  <p class="text-sm font-semibold text-emerald-900">
+                    {(selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || 
+                     (cession && cession.clientWorkplace) || 
+                     'Not specified'}
+                  </p>
                 </div>
                 <div class="md:col-span-2">
                   <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Address</p>
-                  <p class="text-sm font-semibold text-emerald-900">{cession.clientAddress || 'Not specified'}</p>
+                  <p class="text-sm font-semibold text-emerald-900">{(selectedClientData && selectedClientData.address) || (cession && cession.clientAddress) || 'Not specified'}</p>
                 </div>
               </div>
             </div>
@@ -822,7 +945,7 @@
               <div class="space-y-4">
                 <div class="flex justify-between items-center py-3 border-b border-purple-200">
                   <span class="text-purple-700 font-medium">Monthly Payment</span>
-                  <span class="text-2xl font-bold text-purple-900">{formatCurrency(cession.monthlyPayment || 0)}</span>
+                  <span class="text-2xl font-bold text-purple-900">{formatCurrency(cession && cession.monthlyPayment || 0)}</span>
                 </div>
                 <div class="flex justify-between items-center py-3 border-b border-purple-200">
                   <span class="text-purple-700 font-medium">Payment Period</span>
@@ -881,28 +1004,53 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Client Summary -->
             <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
-              <h3 class="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-                <svg class="w-5 h-5 text-blue-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
-                Client Information
-              </h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-blue-900 flex items-center">
+                  <svg class="w-5 h-5 text-blue-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                  Client Information
+                </h3>
+                <button
+                  type="button"
+                  on:click={refreshClientData}
+                  class="flex items-center px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm font-medium"
+                  title="Refresh client data"
+                >
+                  <svg class="w-4 h-4 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  Refresh
+                </button>
+              </div>
               <div class="space-y-3">
                 <div class="flex justify-between">
                   <span class="text-blue-700 font-medium">Name</span>
-                  <span class="text-blue-900 font-semibold">{cession.clientName}</span>
+                  <span class="text-blue-900 font-semibold">{cession && cession.clientName}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-blue-700 font-medium">CIN</span>
-                  <span class="text-blue-900 font-semibold">{cession.clientCin}</span>
+                  <span class="text-blue-900 font-semibold">{cession && cession.clientCin}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-blue-700 font-medium">Client Number</span>
-                  <span class="text-blue-900 font-semibold">{cession.clientNumber}</span>
+                  <span class="text-blue-900 font-semibold">{cession && cession.clientNumber}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-blue-700 font-medium">Job</span>
-                  <span class="text-blue-900 font-semibold">{cession.clientJob || 'Not specified'}</span>
+                  <span class="text-blue-900 font-semibold">
+                    {(selectedClientData && (selectedClientData.jobName || selectedClientData.jobTitle)) || 
+                     (cession && cession.clientJob) || 
+                     'Not specified'}
+                  </span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-blue-700 font-medium">Workplace</span>
+                  <span class="text-blue-900 font-semibold">
+                    {(selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || 
+                     (cession && cession.clientWorkplace) || 
+                     'Not specified'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -918,7 +1066,7 @@
               <div class="space-y-3">
                 <div class="flex justify-between">
                   <span class="text-purple-700 font-medium">Monthly Payment</span>
-                  <span class="text-purple-900 font-semibold">{formatCurrency(cession.monthlyPayment)}</span>
+                  <span class="text-purple-900 font-semibold">{formatCurrency(cession && cession.monthlyPayment)}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-purple-700 font-medium">Payment Period</span>
@@ -926,15 +1074,85 @@
                 </div>
                 <div class="flex justify-between">
                   <span class="text-purple-700 font-medium">Bank/Agency</span>
-                  <span class="text-purple-900 font-semibold">{cession.bankOrAgency}</span>
+                  <span class="text-purple-900 font-semibold">{cession && cession.bankOrAgency}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-purple-700 font-medium">Start Date</span>
-                  <span class="text-purple-900 font-semibold">{format(new Date(cession.startDate), 'dd/MM/yyyy')}</span>
+                  <span class="text-purple-900 font-semibold">{cession && cession.startDate ? format(new Date(cession.startDate), 'dd/MM/yyyy') : 'Not set'}</span>
                 </div>
                 <div class="flex justify-between pt-3 border-t border-purple-200">
                   <span class="text-purple-800 font-bold">Total Amount</span>
                   <span class="text-2xl font-bold text-purple-900">{formatCurrency(totalAmount)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 📄 PDF Item Description Section -->
+          <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-200 mt-8">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-amber-900 flex items-center">
+                <svg class="w-5 h-5 text-amber-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                وصف البضاعة للـ PDF
+                <span class="text-sm font-normal text-amber-700 ml-2">(Item Description for PDF)</span>
+              </h3>
+              <div class="flex items-center text-sm text-amber-700">
+                <svg class="w-4 h-4 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                اختياري (Optional)
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="relative">
+                <textarea
+                  bind:value={itemDescription}
+                  placeholder="اكتب وصف البضاعة أو الخدمة التي سيظهر في مستند PDF النهائي... (مثال: بضائع متنوعة، خدمات استشارية، إلخ)"
+                  class="w-full px-4 py-3 bg-white/80 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 resize-none"
+                  rows="3"
+                  dir="rtl"
+                  style="text-align: right"
+                ></textarea>
+                <div class="absolute bottom-3 {isRTL ? 'left-3' : 'right-3'} flex items-center text-xs text-amber-600">
+                  <svg class="w-3 h-3 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                  </svg>
+                  سيظهر هذا النص في مستند PDF
+                </div>
+              </div>
+
+              {#if itemDescription}
+                <div class="flex items-center justify-between bg-amber-100 rounded-lg p-3">
+                  <div class="flex items-center text-sm text-amber-800">
+                    <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    تم إضافة وصف البضاعة
+                  </div>
+                  <button
+                    on:click={() => itemDescription = ''}
+                    class="flex items-center px-3 py-1 bg-white hover:bg-gray-50 text-amber-700 rounded-md transition-colors text-sm font-medium"
+                  >
+                    <svg class="w-3 h-3 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    مسح
+                  </button>
+                </div>
+              {/if}
+
+              <div class="text-xs text-amber-700 bg-amber-100/50 rounded-lg p-3">
+                <div class="flex items-start">
+                  <svg class="w-4 h-4 text-amber-600 mt-0.5 {isRTL ? 'ml-2' : 'mr-2'} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                  </svg>
+                  <div>
+                    <p class="font-medium mb-1">نصيحة:</p>
+                    <p>اكتب وصف واضح ومختصر للبضاعة أو الخدمة. هذا النص سيظهر في مستند PDF الرسمي ويجب أن يكون مناسباً للاستخدام القانوني.</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -985,6 +1203,7 @@
         </div>
       {/if}
     </form>
+    </div>
   </div>
 </div>
 

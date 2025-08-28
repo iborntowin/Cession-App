@@ -19,6 +19,11 @@
   let isEditingStartDate = false;
   let editStartDate = '';
   let isSaving = false;
+  
+  // Editable item description
+  let isEditingItemDescription = false;
+  let editItemDescription = '';
+  let isSavingItemDescription = false;
 
   // Check if we came from salary cessions page
   $: fromSalaryCessions = $page.url.searchParams.get('from') === 'salary-cessions';
@@ -35,9 +40,6 @@
       return;
     }
     await loadCession();
-    
-    // Ensure browser-only code runs after component is mounted
-    await tick();
   });
   
   async function loadCession() {
@@ -170,8 +172,12 @@
       // Handle hundreds
       if (num >= 100) {
         const hundredDigit = Math.floor(num / 100);
-        result += hundreds[hundredDigit] + ' ';
+        result += hundreds[hundredDigit];
         num %= 100;
+        // Add conjunction if there are remaining tens/units
+        if (num > 0) {
+          result += ' و ';
+        }
       }
       
       // Handle tens and units
@@ -206,11 +212,8 @@
       showAlert('Cession data not available', 'error');
       return;
     }
-
-    console.log('Cession data for PDF:', cession);
     
-    // Validate essential data
-    if (!cession.clientName || !cession.clientId) {
+    if (!cession.clientId) {
       showAlert('Missing essential client information', 'error');
       return;
     }
@@ -273,6 +276,7 @@
       bankAccountNumber: cession.bankOrAgency || '',
       
       // Purchase information (use real data from cession)
+      // Item and payment information (use real data from cession)
       itemDescription: cession.itemDescription || '',
       amountInWords: cession.totalLoanAmount ? numberToArabicWords(cession.totalLoanAmount) : '',
       totalAmountNumeric: parseFloat(cession.totalLoanAmount) || 0.0,
@@ -298,7 +302,7 @@
   // Inline editing functions
   function startEditingStartDate() {
     isEditingStartDate = true;
-    editStartDate = cession.startDate ? format(new Date(cession.startDate), 'yyyy-MM-dd') : '';
+    editStartDate = cession && cession.startDate ? format(new Date(cession.startDate), 'yyyy-MM-dd') : '';
   }
 
   function cancelEditStartDate() {
@@ -410,7 +414,6 @@
             {$t('cessions.details.actions.preview_document')}
           </button>
           
-
         </div>
       </div>
     </div>
@@ -433,32 +436,34 @@
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.client')}</p>
               <div class="flex items-center space-x-2 mt-1">
-                <p class="font-medium text-gray-900">{cession.clientName}</p>
-                <a 
-                  href={`/clients/${cession.clientId}`}
-                  class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded-lg text-purple-700 bg-purple-100 hover:bg-purple-200 transition-all duration-200"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-                  </svg>
-                  {$t('cessions.details.view_profile')}
-                </a>
+                <p class="font-medium text-gray-900">{cession && cession.clientName}</p>
+                {#if cession && cession.clientId}
+                  <a 
+                    href={`/clients/${cession.clientId}`}
+                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded-lg text-purple-700 bg-purple-100 hover:bg-purple-200 transition-all duration-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                    </svg>
+                    {$t('cessions.details.view_profile')}
+                  </a>
+                {/if}
               </div>
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.bank_agency')}</p>
-              <p class="font-medium text-gray-900 mt-1">{cession.bankOrAgency}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession && cession.bankOrAgency}</p>
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.total_loan')}</p>
-              <p class="font-medium text-gray-900 mt-1">{formatCurrency(cession.totalLoanAmount)}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession && formatCurrency(cession.totalLoanAmount)}</p>
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.monthly_payment')}</p>
-              <p class="font-medium text-gray-900 mt-1">{formatCurrency(cession.monthlyPayment)}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession && formatCurrency(cession.monthlyPayment)}</p>
             </div>
             
             <!-- Editable Start Date -->
@@ -522,7 +527,7 @@
                 </div>
               {:else}
                 <div class="flex items-center justify-between mt-1">
-                  <p class="font-medium text-gray-900">{formatDate(cession.startDate)}</p>
+                  <p class="font-medium text-gray-900">{cession && formatDate(cession.startDate)}</p>
                   <div class="flex items-center space-x-1 text-xs text-gray-500">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.732 3.732z"/>
@@ -535,13 +540,13 @@
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.end_date')}</p>
-              <p class="font-medium text-gray-900 mt-1">{formatDate(cession.endDate)}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession && formatDate(cession.endDate)}</p>
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('common.status')}</p>
-              <span class="inline-flex items-center px-3 py-1 mt-1 rounded-full text-xs font-medium shadow-sm border border-{cession.status.toLowerCase()}-200 {getStatusClass(cession.status)}">
-                {getStatusTranslation(cession.status)}
+              <span class="inline-flex items-center px-3 py-1 mt-1 rounded-full text-xs font-medium shadow-sm border border-{cession && cession.status ? cession.status.toLowerCase() : 'gray'}-200 {cession && getStatusClass(cession.status)}">
+                {cession && getStatusTranslation(cession.status)}
               </span>
             </div>
           </div>
@@ -555,38 +560,111 @@
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.current_progress')}</p>
               <div class="mt-2">
                 <div class="w-full bg-gray-200 rounded-full h-3">
-                  <div class="bg-gradient-to-r from-purple-600 to-indigo-600 h-3 rounded-full" style="width: {cession.currentProgress}%"></div>
+                  <div class="bg-gradient-to-r from-purple-600 to-indigo-600 h-3 rounded-full" style="width: {cession ? cession.currentProgress : 0}%"></div>
                 </div>
-                <p class="text-sm text-gray-700 mt-2 font-medium">{formatProgress(cession.currentProgress)}</p>
+                <p class="text-sm text-gray-700 mt-2 font-medium">{cession && formatProgress(cession.currentProgress)}</p>
               </div>
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.remaining_balance')}</p>
-              <p class="font-medium text-gray-900 mt-1">{formatCurrency(cession.remainingBalance)}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession && formatCurrency(cession.remainingBalance)}</p>
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.months_remaining')}</p>
-              <p class="font-medium text-gray-900 mt-1">{$t('common.count_months', {count: cession.monthsRemaining})}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession && $t('common.count_months', {count: cession.monthsRemaining})}</p>
             </div>
             
             <div class="bg-white/60 p-4 rounded-xl shadow-sm">
               <p class="text-sm font-medium text-purple-600">{$t('cessions.details.expected_payoff')}</p>
-              <p class="font-medium text-gray-900 mt-1">{formatDate(cession.expectedPayoffDate)}</p>
+              <p class="font-medium text-gray-900 mt-1">{cession && formatDate(cession.expectedPayoffDate)}</p>
             </div>
           </div>
         </div>
       </div>
+      
+      <!-- 📄 PDF Item Description Section -->
+      <div class="mt-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-200" transition:fly={{ y: 20, delay: 100, duration: 300, easing: cubicOut }}>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-amber-900 flex items-center">
+            <svg class="w-5 h-5 text-amber-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            وصف البضاعة للـ PDF
+            <span class="text-sm font-normal text-amber-700 ml-2">(Item Description for PDF)</span>
+          </h3>
+          <div class="flex items-center text-sm text-amber-700">
+            <svg class="w-4 h-4 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            اختياري (Optional)
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="relative">
+            <textarea
+              bind:value={cession.itemDescription}
+              placeholder="اكتب وصف البضاعة أو الخدمة التي سيظهر في مستند PDF النهائي... (مثال: بضائع متنوعة، خدمات استشارية، إلخ)"
+              class="w-full px-4 py-3 bg-white/80 border border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 resize-none"
+              rows="3"
+              dir="rtl"
+              style="text-align: right"
+            ></textarea>
+            <div class="absolute bottom-3 {isRTL ? 'left-3' : 'right-3'} flex items-center text-xs text-amber-600">
+              <svg class="w-3 h-3 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+              </svg>
+              سيظهر هذا النص في مستند PDF
+            </div>
+          </div>
+
+          {#if cession.itemDescription}
+            <div class="flex items-center justify-between bg-amber-100 rounded-lg p-3">
+              <div class="flex items-center text-sm text-amber-800">
+                <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                تم إضافة وصف البضاعة
+              </div>
+              <button
+                on:click={() => cession.itemDescription = ''}
+                class="flex items-center px-3 py-1 bg-white hover:bg-gray-50 text-amber-700 rounded-md transition-colors text-sm font-medium"
+              >
+                <svg class="w-3 h-3 {isRTL ? 'ml-1' : 'mr-1'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                مسح
+              </button>
+            </div>
+          {/if}
+
+          <div class="text-xs text-amber-700 bg-amber-100/50 rounded-lg p-3">
+            <div class="flex items-start">
+              <svg class="w-4 h-4 text-amber-600 mt-0.5 {isRTL ? 'ml-2' : 'mr-2'} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+              </svg>
+              <div>
+                <p class="font-medium mb-1">نصيحة:</p>
+                <p>اكتب وصف واضح ومختصر للبضاعة أو الخدمة. هذا النص سيظهر في مستند PDF الرسمي ويجب أن يكون مناسباً للاستخدام القانوني.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- Payment Section -->
       <div class="mt-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6" transition:fly={{ y: 20, delay: 150, duration: 300, easing: cubicOut }}>
         <h2 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">Historique des Paiements</h2>
-        <PaymentSection
-          cessionId={cession.id}
-          remainingBalance={cession.remainingBalance}
-          totalLoanAmount={cession.totalLoanAmount}
-          monthlyPayment={cession.monthlyPayment}
-        />
+        {#if cession}
+          <PaymentSection
+            cessionId={cession.id}
+            remainingBalance={cession.remainingBalance}
+            totalLoanAmount={cession.totalLoanAmount}
+            monthlyPayment={cession.monthlyPayment}
+          />
+        {/if}
       </div>
     {/if}
   </div>

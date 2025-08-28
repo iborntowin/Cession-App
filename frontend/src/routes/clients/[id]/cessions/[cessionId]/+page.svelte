@@ -193,8 +193,12 @@
         
         // Handle hundreds
         if (group >= 100) {
-          groupWords += hundreds[Math.floor(group / 100)] + ' ';
+          groupWords += hundreds[Math.floor(group / 100)];
           group %= 100;
+          // Add conjunction if there are remaining tens/units
+          if (group > 0) {
+            groupWords += ' و ';
+          }
         }
         
         // Handle tens and units
