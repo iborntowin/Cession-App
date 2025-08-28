@@ -75,7 +75,7 @@
     
     if (workplace === 'وزارة الدفاع الوطني') {
       // Auto-populate for Ministry of Defense
-      personalAddress = 'وزارة الدفاع الوطني - تونس';
+      personalAddress = 'وزارة الدفاع الوطني';
     } else if (workplace && workplace !== 'وزارة الدفاع الوطني' && !personalAddress) {
       // Clear auto-populated value when workplace changes from Ministry of Defense
       personalAddress = '';
@@ -1301,7 +1301,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                   </svg>
                   <span class="font-medium">العنوان الشخصي:</span>
-                  <span class="mr-2">{personalAddress || 'وزارة الدفاع الوطني - تونس'}</span>
+                  <span class="mr-2">{personalAddress || 'وزارة الدفاع الوطني'}</span>
                 </div>
                 <p class="text-xs text-green-600 mt-2">
                   تم تعبئة العنوان تلقائياً لأن الهيكل الإداري هو "وزارة الدفاع الوطني"
