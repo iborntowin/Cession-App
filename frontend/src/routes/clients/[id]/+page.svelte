@@ -44,14 +44,15 @@
       return;
     }
     
+    isLoading = true;
     await loadCessions();
+    isLoading = false;
     
     // Ensure browser-only code runs after component is mounted
     await tick();
   });
 
   async function loadCessions() {
-    $loading = true;
     try {
       const response = await cessionsApi.getByClientId(data.id);
       if (response && Array.isArray(response)) {
@@ -60,8 +61,6 @@
     } catch (error) {
       console.error('Error loading cessions:', error);
       showAlert(error.message || 'Failed to load cessions', 'error');
-    } finally {
-      $loading = false;
     }
   }
 
@@ -259,7 +258,7 @@
               </div>
 
               <div class="overflow-x-auto">
-                {#if $loading}
+                {#if isLoading}
                   <div class="flex justify-center items-center py-8">
                     <div class="relative">
                       <div class="w-12 h-12 border-4 border-purple-200 rounded-full animate-spin"></div>
@@ -290,9 +289,6 @@
                       <thead class="bg-gray-50/80 backdrop-blur-sm">
                         <tr>
                           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            {$t('clients.details.cessions.table.id')}
-                          </th>
-                          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             {$t('clients.details.cessions.table.start_date')}
                           </th>
                           <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -307,11 +303,8 @@
                         </tr>
                       </thead>
                       <tbody class="bg-white/80 backdrop-blur-sm divide-y divide-gray-200">
-                        {#each cessions as cession, i}
-                          <tr class="hover:bg-purple-50/80 transition-colors duration-150" transition:fly={{ y: 10, delay: i * 50, duration: 200 }}>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {cession.id}
-                            </td>
+                        {#each cessions as cession}
+                          <tr class="hover:bg-purple-50/80 transition-colors duration-150">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                               <span dir="ltr">{formatDate(cession.startDate)}</span>
                             </td>

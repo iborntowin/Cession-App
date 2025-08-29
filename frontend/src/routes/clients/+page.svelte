@@ -1223,7 +1223,7 @@
 
           <a
             href="/clients/new"
-            class="flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+            class="flex items-center px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
             <svg class="w-4 h-4 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -1598,7 +1598,7 @@
           <div class="flex items-center space-x-3">
             <button
               on:click={performSearch}
-              class="flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+              class="flex items-center px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -1705,7 +1705,7 @@
             {#if !hasSearchQuery}
               <a
                 href="/clients/new"
-                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium"
+                class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 font-medium"
               >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -2360,7 +2360,7 @@
           {#if !searchQuery && !searchCIN && !searchWorkerNumber && !searchClientNumber}
             <a
               href="/clients/new"
-              class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+              class="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
             >
               <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -2380,10 +2380,10 @@
         <!-- Client Grid/List -->
         <div class="p-6">
           {#if viewMode === 'grid'}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               {#each filteredClients as client, index (client.id)}
                 <div 
-                  class="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-6 hover:shadow-xl hover:border-purple-200 transition-all duration-300 cursor-pointer"
+                  class="group bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
                   in:fly={{ y: hasSearchQuery ? 0 : 20, delay: hasSearchQuery ? 0 : index * 30, duration: hasSearchQuery ? 0 : 200 }}
                   out:fly={{ y: hasSearchQuery ? 0 : -20, duration: hasSearchQuery ? 0 : 150 }}
                   on:click|stopPropagation={async (e) => {
@@ -2403,7 +2403,7 @@
                   <!-- Client Avatar and Header -->
                   <div class="flex items-start justify-between mb-4">
                     <div class="flex items-center">
-                      <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                      <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
                         {client.fullName ? client.fullName.charAt(0).toUpperCase() : 'C'}
                       </div>
                       <div class="ml-3">
@@ -2414,7 +2414,9 @@
                       </div>
                     </div>
                     <!-- Status Indicator -->
-                    <div class="w-3 h-3 rounded-full shadow-sm" class:bg-green-400={hasActiveCessions(client.id)} class:bg-red-400={!hasActiveCessions(client.id)}></div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      🟢 Active
+                    </span>
                   </div>
 
                   <!-- Client Details -->
@@ -2452,7 +2454,7 @@
                     </button>
                     <button
                       on:click|stopPropagation={() => createCession(client.id)}
-                      class="flex-1 px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 text-sm font-medium"
+                      class="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200 text-sm font-medium"
                     >
                       New Cession
                     </button>
@@ -2465,7 +2467,7 @@
             <div class="space-y-4">
               {#each filteredClients as client, index (client.id)}
                 <div 
-                  class="group bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 hover:shadow-xl hover:border-purple-200 transition-all duration-300 cursor-pointer"
+                  class="group bg-white rounded-xl shadow-lg border border-gray-100 p-4 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
                   in:fly={{ x: hasSearchQuery ? 0 : -20, delay: hasSearchQuery ? 0 : index * 20, duration: hasSearchQuery ? 0 : 200 }}
                   out:fly={{ x: hasSearchQuery ? 0 : 20, duration: hasSearchQuery ? 0 : 150 }}
                   on:click|stopPropagation={async (e) => {
@@ -2484,7 +2486,7 @@
                 >
                   <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
-                      <div class="w-10 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg">
+                      <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg flex items-center justify-center text-white font-bold shadow-lg">
                         {client.fullName ? client.fullName.charAt(0).toUpperCase() : 'C'}
                       </div>
                       <div>
@@ -2499,7 +2501,9 @@
                       </div>
                     </div>
                     <div class="flex items-center space-x-3">
-                      <div class="w-3 h-3 rounded-full shadow-sm" class:bg-green-400={hasActiveCessions(client.id)} class:bg-red-400={!hasActiveCessions(client.id)}></div>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        🟢 Active
+                      </span>
                       <div class="flex space-x-2">
                         <button
                           on:click|stopPropagation={() => viewFullDetails(client.id)}
@@ -2509,7 +2513,7 @@
                         </button>
                         <button
                           on:click|stopPropagation={() => createCession(client.id)}
-                          class="px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 text-sm font-medium"
+                          class="px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200 text-sm font-medium"
                         >
                           New Cession
                         </button>
@@ -2527,31 +2531,20 @@
 
   <!-- Client Details Modal -->
   {#if isClientDetailsVisible && selectedClient}
-    <div 
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" 
-      transition:fade={{ duration: 200 }}
-      on:click|self={(e) => {
-        e.preventDefault();
-        closeClientDetails();
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="client-modal-title"
-    >
-      <div 
-        class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" 
-        transition:scale={{ duration: 300 }}
-        on:click|stopPropagation
-      >
-        <div class="p-6 border-b border-gray-200">
-          <div class="flex items-center justify-between">
-            <h2 id="client-modal-title" class="text-2xl font-bold text-gray-900">Client Details</h2>
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50" transition:fade>
+      <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" transition:scale={{ duration: 300 }}>
+        <div class="p-8">
+          <div class="flex justify-between items-start mb-8">
+            <div>
+              <h2 class="text-3xl font-bold text-gray-900">Client Details</h2>
+              <p class="text-gray-500 mt-1">Client ID: {selectedClient.id}</p>
+            </div>
             <button
               on:click|stopPropagation={(e) => {
                 e.preventDefault();
                 closeClientDetails();
               }}
-              class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+              class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
               aria-label="Close modal"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2559,75 +2552,94 @@
               </svg>
             </button>
           </div>
-        </div>
-        <div class="p-6">
-          <div class="space-y-6">
-            <!-- Client Info -->
-            <div class="flex items-center space-x-4">
-              <div class="w-16 h-16 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                {selectedClient.fullName ? selectedClient.fullName.charAt(0).toUpperCase() : 'C'}
-              </div>
-              <div>
-                <h3 class="text-xl font-semibold text-gray-900">{selectedClient.fullName}</h3>
-                <p class="text-gray-600">{formatClientNumber(selectedClient.clientNumber)}</p>
-              </div>
-            </div>
-            
-            <!-- Details Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Client Information -->
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6">
+              <h3 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                <svg class="w-6 h-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                Client Information
+              </h3>
               <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">CIN</label>
-                  <p class="text-gray-900">{selectedClient.cin || 'N/A'}</p>
+                <div class="flex justify-between items-center py-3 border-b border-blue-100">
+                  <span class="text-gray-600 font-medium">Full Name</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.fullName}</span>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Worker Number</label>
-                  <p class="text-gray-900">{selectedClient.workerNumber || 'N/A'}</p>
+                <div class="flex justify-between items-center py-3 border-b border-blue-100">
+                  <span class="text-gray-600 font-medium">CIN</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.cin || 'N/A'}</span>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <p class="text-gray-900">{selectedClient.phone || 'N/A'}</p>
+                <div class="flex justify-between items-center py-3 border-b border-blue-100">
+                  <span class="text-gray-600 font-medium">Worker Number</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.workerNumber || 'N/A'}</span>
                 </div>
-              </div>
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <p class="text-gray-900">{selectedClient.email || 'N/A'}</p>
+                <div class="flex justify-between items-center py-3 border-b border-blue-100">
+                  <span class="text-gray-600 font-medium">Client Number</span>
+                  <span class="text-gray-900 font-semibold">{formatClientNumber(selectedClient.clientNumber)}</span>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                  <p class="text-gray-900">{selectedClient.address || 'N/A'}</p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Workplace</label>
-                  <p class="text-gray-900">{workplaceDetails?.name || selectedClient.workplaceName || 'N/A'}</p>
+                <div class="flex justify-between items-center py-3">
+                  <span class="text-gray-600 font-medium">Phone</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.phone || 'N/A'}</span>
                 </div>
               </div>
             </div>
             
-            <!-- Actions -->
-            <div class="flex space-x-4 pt-6 border-t border-gray-200">
-              <button
-                on:click|stopPropagation={async (e) => {
-                  e.preventDefault();
-                  await viewFullDetails(selectedClient.id);
-                }}
-                class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!selectedClient?.id}
-              >
-                View Full Details
-              </button>
-              <button
-                on:click|stopPropagation={async (e) => {
-                  e.preventDefault();
-                  await createCession(selectedClient.id);
-                }}
-                class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!selectedClient?.id}
-              >
-                Create Cession
-              </button>
+            <!-- Additional Information -->
+            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6">
+              <h3 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                <svg class="w-6 h-6 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Additional Information
+              </h3>
+              <div class="space-y-4">
+                <div class="flex justify-between items-center py-3 border-b border-purple-100">
+                  <span class="text-gray-600 font-medium">Email</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.email || 'N/A'}</span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-purple-100">
+                  <span class="text-gray-600 font-medium">Address</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.address || 'N/A'}</span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-purple-100">
+                  <span class="text-gray-600 font-medium">Workplace</span>
+                  <span class="text-gray-900 font-semibold">{workplaceDetails?.name || selectedClient.workplaceName || 'N/A'}</span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-purple-100">
+                  <span class="text-gray-600 font-medium">Status</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    🟢 Active
+                  </span>
+                </div>
+                <div class="flex justify-between items-center py-3">
+                  <span class="text-gray-600 font-medium">Active Cessions</span>
+                  <span class="text-2xl font-bold text-purple-600">{hasActiveCessions(selectedClient.id) ? '1' : '0'}</span>
+                </div>
+              </div>
             </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="mt-8 flex justify-end space-x-4" class:space-x-reverse={isRTL}>
+            <button
+              on:click|stopPropagation={async (e) => {
+                e.preventDefault();
+                closeClientDetails();
+              }}
+              class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+            >
+              Close
+            </button>
+            <button
+              on:click|stopPropagation={async (e) => {
+                e.preventDefault();
+                await createCession(selectedClient.id);
+              }}
+              class="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+            >
+              Create Cession
+            </button>
           </div>
         </div>
       </div>
