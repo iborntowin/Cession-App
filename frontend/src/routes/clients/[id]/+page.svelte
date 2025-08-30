@@ -2,7 +2,7 @@
   // @ts-nocheck
   import { page } from '$app/stores';
   import { documentsApi, jobsApi, workplacesApi } from '$lib/api';
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, onDestroy } from 'svelte';
   import { showToast } from '$lib/toast';
   import { browser } from '$app/environment';
   import { get } from 'svelte/store';
@@ -12,7 +12,7 @@
   import { cubicOut } from 'svelte/easing';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
-  import { clientsApi, cessionsApi } from '$lib/api';
+  import { clientsApi, cessionsApi, paymentsApi } from '$lib/api';
   import { t } from '$lib/i18n';
   import { format } from 'date-fns';
   import { config } from '$lib/config';
@@ -46,6 +46,47 @@
   let showDocumentModal = false;
   let currentDocumentUrl = '';
   let currentDocumentTitle = '';
+
+  // Cession selection UI state for referral certificate
+  let cessionOptions = [];
+  let selectedCessionIndex = 0; // index in cessions for primary cession
+  let includeSecondCession = false;
+  let selectedSecondCessionIndex = null; // index in cessions for secondary cession
+  let includeThirdCession = false;
+  let selectedThirdCessionIndex = null;
+  let liveMessage = '';
+
+  // Keyboard shortcut handler toggles for faster UX (1 = primary, 2 = second, 3 = third)
+  function remainingForCession(c) {
+    if (!c) return 0;
+    const a = Number(c.totalLoanAmount || 0);
+    const d = Number(c.deduction || 0);
+    const rem = Math.max(0, Math.round((a - d) * 1000) / 1000);
+    return rem.toFixed(3);
+  }
+
+  async function handleHotkeySelection(e) {
+    if (!showDocumentSection || selectedDocumentType !== 'شهادة في إحالة' || !cessions || cessions.length === 0) return;
+    if (e.key === '1') {
+      selectedCessionIndex = 0;
+      await fillCessionIntoForm(0, '1');
+    }
+    if (e.key === '2') {
+      // enable/include second if available
+      if (cessions.length >= 2) {
+        includeSecondCession = true;
+        selectedSecondCessionIndex = 1;
+        await fillCessionIntoForm(1, '2');
+      }
+    }
+    if (e.key === '3') {
+      if (cessions.length >= 3) {
+        includeThirdCession = true;
+        selectedThirdCessionIndex = 2;
+        await fillCessionIntoForm(2, '3');
+      }
+    }
+  }
 
   // Document templates configuration
   const documentTemplates = {
@@ -94,18 +135,14 @@
     'شهادة في إحالة': {
       template: 'شهادة في إحالة',
       fields: {
-        printingDate: { type: 'date', label: 'التاريخ', required: true, autocomplete: true, default: new Date().toISOString().split('T')[0] },
-        issuer_name: { type: 'text', label: 'اسم الممضي', required: true, autocomplete: true, default: 'مسر المعاوي' },
-        issuer_place: { type: 'text', label: 'مكان الممضي', required: true, autocomplete: true, default: 'منزل بورقيبة' },
-        issuer_business: { type: 'text', label: 'نشاط المزود', required: true, autocomplete: true, default: 'بيع الأجهزة الالكترونية' },
-        issuer_address: { type: 'text', label: 'عنوان المزود', required: true, autocomplete: true, default: 'شارع الاستقلال منزل بورقيبة' },
-        issuer_tax_id: { type: 'text', label: 'المعرف الجبائي', required: true, autocomplete: true, default: '1851501J/N/C/000' },
+  // issuer fields intentionally removed from user-editable form; defaults supplied by generator
 
         client_name: { type: 'text', label: 'اسم صاحب الإحالة', required: true, autocomplete: true, default: client?.fullName || 'زياد الناصري' },
         client_cin: { type: 'text', label: 'رقم بطاقة التعريف', required: true, autocomplete: true, default: client?.cin || '01585987' },
 
-        cession1_number: { type: 'text', label: 'رقم الإحالة 1', required: true, autocomplete: true, default: '68/16659' },
-        cession1_date: { type: 'date', label: 'تاريخ الإحالة 1', required: true, autocomplete: true, default: '2025-05-21' },
+  'الدفتر': { type: 'text', label: 'الدفتر', required: true, autocomplete: true, default: '' },
+  'الصفحة': { type: 'text', label: 'الصفحة', required: true, autocomplete: true, default: '' },
+  cession1_date: { type: 'date', label: 'تاريخ الإحالة 1', required: true, autocomplete: true, default: '2025-05-21' },
         cession1_amount: { type: 'text', label: 'مبلغ الإحالة 1 (جملي)', required: true, autocomplete: true, default: '2160.000' },
         cession1_monthly: { type: 'text', label: 'قسط شهري 1', required: true, autocomplete: true, default: '120.000' },
         cession1_deduction: { type: 'text', label: 'مبلغ المقتطَع 1', required: true, autocomplete: true, default: '240.000' },
@@ -116,7 +153,13 @@
         cession2_monthly: { type: 'text', label: 'قسط شهري 2', required: true, autocomplete: true, default: '80.000' },
         cession2_deduction: { type: 'text', label: 'مبلغ المقتطَع 2', required: true, autocomplete: true, default: '160.000' },
 
-        total_debt: { type: 'text', label: 'جملة الدين', required: true, autocomplete: true, default: '3200.000' },
+  cession3_number: { type: 'text', label: 'رقم الإحالة 3', required: false, autocomplete: true, default: '' },
+  cession3_date: { type: 'date', label: 'تاريخ الإحالة 3', required: false, autocomplete: true, default: '' },
+  cession3_amount: { type: 'text', label: 'مبلغ الإحالة 3 (جملي)', required: false, autocomplete: true, default: '' },
+  cession3_monthly: { type: 'text', label: 'قسط شهري 3', required: false, autocomplete: true, default: '' },
+  cession3_deduction: { type: 'text', label: 'مبلغ المقتطَع 3', required: false, autocomplete: true, default: '' },
+
+  total_debt: { type: 'text', label: 'جملة الدين', required: true, autocomplete: true, default: '' },
         bank_account: { type: 'text', label: 'رقم الحساب البنكي', required: true, autocomplete: true, default: '10201015090725478840' },
         court_reference: { type: 'text', label: 'مرجع المحكمة', required: false, autocomplete: true, default: 'منزل بورقيبة' }
       }
@@ -140,6 +183,13 @@
     
     // Ensure browser-only code runs after component is mounted
     await tick();
+
+    // Register global hotkeys for quick cession selection when document panel is open
+    window.addEventListener('keydown', handleHotkeySelection);
+  });
+
+  onDestroy(() => {
+    try { window.removeEventListener('keydown', handleHotkeySelection); } catch (e) {}
   });
 
   async function loadCessions() {
@@ -210,7 +260,7 @@
     }
   }
 
-  function selectDocumentType(type) {
+  async function selectDocumentType(type) {
     selectedDocumentType = type;
     documentFormData = {};
     
@@ -224,7 +274,159 @@
         }
       });
     }
+
+    // If selecting referral certificate and cessions are available, prepare cession options and prefill
+    if (type === 'شهادة في إحالة') {
+      cessionOptions = (cessions || []).map((c, i) => ({
+        index: i,
+        label: `${c.number || c.reference || ('الإحالة ' + (i+1))} - ${formatDate(c.startDate)}`
+      }));
+
+      // Autofill with the most recent cession if present
+      if (cessions && cessions.length > 0) {
+  selectedCessionIndex = 0;
+  await fillCessionIntoForm(0, '1');
+
+  // If there are 2 or more, auto-include and fill the second
+          if (cessions.length >= 2) {
+          includeSecondCession = true;
+          selectedSecondCessionIndex = 1;
+          await fillCessionIntoForm(1, '2');
+          liveMessage = `الإحالة الأساسية: ${cessionOptions[selectedCessionIndex]?.label}، والإحالة الثانية مفعلة تلقائياً.`;
+        } else {
+          includeSecondCession = false;
+          selectedSecondCessionIndex = null;
+          // Clear any template defaults for cession2
+          delete documentFormData.cession2_number;
+          delete documentFormData.cession2_date;
+          delete documentFormData.cession2_amount;
+          delete documentFormData.cession2_monthly;
+          delete documentFormData.cession2_deduction;
+        }
+
+        // If there are 3 or more, auto-include and fill the third
+        if (cessions.length >= 3) {
+          includeThirdCession = true;
+          selectedThirdCessionIndex = 2;
+          await fillCessionIntoForm(2, '3');
+          liveMessage = `تم تفعيل ملء الإحالات تلقائياً.`;
+        } else {
+          includeThirdCession = false;
+          selectedThirdCessionIndex = null;
+          // Clear any template defaults for cession3
+          delete documentFormData.cession3_number;
+          delete documentFormData.cession3_date;
+          delete documentFormData.cession3_amount;
+          delete documentFormData.cession3_monthly;
+          delete documentFormData.cession3_deduction;
+        }
+      }
+    }
   }
+
+  async function fillCessionIntoForm(index, target = '1') {
+    const c = cessions[index];
+    if (!c) return;
+    const number = c.number || c.reference || c.registerNumber || (`${c.id}`);
+    const dateIso = c.startDate ? (new Date(c.startDate).toISOString().split('T')[0]) : '';
+    const amount = (typeof c.totalLoanAmount === 'number') ? c.totalLoanAmount.toFixed(3) : (c.totalLoanAmount || '0');
+    const monthly = (typeof c.monthlyPayment === 'number') ? c.monthlyPayment.toFixed(3) : (c.monthlyPayment || '0');
+
+    // Try to compute actual paid amount by summing payments for this cession
+    let paidSum = null;
+    try {
+      if (c && c.id) {
+        const res = await paymentsApi.getCessionPayments(c.id);
+        if (res && res.success && Array.isArray(res.data)) {
+          // sum amounts of payments that are confirmed (if status exists)
+          paidSum = res.data.reduce((acc, p) => {
+            const amt = Number(p.amount || p.paidAmount || p.paid_amount || 0) || 0;
+            // Accept only payments that look final; if there's a status field prefer 'COMPLETED' or 'PAID'
+            if (p.status && typeof p.status === 'string') {
+              const st = p.status.toLowerCase();
+              if (st === 'completed' || st === 'paid' || st === 'success') return acc + amt;
+              return acc;
+            }
+            return acc + amt;
+          }, 0);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch cession payments, falling back to c.deduction if available', err);
+      paidSum = null;
+    }
+
+    // Fallback to c.deduction when API didn't return payments
+    let deduct = null;
+    if (paidSum != null && !isNaN(paidSum)) {
+      deduct = paidSum.toFixed(3);
+    } else {
+      deduct = (typeof c.deduction === 'number') ? c.deduction.toFixed(3) : (c.deduction || '0');
+    }
+
+    if (target === '1') {
+  // Do NOT autofill 'الدفتر' or 'الصفحة' — the user will enter them manually
+      updateFormField('cession1_date', dateIso);
+      updateFormField('cession1_amount', amount);
+      updateFormField('cession1_monthly', monthly);
+      updateFormField('cession1_deduction', deduct);
+      liveMessage = `الإحالة الأساسية محددة: ${number}، المبلغ ${amount} د.`;
+  // Recompute total debt (will be managed by reactive updater)
+    } else if (target === '2') {
+      updateFormField('cession2_number', number);
+      updateFormField('cession2_date', dateIso);
+      updateFormField('cession2_amount', amount);
+      updateFormField('cession2_monthly', monthly);
+      updateFormField('cession2_deduction', deduct);
+      liveMessage = `الإحالة الثانية محددة: ${number}، المبلغ ${amount} د.`;
+    } else if (target === '3') {
+      updateFormField('cession3_number', number);
+      updateFormField('cession3_date', dateIso);
+      updateFormField('cession3_amount', amount);
+      updateFormField('cession3_monthly', monthly);
+      updateFormField('cession3_deduction', deduct);
+      liveMessage = `الإحالة الثالثة محددة: ${number}، المبلغ ${amount} د.`;
+      // Recompute handled reactively
+    }
+  }
+  function parseNumeric(v) {
+    if (v === null || v === undefined) return 0;
+    const s = String(v).trim();
+    const n = Number(s.replace(/[^0-9.-]+/g, ''));
+    return isNaN(n) ? 0 : n;
+  }
+
+  function computeTotalValue(form = documentFormData, include2 = includeSecondCession, include3 = includeThirdCession) {
+    const a1 = parseNumeric(form.cession1_amount);
+    const d1 = parseNumeric(form.cession1_deduction);
+    const r1 = Math.max(0, a1 - d1);
+
+    let total = r1;
+    if (include2) {
+      const a2 = parseNumeric(form.cession2_amount);
+      const d2 = parseNumeric(form.cession2_deduction);
+      total += Math.max(0, a2 - d2);
+    }
+    if (include3) {
+      const a3 = parseNumeric(form.cession3_amount);
+      const d3 = parseNumeric(form.cession3_deduction);
+      total += Math.max(0, a3 - d3);
+    }
+    const rounded = Math.max(0, Math.round(total * 1000) / 1000);
+    return rounded.toFixed(3);
+  }
+
+  // Reactive updater: recompute total_debt whenever relevant fields or include flags change
+  $: if (selectedDocumentType === 'شهادة في إحالة') {
+    // reference the fields so Svelte tracks them
+    const computed = computeTotalValue(documentFormData, includeSecondCession, includeThirdCession);
+    if (documentFormData.total_debt !== computed) {
+      updateFormField('total_debt', computed);
+    }
+  }
+
+  // extended support for third cession
+  // append handling for target '3'
 
   function updateFormField(field, value) {
     documentFormData = { ...documentFormData, [field]: value };
@@ -275,11 +477,50 @@
         printingDate: format(new Date(), 'dd/MM/yyyy')
       };
 
-      // Add cession data if available
-      if (cessions.length > 0) {
-        const latestCession = cessions[0]; // Get the most recent cession
-        pdfData.cessionTotalValue = latestCession.totalLoanAmount?.toString() || '';
-        pdfData.cessionMonthlyValue = latestCession.monthlyPayment?.toString() || '';
+      // Add cession data based on user selection when generating referral certificate
+      if (selectedDocumentType === 'شهادة في إحالة') {
+        if (cessions && cessions.length > 0) {
+          const primary = cessions[selectedCessionIndex] || cessions[0];
+
+          // Ensure deductions have been computed via fillCessionIntoForm (which may fetch payments)
+          if (primary) await fillCessionIntoForm(selectedCessionIndex, '1');
+          if (includeSecondCession && selectedSecondCessionIndex != null) await fillCessionIntoForm(selectedSecondCessionIndex, '2');
+          if (includeThirdCession && selectedThirdCessionIndex != null) await fillCessionIntoForm(selectedThirdCessionIndex, '3');
+
+          pdfData.cession1_number = documentFormData.cession1_number || primary?.number || primary?.reference || '';
+          pdfData.cession1_date = documentFormData.cession1_date || (primary?.startDate ? new Date(primary.startDate).toISOString().split('T')[0] : '');
+          pdfData.cession1_amount = documentFormData.cession1_amount || ((primary?.totalLoanAmount != null) ? primary.totalLoanAmount.toFixed(3) : (primary?.totalLoanAmount || '0'));
+          pdfData.cession1_monthly = documentFormData.cession1_monthly || ((primary?.monthlyPayment != null) ? primary.monthlyPayment.toFixed(3) : (primary?.monthlyPayment || '0'));
+          pdfData.cession1_deduction = documentFormData.cession1_deduction || ((primary?.deduction != null) ? primary.deduction.toFixed(3) : (primary?.deduction || '0'));
+
+          if (includeSecondCession && selectedSecondCessionIndex != null) {
+            const secondary = cessions[selectedSecondCessionIndex];
+            if (secondary) {
+              pdfData.cession2_number = documentFormData.cession2_number || secondary?.number || secondary?.reference || '';
+              pdfData.cession2_date = documentFormData.cession2_date || (secondary?.startDate ? new Date(secondary.startDate).toISOString().split('T')[0] : '');
+              pdfData.cession2_amount = documentFormData.cession2_amount || ((secondary?.totalLoanAmount != null) ? secondary.totalLoanAmount.toFixed(3) : (secondary?.totalLoanAmount || '0'));
+              pdfData.cession2_monthly = documentFormData.cession2_monthly || ((secondary?.monthlyPayment != null) ? secondary.monthlyPayment.toFixed(3) : (secondary?.monthlyPayment || '0'));
+              pdfData.cession2_deduction = documentFormData.cession2_deduction || ((secondary?.deduction != null) ? secondary.deduction.toFixed(3) : (secondary?.deduction || '0'));
+            }
+          }
+          if (includeThirdCession && selectedThirdCessionIndex != null) {
+            const third = cessions[selectedThirdCessionIndex];
+            if (third) {
+              pdfData.cession3_number = documentFormData.cession3_number || third?.number || third?.reference || '';
+              pdfData.cession3_date = documentFormData.cession3_date || (third?.startDate ? new Date(third.startDate).toISOString().split('T')[0] : '');
+              pdfData.cession3_amount = documentFormData.cession3_amount || ((third?.totalLoanAmount != null) ? third.totalLoanAmount.toFixed(3) : (third?.totalLoanAmount || '0'));
+              pdfData.cession3_monthly = documentFormData.cession3_monthly || ((third?.monthlyPayment != null) ? third.monthlyPayment.toFixed(3) : (third?.monthlyPayment || '0'));
+              pdfData.cession3_deduction = documentFormData.cession3_deduction || ((third?.deduction != null) ? third.deduction.toFixed(3) : (third?.deduction || '0'));
+            }
+          }
+        }
+      } else {
+        // Non-referral documents: keep previous behavior (use latest cession if any)
+        if (cessions.length > 0) {
+          const latestCession = cessions[0]; // Get the most recent cession
+          pdfData.cessionTotalValue = latestCession.totalLoanAmount?.toString() || '';
+          pdfData.cessionMonthlyValue = latestCession.monthlyPayment?.toString() || '';
+        }
       }
 
       // Add issuer data (hardcoded for now, could be made configurable)
@@ -409,81 +650,171 @@
 
     const wrapLtr = (s) => `<span dir="ltr" style="unicode-bidi:isolate">${escapeHtml(s)}</span>`;
 
+    function formatDDMMYYYY(dateString) {
+      if (!dateString) return '';
+      const s = String(dateString).trim();
+      const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); // ISO
+      if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+      const mm = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (mm) {
+        const dd = mm[1].padStart(2, '0');
+        const mon = mm[2].padStart(2, '0');
+        let yy = mm[3];
+        if (yy.length === 2) yy = '20' + yy;
+        return `${dd}/${mon}/${yy}`;
+      }
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('ar-TN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+      return s;
+    }
+
+    function formatNum(n) {
+      if (n === null || n === undefined || n === '') return '';
+      const num = Number(String(n).replace(/[^0-9.-]+/g, '')) || 0;
+      return num.toFixed(3);
+    }
+
     function numberToArabicWords(n) {
-      n = Math.round(n);
+      // Produce Arabic words for integers from 0 up to 9999 (inclusive).
+      // Returns a grammatically sensible phrase using unit-before-ten order
+      // (e.g., "ستة وثلاثون") and correct thousand/hundred forms.
+      n = Math.floor(Number(n) || 0);
       if (n === 0) return 'صفر';
-      const units = ['', 'واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
-      const tens = ['', 'عشرة','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+      if (n < 0) return 'سالب ' + numberToArabicWords(Math.abs(n));
+
+      const units = {1:'واحد',2:'اثنان',3:'ثلاثة',4:'أربعة',5:'خمسة',6:'ستة',7:'سبعة',8:'ثمانية',9:'تسعة'};
+      const tens = {2:'عشرون',3:'ثلاثون',4:'أربعون',5:'خمسون',6:'ستون',7:'سبعون',8:'ثمانون',9:'تسعون'};
       const teens = {11:'أحد عشر',12:'اثنا عشر',13:'ثلاثة عشر',14:'أربعة عشر',15:'خمسة عشر',16:'ستة عشر',17:'سبعة عشر',18:'ثمانية عشر',19:'تسعة عشر'};
       const hundreds = {1:'مائة',2:'مئتان',3:'ثلاثمائة',4:'أربعمائة',5:'خمسمائة',6:'ستمائة',7:'سبعمائة',8:'ثمانمائة',9:'تسعمائة'};
 
-      let parts = [];
-      if (n >= 1000) {
-        const th = Math.floor(n / 1000);
+      const parts = [];
+
+      // Thousands (1..9 for our 0..9999 range)
+      const th = Math.floor(n / 1000);
+      if (th > 0) {
         if (th === 1) parts.push('ألف');
         else if (th === 2) parts.push('ألفان');
-        else if (th <= 10) parts.push((units[th] || th) + ' آلاف');
-        else parts.push(th + ' ألف');
+        else if (th >= 3 && th <= 10) parts.push(numberToArabicWords(th) + ' آلاف');
+        else parts.push(numberToArabicWords(th) + ' ألف');
         n = n % 1000;
       }
-      if (n >= 100) {
-        const h = Math.floor(n / 100);
+
+      // Hundreds (100..900)
+      const h = Math.floor(n / 100);
+      if (h > 0) {
         if (hundreds[h]) parts.push(hundreds[h]);
-        else parts.push((h) + 'مائة');
+        else parts.push(numberToArabicWords(h) + 'مائة');
         n = n % 100;
       }
+
+      // Tens and units
       if (n >= 11 && n <= 19) {
         parts.push(teens[n]);
-        n = 0;
-      }
-      if (n >= 20) {
+      } else if (n === 10) {
+        parts.push('عشرة');
+      } else if (n >= 20) {
         const t = Math.floor(n / 10);
-        if (tens[t]) parts.push(tens[t]);
         const u = n % 10;
-        if (u) parts.push(units[u]);
-        n = 0;
+        if (u === 0) {
+          parts.push(tens[t]);
+        } else {
+          // unit before ten: 'ستة و ثلاثون'
+          parts.push(units[u] + ' و ' + tens[t]);
+        }
+      } else if (n > 0 && n < 10) {
+        parts.push(units[n]);
       }
-      if (n > 0 && n < 10) parts.push(units[n]);
+
       return parts.join(' و ');
     }
 
-    const printingDate = data.printingDate || new Date().toLocaleDateString('ar-TN');
-    const issuer = data.issuer_name || data.issuer || 'مسر المعاوي';
+  const printingDate = formatDDMMYYYY(data.printingDate || data.printingDate);
+  const issuer = data.issuer_name || data.issuer || data.issuerName || 'مسر المعاوي';
     const place = data.issuer_place || data.place || data.court_reference || 'منزل بورقيبة';
     const businessTitle = data.issuer_business || 'بيع الأجهزة الالكترونية';
     const businessAddress = data.issuer_address || 'شارع الاستقلال منزل بورقيبة';
     const taxId = data.issuer_tax_id || data.issuerTaxId || '1851501J/N/C/000';
 
     const clientName = data.client_name || data.fullName || '';
-    const clientCIN = data.client_cin || data.nationalId || data.client_cin || '';
-    const clientCINIssued = data.client_cin_issued || '24/12/2020';
-    const workerNumber = data.workerNumber || data.client_worker_number || '';
+    const clientCIN = data.client_cin || data.nationalId || '';
+    const clientCINIssued = data.client_cin_issued || '';
+    const workerNumber = data.workerNumber || data.client_worker_number || (data.workerNumber || '');
 
-    const c1num = data.cession1_number || '';
-    const c1date = data.cession1_date || '';
-    const c1amount = parseFloat((data.cession1_amount || '0').toString()) || 0;
-    const c1monthly = parseFloat((data.cession1_monthly || '0').toString()) || 0;
-    const c1deduct = parseFloat((data.cession1_deduction || '0').toString()) || 0;
+  const c1num = data.cession1_number || '';
+  const c1date = data.cession1_date || '';
+  const c1amount = data.cession1_amount ? parseFloat(String(data.cession1_amount)) || 0 : 0;
+  const c1monthly = data.cession1_monthly ? parseFloat(String(data.cession1_monthly)) || 0 : 0;
+  const c1deduct = data.cession1_deduction ? parseFloat(String(data.cession1_deduction)) || 0 : 0;
 
-    const c2num = data.cession2_number || '';
-    const c2date = data.cession2_date || '';
-    const c2amount = parseFloat((data.cession2_amount || '0').toString()) || 0;
-    const c2monthly = parseFloat((data.cession2_monthly || '0').toString()) || 0;
-    const c2deduct = parseFloat((data.cession2_deduction || '0').toString()) || 0;
+  // Use cession1_number primarily; if both دفتر and صفحة are provided, prefer 'دفتر/صفحة'
+  const c1daftr = data['الدفتر'] || data.daftr || '';
+  const c1safha = data['الصفحة'] || data.safha || '';
+  const c1UnderNumber = (c1daftr && c1safha) ? `${c1daftr}/${c1safha}` : (c1num || '');
 
-    const totalDebt = parseFloat((data.total_debt || data.totalDebt || (c1amount + c2amount)).toString()) || 0;
-    const bankAccount = data.bank_account || data.bankAccount || '';
+  const c2num = data.cession2_number || '';
+  const c2date = data.cession2_date || '';
+  const c2amount = data.cession2_amount ? parseFloat(String(data.cession2_amount)) || 0 : 0;
+  const c2monthly = data.cession2_monthly ? parseFloat(String(data.cession2_monthly)) || 0 : 0;
+  const c2deduct = data.cession2_deduction ? parseFloat(String(data.cession2_deduction)) || 0 : 0;
 
-    const c1remaining = Math.max(0, Math.round((c1amount - c1deduct) * 1000) / 1000);
-    const c2remaining = Math.max(0, Math.round((c2amount - c2deduct) * 1000) / 1000);
+  const c3num = data.cession3_number || '';
+  const c3date = data.cession3_date || '';
+  const c3amount = data.cession3_amount ? parseFloat(String(data.cession3_amount)) || 0 : 0;
+  const c3monthly = data.cession3_monthly ? parseFloat(String(data.cession3_monthly)) || 0 : 0;
+  const c3deduct = data.cession3_deduction ? parseFloat(String(data.cession3_deduction)) || 0 : 0;
+
+  const c1remaining = Math.max(0, Math.round((c1amount - c1deduct) * 1000) / 1000);
+  const c2remaining = Math.max(0, Math.round((c2amount - c2deduct) * 1000) / 1000);
+  const c3remaining = Math.max(0, Math.round((c3amount - c3deduct) * 1000) / 1000);
+
+  // Compute total debt: prefer explicit user-provided `total_debt`, otherwise sum remaining amounts (after deductions)
+  const explicitTotal = (typeof data.total_debt === 'number') || (data.total_debt && !isNaN(parseFloat(data.total_debt)));
+  const totalRemaining = Math.max(0, Math.round((c1remaining + c2remaining + c3remaining) * 1000) / 1000);
+  const totalDebt = explicitTotal ? parseFloat(data.total_debt) : totalRemaining;
+  const bankAccount = data.bank_account || data.bankAccount || '';
 
     const paraIntro = `إني الممضي أسفله ${escapeHtml(issuer)} صاحب بطاقة تعريف وطنية عدد ${wrapLtr(clientCIN)} الصادرة بتونس في ${wrapLtr(clientCINIssued)} صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي ${wrapLtr(taxId)}`;
 
-    const paraC1 = `أما الإحالة على الأجر المسجلة بمحكمة الناحية بمنزل بورقيبة تحت عدد ${escapeHtml(c1num)} بتاريخ ${escapeHtml(c1date)} لصاحب(ت) ها السيد(ة) ${escapeHtml(clientName)} معرف (ها) الوحيد ${wrapLtr(workerNumber)} و المضمنة لمبلغ جملي قدره ${numberToArabicWords(c1amount)} دينارا (${wrapLtr(c1amount.toFixed(3))} د) بحساب ${wrapLtr(String(c1monthly))}د شهريا حيث تم خصم مبلغ قدره ${numberToArabicWords(c1deduct)} دينارًا (${wrapLtr(c1deduct.toFixed(3))}د) إلى موفى شهر جويلية 2025  من الأمانة العامة للمصاريف و بالتالي بقي منها مبلغا جمليا قدره ${numberToArabicWords(c1remaining)} دينارا (${wrapLtr(c1remaining.toFixed(3))}د).`;
+    // Robust parsing for printingDate to avoid 'Invalid Date' and use fixed month names
+    function parseDateForMonth(ds) {
+      if (!ds) return new Date();
+      const s = String(ds).trim();
+      // ISO yyyy-mm-dd
+      const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (iso) return new Date(`${iso[1]}-${iso[2]}-${iso[3]}`);
+      // dd/mm/yyyy or dd-mm-yyyy
+      const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (dmy) {
+        let dd = dmy[1].padStart(2, '0');
+        let mm = dmy[2].padStart(2, '0');
+        let yy = dmy[3];
+        if (yy.length === 2) yy = '20' + yy;
+        return new Date(`${yy}-${mm}-${dd}`);
+      }
+      // Fallback to Date parser, if invalid return now
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d;
+      return new Date();
+    }
 
-    const paraC2 = `أما الإحالة على الأجر المسجلة بمحكمة الناحية بمنزل بورقيبة تحت عدد ${escapeHtml(c2num)} بتاريخ ${escapeHtml(c2date)} لصاحب(ت) ها السيد(ة) ${escapeHtml(clientName)} معرف (ها) الوحيد ${wrapLtr(workerNumber)} و المضمنة لمبلغ جملي قدره ${numberToArabicWords(c2amount)} دينارا (${wrapLtr(c2amount.toFixed(3))} د) بحساب ${wrapLtr(String(c2monthly))}د شهريا حيث تم خصم مبلغ قدره ${numberToArabicWords(c2deduct)} دينارًا (${wrapLtr(c2deduct.toFixed(3))}د) إلى موفى شهر جويلية 2025  من الأمانة العامة للمصاريف و بالتالي بقي منها مبلغا جمليا قدره ${numberToArabicWords(c2remaining)} دينارا (${wrapLtr(c2remaining.toFixed(3))}د).`;
+    // Tunisian-style Arabic month names; July explicitly 'جويلية'
+    const arabicMonthNames = [
+      'جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
 
-    const paraTotal = `جملة الدين المتخلد بذمته هو ${numberToArabicWords(totalDebt)} دينارا (${wrapLtr(totalDebt.toFixed(3))}د).`;
+    const endDateForDeduction = parseDateForMonth(data.printingDate);
+    const endMonthName = arabicMonthNames[endDateForDeduction.getMonth()] || endDateForDeduction.toLocaleDateString('ar-TN', { month: 'long' });
+    const endYear = endDateForDeduction.getFullYear();
+
+  const paraC1 = `أما الإحالة على الأجر المسجلة بمحكمة الناحية بمنزل بورقيبة تحت عدد ${escapeHtml(c1UnderNumber)} بتاريخ ${wrapLtr(formatDDMMYYYY(c1date))} لصاحب(ت)ها السيد(ة) ${escapeHtml(clientName)} معرفه الوحيد ${wrapLtr(workerNumber)} والمضمنة لمبلغ جملي قدره ${numberToArabicWords(c1amount)} دينارا (${wrapLtr(formatNum(c1amount))} د) بحساب ${wrapLtr(formatNum(c1monthly))} د شهريا حيث تم خصم مبلغ قدره ${numberToArabicWords(c1deduct)} دينارًا (${wrapLtr(formatNum(c1deduct))} د) إلى موفى شهر ${escapeHtml(endMonthName)} ${wrapLtr(endYear)} من الأمانة العامة للمصاريف وبالتالي بقي منها مبلغا جمليا قدره ${numberToArabicWords(c1remaining)} دينارا (${wrapLtr(formatNum(c1remaining))} د).`;
+
+  const paraC2 = c2amount > 0 ? `أما الإحالة على الأجر المسجلة بمحكمة الناحية بمنزل بورقيبة تحت عدد ${escapeHtml(c2num)} بتاريخ ${wrapLtr(formatDDMMYYYY(c2date))} لصاحب(ت)ها السيد(ة) ${escapeHtml(clientName)} معرفه الوحيد ${wrapLtr(workerNumber)} والمضمنة لمبلغ جملي قدره ${numberToArabicWords(c2amount)} دينارا (${wrapLtr(formatNum(c2amount))} د) بحساب ${wrapLtr(formatNum(c2monthly))} د شهريا حيث تم خصم مبلغ قدره ${numberToArabicWords(c2deduct)} دينارًا (${wrapLtr(formatNum(c2deduct))} د) إلى موفى شهر ${escapeHtml(endMonthName)} ${wrapLtr(endYear)} من الأمانة العامة للمصاريف وبالتالي بقي منها مبلغا جمليا قدره ${numberToArabicWords(c2remaining)} دينارا (${wrapLtr(formatNum(c2remaining))} د).` : '';
+
+  const paraC3 = c3amount > 0 ? `أما الإحالة على الأجر المسجلة بمحكمة الناحية بمنزل بورقيبة تحت عدد ${escapeHtml(c3num)} بتاريخ ${wrapLtr(formatDDMMYYYY(c3date))} لصاحب(ت)ها السيد(ة) ${escapeHtml(clientName)} معرفه الوحيد ${wrapLtr(workerNumber)} والمضمنة لمبلغ جملي قدره ${numberToArabicWords(c3amount)} دينارا (${wrapLtr(formatNum(c3amount))} د) بحساب ${wrapLtr(formatNum(c3monthly))} د شهريا حيث تم خصم مبلغ قدره ${numberToArabicWords(c3deduct)} دينارًا (${wrapLtr(formatNum(c3deduct))} د) إلى موفى شهر ${escapeHtml(endMonthName)} ${wrapLtr(endYear)} من الأمانة العامة للمصاريف وبالتالي بقي منها مبلغا جمليا قدره ${numberToArabicWords(c3remaining)} دينارا (${wrapLtr(formatNum(c3remaining))} د).` : '';
+
+    const paraTotal = `جملة الدين المتخلد بذمته هو ${numberToArabicWords(totalDebt)} دينارا (${wrapLtr(formatNum(totalDebt))} د).`;
 
     return `
       <!DOCTYPE html>
@@ -520,7 +851,8 @@
 
           <div class="para">${paraIntro}</div>
           <div class="para">${paraC1}</div>
-          <div class="para">${paraC2}</div>
+          ${c2amount > 0 ? `<div class="para">${paraC2}</div>` : ''}
+          ${c3amount > 0 ? `<div class="para">${paraC3}</div>` : ''}
 
           <div class="para">${paraTotal}</div>
 
@@ -1014,6 +1346,9 @@
                       <div class="absolute top-0 left-0 w-12 h-12 border-4 border-purple-600 rounded-full animate-spin border-t-transparent"></div>
                     </div>
                   </div>
+
+                  <!-- ARIA live region for accessibility announcements -->
+                  <div aria-live="polite" class="sr-only">{liveMessage}</div>
                 {:else if cessions.length === 0}
                   <div class="text-center py-12">
                     <div class="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
@@ -1141,7 +1476,229 @@
                   <h3 class="text-lg font-medium text-gray-900 mb-4">{selectedDocumentType}</h3>
                   
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {#each Object.entries(documentTemplates[selectedDocumentType].fields) as [fieldKey, field]}
+                    {#if selectedDocumentType === 'شهادة في إحالة' && cessions.length > 0}
+                      <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">اختر الإحالة (اضغط على صندوق الإحالة)</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {#each cessions as c, i}
+                            <div
+                              role="button"
+                              tabindex="0"
+                              class="relative p-4 rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-200
+                                bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:scale-105
+                                focus:outline-none focus:ring-4 focus:ring-purple-200"
+                              class:selected={i === selectedCessionIndex}
+                              on:click={() => { selectedCessionIndex = i; fillCessionIntoForm(i, '1'); }}
+                              on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectedCessionIndex = i; fillCessionIntoForm(i, '1'); } }}
+                              aria-pressed={i === selectedCessionIndex}
+                              style="border-width:1px;"
+                            >
+                              <div class="absolute inset-y-0 left-0 w-2 rounded-l-2xl" style="background: linear-gradient(180deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95));"></div>
+                              <div class="relative pl-4">
+                                <div class="flex items-start justify-between">
+                                  <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-sm">
+                                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/></svg>
+                                    </div>
+                                    <div>
+                                      <div class="text-sm font-semibold text-gray-800">
+                                        {#if c.number}
+                                          {c.number}
+                                        {:else if c.reference}
+                                          {c.reference}
+                                        {:else}
+                                          الإحالة {i + 1}
+                                        {/if}
+                                      </div>
+                                      <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
+                                    </div>
+                                  </div>
+                                  <div class="flex items-center gap-2">
+                                    {#if i === selectedCessionIndex}
+                                      <div class="inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold">محدد</div>
+                                    {:else}
+                                      <div class="inline-flex items-center px-2 py-1 rounded-full bg-gray-50 text-gray-600 text-xs">اضغط لتحديد</div>
+                                    {/if}
+                                  </div>
+                                </div>
+
+                                <div class="mt-4 flex items-end justify-between gap-4">
+                                  <div>
+                                    <div class="text-2xl font-extrabold text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</div>
+                                    <div class="text-sm text-gray-500 mt-1">المبلغ الجملي</div>
+                                  </div>
+                                  <div class="text-right">
+                                    <div class="text-sm text-gray-600">القسط الشهري</div>
+                                    <div class="text-lg font-semibold text-gray-800 mt-1" dir="ltr">{formatCurrency(c.monthlyPayment)}</div>
+                                  </div>
+                                </div>
+
+                                <div class="mt-3 flex items-center justify-between text-sm text-gray-600">
+                                  <div>المقتطَع: <span dir="ltr" class="font-medium">{formatCurrency(c.deduction)}</span></div>
+                                  <div>المتبقي: <span dir="ltr" class="font-medium text-indigo-700">{remainingForCession(c)} د</span></div>
+                                </div>
+                              </div>
+                              <div class="absolute top-3 right-3">
+                                <div class="w-8 h-8 rounded-full bg-white/60 flex items-center justify-center shadow-sm">
+                                  <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
+                                </div>
+                              </div>
+                              <!-- Keyboard hint -->
+                              {#if i < 3}
+                                <div class="absolute bottom-3 left-3 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded-md">مفتاح {i+1}</div>
+                              {/if}
+                            </div>
+                          {/each}
+                        </div>
+
+                        <div class="mt-3 flex items-center gap-3">
+                          <label class="flex items-center text-sm">
+                            <input type="checkbox" bind:checked={includeSecondCession} class="mr-2" /> تضمين إحالة ثانية
+                          </label>
+                          <div class="text-sm text-gray-500">يمكنك اختيار الإحالة الأساسية ثم اختيار إحالة ثانية من القائمة أدناه</div>
+                        </div>
+                      </div>
+
+                      {#if includeSecondCession}
+                        <div class="md:col-span-2">
+                          <label class="block text-sm font-medium text-gray-700 mb-2">اختر الإحالة الثانية</label>
+                          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {#each cessions as c, i}
+                              <div
+                                    role="button"
+                                    tabindex="0"
+                                    class="relative p-4 rounded-xl overflow-hidden cursor-pointer transform transition-all duration-200 bg-white border border-gray-100 shadow-sm hover:shadow-md hover:scale-102 focus:outline-none focus:ring-4 focus:ring-indigo-100"
+                                    on:click={() => { if (i !== selectedCessionIndex) { selectedSecondCessionIndex = i; fillCessionIntoForm(i, '2'); } }}
+                                    on:keydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && i !== selectedCessionIndex) { e.preventDefault(); selectedSecondCessionIndex = i; fillCessionIntoForm(i, '2'); } }}
+                                    aria-disabled={i === selectedCessionIndex}
+                                    style="border-width:1px;"
+                                  >
+                                    <div class="absolute inset-y-0 left-0 w-1 rounded-l-lg bg-indigo-500"></div>
+                                    <div class="relative pl-4">
+                                      <div class="flex items-start justify-between">
+                                        <div>
+                                          <div class="text-sm font-semibold text-gray-800">
+                                            {#if c.number}
+                                              {c.number}
+                                            {:else if c.reference}
+                                              {c.reference}
+                                            {:else}
+                                              الإحالة {i + 1}
+                                            {/if}
+                                          </div>
+                                          <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
+                                        </div>
+                                        <div class="text-xs text-gray-500">{i === selectedCessionIndex ? 'الإحالة الأساسية' : ''}</div>
+                                      </div>
+
+                                      <div class="mt-3 flex items-center justify-between">
+                                        <div class="text-sm text-gray-600">المبلغ الجملي</div>
+                                        <div class="text-sm font-semibold text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</div>
+                                      </div>
+                                      <div class="mt-1 flex items-center justify-between">
+                                        <div class="text-sm text-gray-600">القسط الشهري</div>
+                                        <div class="text-sm font-medium text-gray-800" dir="ltr">{formatCurrency(c.monthlyPayment)}</div>
+                                      </div>
+
+                                      <div class="mt-2 flex items-center justify-between text-sm text-gray-600">
+                                        <div>المقتطَع: <span dir="ltr" class="font-medium">{formatCurrency(c.deduction)}</span></div>
+                                        <div>المتبقي: <span dir="ltr" class="font-medium text-indigo-700">{remainingForCession(c)} د</span></div>
+                                      </div>
+                                    </div>
+                                    <div class="absolute top-2 right-2 text-green-600" aria-hidden>
+                                      {#if i === selectedSecondCessionIndex}
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                      {/if}
+                                    </div>
+                                    {#if i === selectedCessionIndex}
+                                      <div class="absolute inset-0 bg-white/70 flex items-center justify-center text-sm font-semibold text-gray-500">الإحالة الأساسية</div>
+                                    {/if}
+                                  </div>
+                            {/each}
+                          </div>
+                        </div>
+                      {/if}
+
+                      {#if includeThirdCession}
+                        <div class="md:col-span-2">
+                          <label class="block text-sm font-medium text-gray-700 mb-2">اختر الإحالة الثالثة</label>
+                          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {#each cessions as c, i}
+                              <div
+                                role="button"
+                                tabindex="0"
+                                class="relative p-3 rounded-lg border shadow-sm hover:shadow-md transition cursor-pointer flex flex-col focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                on:click={() => { if (i !== selectedCessionIndex && i !== selectedSecondCessionIndex) { selectedThirdCessionIndex = i; fillCessionIntoForm(i, '3'); } }}
+                                on:keydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && i !== selectedCessionIndex && i !== selectedSecondCessionIndex) { e.preventDefault(); selectedThirdCessionIndex = i; fillCessionIntoForm(i, '3'); } }}
+                                aria-disabled={i === selectedCessionIndex || i === selectedSecondCessionIndex}
+                                style="border-width:1px;"
+                              >
+                                <div class="flex justify-between items-start">
+                                    <div class="text-sm font-semibold text-gray-800">
+                                      {#if c.number}
+                                        {c.number}
+                                      {:else if c.reference}
+                                        {c.reference}
+                                      {:else}
+                                        الإحالة {i + 1}
+                                      {/if}
+                                    </div>
+                                    <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
+                                  </div>
+                                  <div class="mt-2 text-sm text-gray-700">المبلغ الجملي: <span dir="ltr" class="font-medium">{formatCurrency(c.totalLoanAmount)}</span></div>
+                                  <div class="text-sm text-gray-700">القسط الشهري: <span dir="ltr" class="font-medium">{formatCurrency(c.monthlyPayment)}</span></div>
+                                      <div class="absolute inset-y-0 left-0 w-1 rounded-l-lg bg-rose-500"></div>
+                                      <div class="relative pl-4">
+                                        <div class="flex items-start justify-between">
+                                          <div>
+                                            <div class="text-sm font-semibold text-gray-800">
+                                              {#if c.number}
+                                                {c.number}
+                                              {:else if c.reference}
+                                                {c.reference}
+                                              {:else}
+                                                الإحالة {i + 1}
+                                              {/if}
+                                            </div>
+                                            <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
+                                          </div>
+                                          <div class="text-sm text-gray-500">{i === selectedCessionIndex || i === selectedSecondCessionIndex ? 'مشغول' : ''}</div>
+                                        </div>
+
+                                        <div class="mt-3 flex items-center justify-between">
+                                          <div class="text-sm text-gray-600">المبلغ الجملي</div>
+                                          <div class="text-sm font-semibold text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</div>
+                                        </div>
+                                        <div class="mt-1 flex items-center justify-between">
+                                          <div class="text-sm text-gray-600">القسط الشهري</div>
+                                          <div class="text-sm font-medium text-gray-800" dir="ltr">{formatCurrency(c.monthlyPayment)}</div>
+                                        </div>
+
+                                        <div class="mt-2 flex items-center justify-between text-sm text-gray-600">
+                                          <div>المقتطَع: <span dir="ltr" class="font-medium">{formatCurrency(c.deduction)}</span></div>
+                                          <div>المتبقي: <span dir="ltr" class="font-medium text-indigo-700">{remainingForCession(c)} د</span></div>
+                                        </div>
+                                      </div>
+                                      <div class="absolute top-2 right-2 text-green-600" aria-hidden>
+                                        {#if i === selectedThirdCessionIndex}
+                                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        {/if}
+                                      </div>
+                                      {#if i === selectedCessionIndex || i === selectedSecondCessionIndex}
+                                        <div class="absolute inset-0 bg-white/70 flex items-center justify-center text-sm font-semibold text-gray-500">مشغول</div>
+                                      {/if}
+                                    </div>
+                            {/each}
+                          </div>
+                        </div>
+                      {/if}
+                    {/if}
+                    {#each Object.entries(documentTemplates[selectedDocumentType].fields).filter(([fieldKey]) => {
+                      // hide secondary/tertiary cession fields when not included or when client lacks them
+                      if (fieldKey.startsWith('cession2_') && (!includeSecondCession || (cessions && cessions.length < 2))) return false;
+                      if (fieldKey.startsWith('cession3_') && (!includeThirdCession || (cessions && cessions.length < 3))) return false;
+                      return true;
+                    }) as [fieldKey, field]}
                       <div class="md:col-span-{field.type === 'textarea' ? '2' : '1'}">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                           {field.label}
