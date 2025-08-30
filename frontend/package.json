@@ -49,6 +49,8 @@
     "@types/cookie": "^0.5.1",
     "chart.js": "^4.2.1",
     "date-fns": "^2.29.3",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.2",
     "sveltekit-i18n": "^2.4.2"
   }
 }

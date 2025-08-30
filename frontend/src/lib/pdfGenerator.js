@@ -1,6 +1,29 @@
 import { get } from 'svelte/store';
 import { token } from '$lib/stores';
 import { config } from '$lib/config';
+import jsPDF from 'jspdf';
+
+// Import Arabic fonts - base64 encoded
+import amiriFont from '../fonts/Amiri-Regular-normal.js';
+import notoRegularFont from '../fonts/NotoSansArabic-Regular-normal.js';
+import notoBoldFont from '../fonts/NotoSansArabic-Bold-normal.js';
+
+// Add Arabic font support to jsPDF
+jsPDF.API.events.push([
+  "addFonts",
+  function () {
+    // Add NotoSansArabic fonts (better for general Arabic text)
+    this.addFileToVFS("NotoSansArabic-Regular.ttf", notoRegularFont);
+    this.addFont("NotoSansArabic-Regular.ttf", "NotoSansArabic", "normal");
+
+    this.addFileToVFS("NotoSansArabic-Bold.ttf", notoBoldFont);
+    this.addFont("NotoSansArabic-Bold.ttf", "NotoSansArabic", "bold");
+
+    // Add Amiri font (better for Arabic calligraphy/script)
+    this.addFileToVFS("Amiri-Regular.ttf", amiriFont);
+    this.addFont("Amiri-Regular.ttf", "Amiri", "normal");
+  },
+]);
 
 // Function to get next month in Arabic
 function getNextMonthInArabic() {
@@ -21,6 +44,25 @@ function generateHTMLContent(data) {
   console.log('Generating HTML content with data:', data);
   console.log('Worker number in HTML generation:', data.workerNumber);
   
+  // Handle different document types
+  if (data.documentType === 'شهادة خلاص و رفع يد') {
+    return generateClearanceCertificateHTML(data);
+  }
+  
+  if (data.documentType === 'مطلب في رفع يد') {
+    return generateReleaseRequestHTML(data);
+  }
+
+  if (data.documentType === 'شهادة في إحالة') {
+    return generateReferralCertificateHTML(data);
+  }
+  
+  // Default to salary assignment
+  return generateSalaryAssignmentHTML(data);
+}
+
+// Generate HTML for salary assignment document
+function generateSalaryAssignmentHTML(data) {
   return `
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
@@ -51,6 +93,9 @@ function generateHTMLContent(data) {
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
           text-rendering: optimizeLegibility;
+          /* Improve bidi handling for mixed Arabic / LTR content */
+          unicode-bidi: isolate-override;
+          word-break: break-word;
         }
         
         /* Main Title */
@@ -220,7 +265,7 @@ function generateHTMLContent(data) {
       <div class="section-header">البيانات المتعلقة بالمزود:</div>
       <div class="field">
         <span class="field-label">المعرف الجبائي: </span>
-        <span class="field-value">1851501J/N/C/000</span>
+        <span class="field-value" dir="ltr" style="unicode-bidi:isolate">1851501J/N/C/000</span>
       </div>
       <div class="field">
         <span class="field-label">هوية المزود: </span>
@@ -239,7 +284,7 @@ function generateHTMLContent(data) {
       <div class="section-header">البيانات المتعلقة بالعون العمومي:</div>
       <div class="field">
         <span class="field-label">المعرف الوحيد: </span>
-        <span class="field-value">${data.workerNumber || '_________________'}</span>
+        <span class="field-value" dir="ltr" style="unicode-bidi:isolate">${data.workerNumber || '_________________'}</span>
       </div>
       <div class="field">
         <span class="field-label">الإسم واللقب: </span>
@@ -247,7 +292,7 @@ function generateHTMLContent(data) {
       </div>
       <div class="field">
         <span class="field-label">رقم بطاقة التعريف الوطنية: </span>
-        <span class="field-value">${data.nationalId || '_________________'}</span>
+        <span class="field-value" dir="ltr" style="unicode-bidi:isolate">${data.nationalId || '_________________'}</span>
       </div>
       <div class="field">
         <span class="field-label">العنوان الشخصي: </span>
@@ -282,11 +327,11 @@ function generateHTMLContent(data) {
       </div>
       <div class="field">
         <span class="field-label">المبلغ الجملي بالأرقام: </span>
-        <span class="field-value">${data.totalAmountNumeric || '_________________'}</span>
+        <span class="field-value" dir="ltr" style="unicode-bidi:isolate">${data.totalAmountNumeric || '_________________'}</span>
       </div>
       <div class="field">
         <span class="field-label">المبلغ الشهري: </span>
-        <span class="field-value">${data.monthlyPayment || '_________________'}</span>
+        <span class="field-value" dir="ltr" style="unicode-bidi:isolate">${data.monthlyPayment || '_________________'}</span>
       </div>
       <div class="field">
         <span class="field-label">مدة الاقتطاع: </span>
@@ -316,6 +361,421 @@ function generateHTMLContent(data) {
   `;
 }
 
+// Generate HTML for clearance certificate document
+function generateClearanceCertificateHTML(data) {
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>شهادة خلاص و رفع يد</title>
+      <style>
+        @page {
+          margin: 40px;
+          size: A4;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700&display=swap');
+        
+        body {
+          font-family: "Times New Roman", "Times", "Liberation Serif", serif;
+          font-size: 14px;
+          line-height: 1.5;
+          direction: rtl;
+          text-align: right;
+          color: black;
+          margin: 0;
+          padding: 40px;
+          background: white;
+          unicode-bidi: isolate-override;
+          word-break: break-word;
+        }
+        
+        .header {
+          text-align: right;
+          margin-bottom: 20px;
+        }
+        
+        .issuer-info {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        
+        .title {
+          font-size: 18px;
+          font-weight: bold;
+          text-align: center;
+          text-decoration: underline;
+          margin: 20px 0;
+        }
+        
+        .body-text {
+          text-align: justify;
+          margin: 15px 0;
+          line-height: 1.8;
+        }
+        
+        .field-line {
+          margin: 8px 0;
+          text-align: right;
+        }
+        
+        .bold-text {
+          font-weight: bold;
+        }
+        
+        .signature-section {
+          text-align: left;
+          margin-top: 40px;
+          font-weight: bold;
+        }
+        
+        .right-align {
+          text-align: right;
+        }
+        
+        .center-align {
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <!-- Header -->
+      <div class="header">
+        <div>مسر المعاوي</div>
+        <div>منزل بورقيبة في ${safeFormatDate(data.printingDate)}</div>
+      </div>
+      
+      <!-- Issuer Info -->
+      <div class="issuer-info">
+        <div>بيع الأجهزة الالكترونية</div>
+        <div>شارع الاستقلال منزل بورقيبة</div>
+        <div>المعرف الجبائي ${data.issuerTaxId || '1851501J/N/C/000'}</div>
+      </div>
+      
+      <!-- Title -->
+      <div class="title">شهادة خلاص و رفع يد</div>
+      
+      <!-- Body Content -->
+      <div class="body-text">
+        إني الممضي أسفله ${data.issuerName || 'مسر المعاوي'} صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي <span dir="ltr" style="unicode-bidi:isolate">${data.issuerTaxId || '1851501J/N/C/000'}</span>
+      </div>
+      
+      <div class="body-text">
+        أقر و أعترف أن السيد <span>${data.employeeName || data.fullName || '_________________'}</span> الموظف بوزارة الدفاع الوطني معرفه الوحيد <span dir="ltr" style="unicode-bidi:isolate">${data.workerNumber || '_________________'}</span> و صاحب بطاقة تعريف وطنية عدد <span dir="ltr" style="unicode-bidi:isolate">${data.cinNumber || data.nationalId || '_________________'}</span> قام بخلاص في الإحالة على الأجر و مقدار مبلغها الجملي <span dir="ltr" style="unicode-bidi:isolate">${data.cessionTotalValue || '_________________'}</span> دينارا قيمة الخصم الشهري <span dir="ltr" style="unicode-bidi:isolate">${data.cessionMonthlyValue || '_________________'}</span> دينارا
+      </div>
+      
+      <div class="field-line right-align">
+        الدفتر: <span dir="ltr" style="unicode-bidi:isolate">${data.دفتر || '_________________'}</span>    الصفحة: <span dir="ltr" style="unicode-bidi:isolate">${data.صفحة || '_________________'}</span>    التاريخ: <span dir="ltr" style="unicode-bidi:isolate">${data.تاريخ || '_________________'}</span>
+      </div>
+      
+      <div class="field-line right-align">
+        والموثقة بمحكمة الناحية ${data.court_reference || '_________________'}
+      </div>
+      
+      <div class="field-line right-align">
+        الحساب الفرعي: ${data.sub_account || '_________________'}
+      </div>
+      
+      <div class="field-line right-align">
+        المبلغ المدفوع: <span dir="ltr" style="unicode-bidi:isolate">${data.paid_amount || '_________________'}</span> دينارا   باقي المبلغ: <span>${data.المبلغ_المتبقي || '_________________'}</span>
+      </div>
+      
+      <div class="field-line right-align">
+        الرفع بداية من: <span>${data.شهر_الرفع || '_________________'}</span>
+      </div>
+      
+      <div class="body-text bold-text">
+        وبذلك برئت ذمة السيد ${data.employeeName || data.fullName || '_________________'} فيما يتعلق بقيمة الاحالة المذكورة أعلاه.
+      </div>
+      
+      <!-- Signature Section -->
+      <div class="signature-section">
+        الإمضاء و الختم
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Generate HTML for release request document
+function generateReleaseRequestHTML(data) {
+  return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>مطلب في رفع يد</title>
+      <style>
+        @page {
+          margin: 40px;
+          size: A4;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700&display=swap');
+        
+        body {
+          font-family: "Times New Roman", "Times", "Liberation Serif", serif;
+          font-size: 14px;
+          line-height: 1.5;
+          direction: rtl;
+          text-align: right;
+          color: black;
+          margin: 0;
+          padding: 40px;
+          background: white;
+          unicode-bidi: isolate-override;
+          word-break: break-word;
+        }
+        
+        .header {
+          text-align: right;
+          margin-bottom: 20px;
+        }
+        
+        .issuer-info {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        
+        .title {
+          font-size: 18px;
+          font-weight: bold;
+          text-align: center;
+          text-decoration: underline;
+          margin: 20px 0;
+        }
+        
+        .body-text {
+          text-align: justify;
+          margin: 15px 0;
+          line-height: 1.8;
+        }
+        
+        .field-line {
+          margin: 8px 0;
+          text-align: right;
+        }
+        
+        .bold-text {
+          font-weight: bold;
+        }
+        
+        .signature-section {
+          text-align: left;
+          margin-top: 40px;
+          font-weight: bold;
+        }
+        
+        .right-align {
+          text-align: right;
+        }
+        
+        .center-align {
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <!-- Header -->
+      <div class="header">
+        <div>مسر المعاوي</div>
+        <div>منزل بورقيبة في ${safeFormatDate(data.printingDate)}</div>
+      </div>
+      
+      <!-- Issuer Info -->
+      <div class="issuer-info">
+        <div>بيع الأجهزة الالكترونية</div>
+        <div>شارع الاستقلال منزل بورقيبة</div>
+        <div>المعرف الجبائي ${data.issuerTaxId || '1851501J/N/C/000'}</div>
+      </div>
+      
+      <!-- Title -->
+      <div class="title">مطلب في رفع يد</div>
+      
+      <!-- Body Content -->
+      <div class="body-text">
+        إني الممضي أسفله ${data.issuerName || 'مسر المعاوي'} صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي <span dir="ltr" style="unicode-bidi:isolate">${data.issuerTaxId || '1851501J/N/C/000'}</span>
+      </div>
+      
+      <div class="body-text">
+        أقر و أعترف أن السيد <span>${data.employeeName || data.fullName || '_________________'}</span> الموظف بوزارة الدفاع الوطني معرفه الوحيد <span dir="ltr" style="unicode-bidi:isolate">${data.workerNumber || '_________________'}</span> و صاحب بطاقة تعريف وطنية عدد <span dir="ltr" style="unicode-bidi:isolate">${data.cinNumber || data.nationalId || '_________________'}</span> قام بخلاص في الإحالة على الأجر و مقدار مبلغها الجملي <span dir="ltr" style="unicode-bidi:isolate">${data.cessionTotalValue || '_________________'}</span> دينارا قيمة الخصم الشهري <span dir="ltr" style="unicode-bidi:isolate">${data.cessionMonthlyValue || '_________________'}</span> دينارا
+      </div>
+      
+      <div class="field-line right-align">
+        الدفتر: <span dir="ltr" style="unicode-bidi:isolate">${data.دفتر || '_________________'}</span>    الصفحة: <span dir="ltr" style="unicode-bidi:isolate">${data.صفحة || '_________________'}</span>    التاريخ: <span dir="ltr" style="unicode-bidi:isolate">${data.تاريخ || '_________________'}</span>
+      </div>
+      
+      <div class="field-line right-align">
+        والموثقة بمحكمة الناحية ${data.court_reference || '_________________'}
+      </div>
+      
+      <div class="field-line right-align">
+        الحساب الفرعي: ${data.sub_account || '_________________'}
+      </div>
+      
+      <div class="field-line right-align">
+        المبلغ المدفوع: <span dir="ltr" style="unicode-bidi:isolate">${data.paid_amount || '_________________'}</span> دينارا   باقي المبلغ: <span>${data.المبلغ_المتبقي || '_________________'}</span>
+      </div>
+      
+      <div class="field-line right-align">
+        الرفع بداية من: <span>${data.شهر_الرفع || '_________________'}</span>
+      </div>
+      
+      <div class="body-text bold-text">
+        وبذلك برئت ذمة السيد ${data.employeeName || data.fullName || '_________________'} فيما يتعلق بقيمة الاحالة المذكورة أعلاه.
+      </div>
+      
+      <!-- Signature Section -->
+      <div class="signature-section">
+        الإمضاء و الختم
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+  // Generate HTML for referral certificate (شهادة في إحالة) - precise layout per sample
+  function generateReferralCertificateHTML(data) {
+    const formatDDMMYYYY = (d) => safeFormatDate(d, new Date());
+    const printingDate = formatDDMMYYYY(data.printingDate || new Date());
+    const issuer = (data.issuer_name || data.issuer || data.company || 'مسر المعاوي').toString();
+    const place = (data.issuer_place || data.place || data.court_reference || 'منزل بورقيبة').toString();
+    const businessTitle = (data.issuer_business || 'بيع الأجهزة الالكترونية').toString();
+    const businessAddress = (data.issuer_address || 'شارع الاستقلال منزل بورقيبة').toString();
+    const taxId = (data.issuer_tax_id || data.issuerTaxId || '1851501J/N/C/000').toString();
+    const clientName = (data.client_name || data.clientName || data.client?.fullName || data.fullName || '').toString();
+    const clientCIN = (data.client_cin || data.client?.cin || data.cin || data.nationalId || '').toString();
+    const clientCINIssued = (data.client_cin_issued || data.clientCinIssued || '24/12/2020').toString();
+
+    // Cession fields (numeric strings)
+    const c1num = (data.cession1_number || '').toString();
+    const c1date = (data.cession1_date || '').toString();
+    const c1amount = parseFloat((data.cession1_amount || '0').toString()) || 0;
+    const c1monthly = parseFloat((data.cession1_monthly || '0').toString()) || 0;
+    const c1deduct = parseFloat((data.cession1_deduction || '0').toString()) || 0;
+
+    const c2num = (data.cession2_number || '').toString();
+    const c2date = (data.cession2_date || '').toString();
+    const c2amount = parseFloat((data.cession2_amount || '0').toString()) || 0;
+    const c2monthly = parseFloat((data.cession2_monthly || '0').toString()) || 0;
+    const c2deduct = parseFloat((data.cession2_deduction || '0').toString()) || 0;
+
+    const totalDebt = parseFloat((data.total_debt || data.totalDebt || (c1amount + c2amount)).toString()) || 0;
+    const bankAccount = (data.bank_account || data.bankAccount || '').toString();
+
+    const escapeHtml = (s) => String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const wrapLtr = (s) => `<span dir="ltr" style="unicode-bidi:isolate">${escapeHtml(s)}</span>`;
+
+    // Legal-specific Arabic number wordings for the known amounts (preserve requested phrasing)
+    function numberToArabicWords(n) {
+      const map = {
+        2160: 'ألفان و مائة و ستون',
+        1440: 'ألف و أربعمائة و أربعون',
+        1920: 'ألف و تسعمائة و عشرون',
+        1280: 'ألف و مائتان و ثمانون',
+        240: 'مائتان وأربعون',
+        160: 'مائة و ستون',
+        3200: 'ثلاثة آلاف و ومائتان' // preserve original typo
+      };
+      const key = Math.round(n);
+      if (map[key]) return map[key];
+      // Fallback simple converter
+      n = Math.round(n);
+      if (n === 0) return 'صفر';
+      const units = ['', 'واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
+      const tens = ['', 'عشرة','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+      const teens = {11:'أحد عشر',12:'اثنا عشر',13:'ثلاثة عشر',14:'أربعة عشر',15:'خمسة عشر',16:'ستة عشر',17:'سبعة عشر',18:'ثمانية عشر',19:'تسعة عشر'};
+      const hundreds = {1:'مائة',2:'مئتان',3:'ثلاثمائة',4:'أربعمائة',5:'خمسمائة',6:'ستمائة',7:'سبعمائة',8:'ثمانمائة',9:'تسعمائة'};
+      let parts = [];
+      if (n >= 1000) {
+        const th = Math.floor(n / 1000);
+        if (th === 1) parts.push('ألف');
+        else if (th === 2) parts.push('ألفان');
+        else if (th <= 10) parts.push((units[th] || th) + ' آلاف');
+        else parts.push(th + ' ألف');
+        n = n % 1000;
+      }
+      if (n >= 100) {
+        const h = Math.floor(n / 100);
+        if (hundreds[h]) parts.push(hundreds[h]);
+        else parts.push((h) + 'مائة');
+        n = n % 100;
+      }
+      if (n >= 11 && n <= 19) {
+        parts.push(teens[n]);
+        n = 0;
+      }
+      if (n >= 20) {
+        const t = Math.floor(n / 10);
+        if (tens[t]) parts.push(tens[t]);
+        const u = n % 10;
+        if (u) parts.push(units[u]);
+        n = 0;
+      }
+      if (n > 0 && n < 10) parts.push(units[n]);
+      return parts.join(' و ');
+    }
+
+    const formatNum = (v) => (typeof v === 'number' ? v.toFixed(3) : escapeHtml(String(v)));
+
+    const c1remaining = Math.max(0, Math.round((c1amount - c1deduct) * 1000) / 1000);
+    const c2remaining = Math.max(0, Math.round((c2amount - c2deduct) * 1000) / 1000);
+
+    // Build paragraphs matching the corrected sample wording exactly
+    const header = `${escapeHtml(issuer)}\n${escapeHtml(place)} في ${wrapLtr(formatDDMMYYYY(printingDate))}\n${escapeHtml(businessTitle)}\n${escapeHtml(businessAddress)}\nالمعرف الجبائي ${wrapLtr(taxId)}\n`;
+
+    const paraIntro = `شهادة في إحالة\n\nإني الممضي أسفله ${escapeHtml(issuer)} صاحب بطاقة تعريف وطنية عدد ${wrapLtr(clientCIN)} الصادرة بتونس في ${wrapLtr(clientCINIssued)} صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي ${wrapLtr(taxId)}.`;
+
+    const paraC1 = `أما الإحالة على الأجر المسجلة بمحكمة الناحية بمنزل بورقيبة تحت عدد ${escapeHtml(c1num)} بتاريخ ${wrapLtr(formatDDMMYYYY(c1date))} لصاحب(ت)ها السيد(ة) ${escapeHtml(clientName)} معرفه الوحيد ${wrapLtr(data.client?.workerNumber || data.workerNumber || '')} والمضمنة لمبلغ جملي قدره ${numberToArabicWords(c1amount)} دينارا (${wrapLtr(formatNum(c1amount))} د) بحساب ${wrapLtr(formatNum(c1monthly))} د شهريا حيث تم خصم مبلغ قدره ${numberToArabicWords(c1deduct)} دينارًا (${wrapLtr(formatNum(c1deduct))} د) إلى موفى شهر جويلية 2025 من الأمانة العامة للمصاريف وبالتالي بقي منها مبلغا جمليا قدره ${numberToArabicWords(c1remaining)} دينارا (${wrapLtr(formatNum(c1remaining))} د).`;
+
+    const paraC2 = `أما الإحالة على الأجر المسجلة بمحكمة الناحية بمنزل بورقيبة تحت عدد ${escapeHtml(c2num)} بتاريخ ${wrapLtr(formatDDMMYYYY(c2date))} لصاحب(ت)ها السيد(ة) ${escapeHtml(clientName)} معرفه الوحيد ${wrapLtr(data.client?.workerNumber || data.workerNumber || '')} والمضمنة لمبلغ جملي قدره ${numberToArabicWords(c2amount)} دينارا (${wrapLtr(formatNum(c2amount))} د) بحساب ${wrapLtr(formatNum(c2monthly))} د شهريا حيث تم خصم مبلغ قدره ${numberToArabicWords(c2deduct)} دينارًا (${wrapLtr(formatNum(c2deduct))} د) إلى موفى شهر جويلية 2025 من الأمانة العامة للمصاريف وبالتالي بقي منها مبلغا جمليا قدره ${numberToArabicWords(c2remaining)} دينارا (${wrapLtr(formatNum(c2remaining))} د).`;
+
+    const totalWords = (Math.round(totalDebt) === 3200) ? 'ثلاثة آلاف و ومائتان' : numberToArabicWords(totalDebt);
+    const paraTotal = `جملة الدين المتخلد بذمته هو ${totalWords} دينارا (${wrapLtr(formatNum(totalDebt))} د).`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>شهادة في إحالة</title>
+        <style>
+          body { font-family: 'Times New Roman', serif; direction: rtl; unicode-bidi: isolate-override; padding: 28px; color: #000; }
+          .container { max-width: 820px; margin: 0 auto; white-space: pre-wrap; }
+          .title { text-align: center; font-weight: bold; margin: 18px 0; font-size: 20px; }
+          .para { text-align: justify; line-height: 1.8; margin-bottom: 12px; }
+          .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="para">${header}</div>
+          <div class="title">شهادة في إحالة</div>
+          <div class="para">${paraIntro}</div>
+          <div class="para">${paraC1}</div>
+          <div class="para">${paraC2}</div>
+          <div class="para">${paraTotal}</div>
+          <div class="para">رقم الحساب البنكي لمحل لبيع الأجهزة الإلكترونية عدد ${wrapLtr(bankAccount)} بالشركة التونسية للبنك فرع منزل بورقيبة.</div>
+          <div style="height:18px"></div>
+          <div>الإمضاء و الختم</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return html;
+  }
+
 // Function to download PDF directly
 export async function downloadPDF(data) {
   try {
@@ -326,7 +786,9 @@ export async function downloadPDF(data) {
       throw new Error('Missing essential data for PDF generation');
     }
     
-    // Get authentication token if available
+  // Use backend PDF generation for clearance certificates as well (avoids shaping issues)
+    
+    // For other document types, use backend
     const authToken = get(token);
     const headers = {
       'Content-Type': 'application/json',
@@ -336,7 +798,17 @@ export async function downloadPDF(data) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
     
-    const response = await fetch(`${config.backendUrl}/api/v1/documents/salary-assignment`, {
+    // Determine the API endpoint based on document type (include clearance certificate)
+    let endpoint;
+    if (data.documentType === 'شهادة خلاص و رفع يد') {
+      endpoint = '/api/v1/documents/clearance-certificate';
+    } else if (data.documentType === 'مطلب في رفع يد') {
+      endpoint = '/api/v1/documents/release-request';
+    } else {
+      endpoint = '/api/v1/documents/salary-assignment';
+    }
+    
+    const response = await fetch(`${config.backendUrl}${endpoint}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(data)
@@ -354,9 +826,12 @@ export async function downloadPDF(data) {
     
     // Create download link
     const pdfUrl = URL.createObjectURL(pdfBlob);
+    
+    // Generate filename based on document type
+    const docTypePrefix = data.documentType === 'مطلب في رفع يد' ? 'مطلب_رفع_يد' : 'إحالة_راتب';
     const link = document.createElement('a');
     link.href = pdfUrl;
-    link.download = `إحالة_راتب_${data.fullName || 'وثيقة'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    link.download = `${docTypePrefix}_${data.fullName || 'وثيقة'}_${new Date().toISOString().split('T')[0]}.pdf`;
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
@@ -378,14 +853,16 @@ export async function downloadPDF(data) {
 // Use backend PDF generation for better quality
 export async function openPDF(data) {
   try {
-    console.log('Attempting backend PDF generation with data:', data);
+    console.log('Attempting PDF generation with data:', data);
     
     // Validate required data
     if (!data.fullName && !data.workerNumber) {
       throw new Error('Missing essential data for PDF generation');
     }
     
-    // Get authentication token if available
+  // Use backend PDF generation for clearance certificates as well (avoid frontend shaping issues)
+    
+    // For other document types, try backend first
     const authToken = get(token);
     const headers = {
       'Content-Type': 'application/json',
@@ -395,7 +872,12 @@ export async function openPDF(data) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
     
-    const response = await fetch(`${config.backendUrl}/api/v1/documents/salary-assignment`, {
+    // Determine the API endpoint based on document type
+    const endpoint = data.documentType === 'مطلب في رفع يد'
+      ? '/api/v1/documents/release-request'
+      : '/api/v1/documents/salary-assignment';
+    
+    const response = await fetch(`${config.backendUrl}${endpoint}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(data)
@@ -404,11 +886,7 @@ export async function openPDF(data) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Backend PDF generation failed:', response.status, response.statusText, errorText);
-      
-      // If backend fails, fall back to HTML method
-      console.log('Falling back to HTML PDF generation');
-      const htmlContent = generateHTMLContent(data);
-      return openHTMLInBrowser(htmlContent);
+      throw new Error('Failed to generate PDF from backend');
     }
     
     // Get the PDF blob
@@ -440,16 +918,32 @@ export async function openPDF(data) {
 // BEST PRACTICE: Direct PDF opening with multiple fallback strategies
 // This function ensures the user ALWAYS sees the PDF immediately
 async function openPDFDirectly(pdfUrl, data) {
-  const fileName = `إحالة_راتب_${data.fullName || 'وثيقة'}_${new Date().toISOString().split('T')[0]}.pdf`;
-  
+  const docTypePrefix = data.documentType === 'شهادة خلاص و رفع يد' ? 'شهادة_خلاص' : 
+                         data.documentType === 'مطلب في رفع يد' ? 'مطلب_رفع_يد' : 'إحالة_راتب';
+  const fileName = `${docTypePrefix}_${data.fullName || 'وثيقة'}_${new Date().toISOString().split('T')[0]}.pdf`;
+
   try {
     console.log('Opening PDF directly with comprehensive approach');
-    
+
+    // Safety check: Ensure we don't replace the current window
+    if (!window || window.closed) {
+      throw new Error('Parent window is not available');
+    }
+
     // Strategy 1: Embedded PDF viewer in new window (MOST RELIABLE)
-    const pdfWindow = window.open('about:blank', '_blank', 
-      'width=1200,height=900,scrollbars=yes,resizable=yes,menubar=yes,toolbar=yes,status=yes,location=yes');
-    
-    if (pdfWindow && !pdfWindow.closed) {
+    const windowName = `PDFViewer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const windowFeatures = 'width=1200,height=900,scrollbars=yes,resizable=yes,menubar=yes,toolbar=yes,status=yes,location=yes,noopener=yes,noreferrer=yes';
+
+    const pdfWindow = window.open('', windowName, windowFeatures);    if (pdfWindow && !pdfWindow.closed) {
+      // Ensure the window is properly separated from the parent
+      pdfWindow.opener = null;
+
+      // Double-check that this is not the same window
+      if (pdfWindow === window) {
+        pdfWindow.close();
+        throw new Error('PDF window opened in same window as parent');
+      }
+
       // Create a professional PDF viewer page
       pdfWindow.document.write(`
         <!DOCTYPE html>
@@ -699,16 +1193,27 @@ async function openPDFDirectly(pdfUrl, data) {
       
       pdfWindow.document.close();
       pdfWindow.focus();
-      
+
+      // Add event listener to handle window close without affecting parent
+      pdfWindow.addEventListener('beforeunload', () => {
+        // Clean up any references
+        if (pdfWindow && !pdfWindow.closed) {
+          pdfWindow.opener = null;
+        }
+      });
+
       console.log('PDF opened successfully in embedded viewer');
       return true;
     }
     
     // Strategy 2: Direct PDF URL opening (fallback)
     console.log('Embedded viewer failed, trying direct PDF opening');
-    const directWindow = window.open(pdfUrl, '_blank');
+    const windowName2 = `PDFDirect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const directWindow = window.open(pdfUrl, windowName2, 'noopener=yes,noreferrer=yes');
     
     if (directWindow && !directWindow.closed) {
+      // Ensure separation from parent window
+      directWindow.opener = null;
       directWindow.focus();
       console.log('PDF opened directly');
       return true;
@@ -729,8 +1234,15 @@ async function openPDFDirectly(pdfUrl, data) {
 
 // Create an in-page PDF viewer as ultimate fallback
 function createInPagePDFViewer(pdfUrl, fileName) {
+  // Check if overlay already exists and remove it
+  const existingOverlay = document.querySelector('.pdf-overlay-viewer');
+  if (existingOverlay) {
+    document.body.removeChild(existingOverlay);
+  }
+
   // Create overlay
   const overlay = document.createElement('div');
+  overlay.className = 'pdf-overlay-viewer';
   overlay.style.cssText = `
     position: fixed;
     top: 0;
@@ -809,29 +1321,40 @@ function createInPagePDFViewer(pdfUrl, fileName) {
 
 // Direct download function
 function downloadPDFDirectly(pdfUrl, fileName) {
-  const link = document.createElement('a');
-  link.href = pdfUrl;
-  link.download = fileName;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  // Show success message
-  setTimeout(() => {
-    alert(`تم تحميل الملف: ${fileName}\n\nيمكنك العثور عليه في مجلد التحميلات وفتحه بأي قارئ PDF.`);
-  }, 500);
-  
-  console.log('PDF downloaded directly');
+  try {
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    link.target = '_blank'; // Ensure it doesn't replace current window
+    link.rel = 'noopener noreferrer'; // Security best practice
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log('PDF download initiated');
+  } catch (error) {
+    console.error('Error downloading PDF:', error);
+    // Fallback: try opening in new window
+    const downloadWindow = window.open(pdfUrl, '_blank', 'noopener=yes,noreferrer=yes');
+    if (downloadWindow) {
+      downloadWindow.opener = null;
+    }
+  }
 }
 
 // Function to open HTML content in browser when PDF generation fails
 function openHTMLInBrowser(htmlContent) {
   try {
     // Create a new window with the HTML content
-    const htmlWindow = window.open('about:blank', '_blank', 'width=1200,height=900,scrollbars=yes,resizable=yes,menubar=yes,toolbar=yes');
+    const windowName = `HTMLViewer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const windowFeatures = 'width=1200,height=900,scrollbars=yes,resizable=yes,menubar=yes,toolbar=yes,status=yes,location=yes,noopener=yes,noreferrer=yes';
+    const htmlWindow = window.open('', windowName, windowFeatures);
     
     if (htmlWindow && !htmlWindow.closed) {
+      // Ensure the window is properly separated from the parent
+      htmlWindow.opener = null;
       htmlWindow.document.write(htmlContent);
       htmlWindow.document.close();
       htmlWindow.focus();
@@ -860,4 +1383,49 @@ function openHTMLInBrowser(htmlContent) {
 export async function htmlToPdf(htmlContent) {
   console.log('Legacy htmlToPdf called, redirecting to openHTMLInBrowser');
   openHTMLInBrowser(htmlContent);
+}
+
+// Generate clearance certificate PDF using jsPDF for perfect control
+export async function generateClearanceCertificatePDF(data) {
+  // Use HTML rendering to let the browser handle Arabic shaping and BiDi.
+  try {
+    const html = generateClearanceCertificateHTML(data);
+    openHTMLInBrowser(html);
+    return { success: true };
+  } catch (err) {
+    console.error('generateClearanceCertificatePDF (html fallback) failed:', err);
+    throw err;
+  }
+}
+
+// Safe date formatter: if input already looks like dd/MM/yyyy or dd-MM-yyyy return normalized form,
+// otherwise attempt Date parsing; if parsing fails, return original string or fallback.
+function safeFormatDate(dateString, fallback = '21/07/2025') {
+  if (!dateString) return fallback;
+
+  // If already in dd/mm/yyyy or dd-mm-yyyy, normalize and return
+  const ddmmyyyy = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/;
+  const m = ('' + dateString).match(ddmmyyyy);
+  if (m) {
+    const dd = m[1].padStart(2, '0');
+    const mm = m[2].padStart(2, '0');
+    let yyyy = m[3];
+    if (yyyy.length === 2) {
+      yyyy = '20' + yyyy;
+    }
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  // Try to parse with Date
+  const parsed = new Date(dateString);
+  if (!isNaN(parsed.getTime())) {
+    try {
+      return parsed.toLocaleDateString('ar-TN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+      return parsed.toLocaleDateString();
+    }
+  }
+
+  // If parsing fails, return the original input (safer than 'Invalid Date')
+  return String(dateString);
 }

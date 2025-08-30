@@ -6,6 +6,10 @@ import com.example.cessionappbackend.repositories.ClientRepository;
 import com.example.cessionappbackend.entities.Client;
 import com.example.cessionappbackend.dto.SalaryAssignmentDocumentDTO;
 import com.example.cessionappbackend.services.SalaryAssignmentPdfGeneratorService;
+import com.example.cessionappbackend.dto.ClearanceCertificateDocumentDTO;
+import com.example.cessionappbackend.services.ClearanceCertificatePdfGeneratorService;
+import com.example.cessionappbackend.dto.ReleaseRequestDocumentDTO;
+import com.example.cessionappbackend.services.ReleaseRequestPdfGeneratorService;
 
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +38,12 @@ public class DocumentController {
 
     @Autowired
     private SalaryAssignmentPdfGeneratorService salaryAssignmentPdfGeneratorService;
+
+    @Autowired
+    private ClearanceCertificatePdfGeneratorService clearanceCertificatePdfGeneratorService;
+
+    @Autowired
+    private ReleaseRequestPdfGeneratorService releaseRequestPdfGeneratorService;
 
     // GET /api/v1/documents/client/{clientId} - Get documents by client ID
     @GetMapping("/client/{clientId}")
@@ -71,6 +81,44 @@ public class DocumentController {
                     .body(pdfBytes);
         } catch (Exception e) {
             System.err.println("Error generating salary assignment PDF: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // POST /api/v1/documents/clearance-certificate - Generate Clearance Certificate Document (PDF)
+    @PostMapping(value = "/clearance-certificate", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> generateClearanceCertificatePdf(@RequestBody ClearanceCertificateDocumentDTO documentData) {
+        try {
+            byte[] pdfBytes = clearanceCertificatePdfGeneratorService.generatePdf(documentData);
+            if (pdfBytes == null) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            }
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"شهادة_خلاص_ورفع_يد.pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfBytes);
+        } catch (Exception e) {
+            System.err.println("Error generating clearance certificate PDF: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // POST /api/v1/documents/release-request - Generate Release Request Document (PDF)
+    @PostMapping(value = "/release-request", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> generateReleaseRequestPdf(@RequestBody ReleaseRequestDocumentDTO documentData) {
+        try {
+            byte[] pdfBytes = releaseRequestPdfGeneratorService.generatePdf(documentData);
+            if (pdfBytes == null) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            }
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"مطلب_في_رفع_يد.pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfBytes);
+        } catch (Exception e) {
+            System.err.println("Error generating release request PDF: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
