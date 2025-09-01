@@ -65,6 +65,12 @@
     return rem.toFixed(3);
   }
 
+  function deductionForCession(c) {
+    if (!c) return '0.000';
+    const d = Number(c.deduction || 0);
+    return d.toFixed(3);
+  }
+
   async function handleHotkeySelection(e) {
     if (!showDocumentSection || selectedDocumentType !== 'شهادة في إحالة' || !cessions || cessions.length === 0) return;
     if (e.key === '1') {
@@ -147,7 +153,8 @@
         cession1_monthly: { type: 'text', label: 'قسط شهري 1', required: true, autocomplete: true, default: '120.000' },
         cession1_deduction: { type: 'text', label: 'مبلغ المقتطَع 1', required: true, autocomplete: true, default: '240.000' },
 
-        cession2_number: { type: 'text', label: 'رقم الإحالة 2', required: true, autocomplete: true, default: '68/16660' },
+        cession2_daftr: { type: 'text', label: 'الدفتر 2', required: true, autocomplete: false, default: '' },
+        cession2_safha: { type: 'text', label: 'الصفحة 2', required: true, autocomplete: false, default: '' },
         cession2_date: { type: 'date', label: 'تاريخ الإحالة 2', required: true, autocomplete: true, default: '2025-05-21' },
         cession2_amount: { type: 'text', label: 'مبلغ الإحالة 2 (جملي)', required: true, autocomplete: true, default: '1440.000' },
         cession2_monthly: { type: 'text', label: 'قسط شهري 2', required: true, autocomplete: true, default: '80.000' },
@@ -160,7 +167,6 @@
   cession3_deduction: { type: 'text', label: 'مبلغ المقتطَع 3', required: false, autocomplete: true, default: '' },
 
   total_debt: { type: 'text', label: 'جملة الدين', required: true, autocomplete: true, default: '' },
-        bank_account: { type: 'text', label: 'رقم الحساب البنكي', required: true, autocomplete: true, default: '10201015090725478840' },
         court_reference: { type: 'text', label: 'مرجع المحكمة', required: false, autocomplete: true, default: 'منزل بورقيبة' }
       }
     }
@@ -264,7 +270,7 @@
     selectedDocumentType = type;
     documentFormData = {};
     
-    // Initialize form data with autocomplete values
+      // Initialize form data with autocomplete values
     const template = documentTemplates[type];
     if (template) {
       Object.keys(template.fields).forEach(fieldKey => {
@@ -273,9 +279,7 @@
           documentFormData[fieldKey] = field.default;
         }
       });
-    }
-
-    // If selecting referral certificate and cessions are available, prepare cession options and prefill
+    }    // If selecting referral certificate and cessions are available, prepare cession options and prefill
     if (type === 'شهادة في إحالة') {
       cessionOptions = (cessions || []).map((c, i) => ({
         index: i,
@@ -297,7 +301,8 @@
           includeSecondCession = false;
           selectedSecondCessionIndex = null;
           // Clear any template defaults for cession2
-          delete documentFormData.cession2_number;
+          delete documentFormData.cession2_daftr;
+          delete documentFormData.cession2_safha;
           delete documentFormData.cession2_date;
           delete documentFormData.cession2_amount;
           delete documentFormData.cession2_monthly;
@@ -373,7 +378,7 @@
       liveMessage = `الإحالة الأساسية محددة: ${number}، المبلغ ${amount} د.`;
   // Recompute total debt (will be managed by reactive updater)
     } else if (target === '2') {
-      updateFormField('cession2_number', number);
+      // Don't auto-populate daftr and safha - leave them empty for manual entry
       updateFormField('cession2_date', dateIso);
       updateFormField('cession2_amount', amount);
       updateFormField('cession2_monthly', monthly);
@@ -496,7 +501,7 @@
           if (includeSecondCession && selectedSecondCessionIndex != null) {
             const secondary = cessions[selectedSecondCessionIndex];
             if (secondary) {
-              pdfData.cession2_number = documentFormData.cession2_number || secondary?.number || secondary?.reference || '';
+              pdfData.cession2_number = documentFormData.cession2_daftr && documentFormData.cession2_safha ? `${documentFormData.cession2_daftr}/${documentFormData.cession2_safha}` : (documentFormData.cession2_daftr || documentFormData.cession2_safha ? `${documentFormData.cession2_daftr || ''}/${documentFormData.cession2_safha || ''}`.replace(/^\/+|\/+$/g, '') : '');
               pdfData.cession2_date = documentFormData.cession2_date || (secondary?.startDate ? new Date(secondary.startDate).toISOString().split('T')[0] : '');
               pdfData.cession2_amount = documentFormData.cession2_amount || ((secondary?.totalLoanAmount != null) ? secondary.totalLoanAmount.toFixed(3) : (secondary?.totalLoanAmount || '0'));
               pdfData.cession2_monthly = documentFormData.cession2_monthly || ((secondary?.monthlyPayment != null) ? secondary.monthlyPayment.toFixed(3) : (secondary?.monthlyPayment || '0'));
@@ -773,7 +778,7 @@
   const explicitTotal = (typeof data.total_debt === 'number') || (data.total_debt && !isNaN(parseFloat(data.total_debt)));
   const totalRemaining = Math.max(0, Math.round((c1remaining + c2remaining + c3remaining) * 1000) / 1000);
   const totalDebt = explicitTotal ? parseFloat(data.total_debt) : totalRemaining;
-  const bankAccount = data.bank_account || data.bankAccount || '';
+  const bankAccount = data.bank_account || data.bankAccount || '10201015090725478840';
 
     const paraIntro = `إني الممضي أسفله ${escapeHtml(issuer)} صاحب بطاقة تعريف وطنية عدد ${wrapLtr(clientCIN)} الصادرة بتونس في ${wrapLtr(clientCINIssued)} صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي ${wrapLtr(taxId)}`;
 
@@ -1478,163 +1483,41 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {#if selectedDocumentType === 'شهادة في إحالة' && cessions.length > 0}
                       <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">اختر الإحالة (اضغط على صندوق الإحالة)</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">اختر الإحالة (اضغط على صندوق الإحالة)</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                           {#each cessions as c, i}
                             <div
                               role="button"
                               tabindex="0"
-                              class="relative p-4 rounded-2xl overflow-hidden cursor-pointer transform transition-all duration-200
-                                bg-white border border-gray-100 shadow-sm hover:shadow-lg hover:scale-105
-                                focus:outline-none focus:ring-4 focus:ring-purple-200"
-                              class:selected={i === selectedCessionIndex}
+                              class="group relative p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-1"
+                              class:border-purple-500={i === selectedCessionIndex}
+                              class:border-gray-200={! (i === selectedCessionIndex)}
+                              class:bg-purple-50={i === selectedCessionIndex}
                               on:click={() => { selectedCessionIndex = i; fillCessionIntoForm(i, '1'); }}
                               on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectedCessionIndex = i; fillCessionIntoForm(i, '1'); } }}
                               aria-pressed={i === selectedCessionIndex}
-                              style="border-width:1px;"
                             >
-                              <div class="absolute inset-y-0 left-0 w-2 rounded-l-2xl" style="background: linear-gradient(180deg, rgba(99,102,241,0.95), rgba(139,92,246,0.95));"></div>
-                              <div class="relative pl-4">
-                                <div class="flex items-start justify-between">
-                                  <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-sm">
-                                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/></svg>
-                                    </div>
-                                    <div>
-                                      <div class="text-sm font-semibold text-gray-800">
-                                        {#if c.number}
-                                          {c.number}
-                                        {:else if c.reference}
-                                          {c.reference}
-                                        {:else}
-                                          الإحالة {i + 1}
-                                        {/if}
-                                      </div>
-                                      <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
-                                    </div>
-                                  </div>
-                                  <div class="flex items-center gap-2">
-                                    {#if i === selectedCessionIndex}
-                                      <div class="inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold">محدد</div>
-                                    {:else}
-                                      <div class="inline-flex items-center px-2 py-1 rounded-full bg-gray-50 text-gray-600 text-xs">اضغط لتحديد</div>
-                                    {/if}
-                                  </div>
+                              <!-- Selection indicator -->
+                              {#if i === selectedCessionIndex}
+                                <div class="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center shadow-sm">
+                                  <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                  </svg>
                                 </div>
-
-                                <div class="mt-4 flex items-end justify-between gap-4">
-                                  <div>
-                                    <div class="text-2xl font-extrabold text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</div>
-                                    <div class="text-sm text-gray-500 mt-1">المبلغ الجملي</div>
-                                  </div>
-                                  <div class="text-right">
-                                    <div class="text-sm text-gray-600">القسط الشهري</div>
-                                    <div class="text-lg font-semibold text-gray-800 mt-1" dir="ltr">{formatCurrency(c.monthlyPayment)}</div>
-                                  </div>
-                                </div>
-
-                                <div class="mt-3 flex items-center justify-between text-sm text-gray-600">
-                                  <div>المقتطَع: <span dir="ltr" class="font-medium">{formatCurrency(c.deduction)}</span></div>
-                                  <div>المتبقي: <span dir="ltr" class="font-medium text-indigo-700">{remainingForCession(c)} د</span></div>
-                                </div>
-                              </div>
-                              <div class="absolute top-3 right-3">
-                                <div class="w-8 h-8 rounded-full bg-white/60 flex items-center justify-center shadow-sm">
-                                  <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
-                                </div>
-                              </div>
-                              <!-- Keyboard hint -->
-                              {#if i < 3}
-                                <div class="absolute bottom-3 left-3 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded-md">مفتاح {i+1}</div>
                               {/if}
-                            </div>
-                          {/each}
-                        </div>
 
-                        <div class="mt-3 flex items-center gap-3">
-                          <label class="flex items-center text-sm">
-                            <input type="checkbox" bind:checked={includeSecondCession} class="mr-2" /> تضمين إحالة ثانية
-                          </label>
-                          <div class="text-sm text-gray-500">يمكنك اختيار الإحالة الأساسية ثم اختيار إحالة ثانية من القائمة أدناه</div>
-                        </div>
-                      </div>
+                              <div class="flex items-center gap-3">
+                                <!-- Icon -->
+                                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                  </svg>
+                                </div>
 
-                      {#if includeSecondCession}
-                        <div class="md:col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-2">اختر الإحالة الثانية</label>
-                          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {#each cessions as c, i}
-                              <div
-                                    role="button"
-                                    tabindex="0"
-                                    class="relative p-4 rounded-xl overflow-hidden cursor-pointer transform transition-all duration-200 bg-white border border-gray-100 shadow-sm hover:shadow-md hover:scale-102 focus:outline-none focus:ring-4 focus:ring-indigo-100"
-                                    on:click={() => { if (i !== selectedCessionIndex) { selectedSecondCessionIndex = i; fillCessionIntoForm(i, '2'); } }}
-                                    on:keydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && i !== selectedCessionIndex) { e.preventDefault(); selectedSecondCessionIndex = i; fillCessionIntoForm(i, '2'); } }}
-                                    aria-disabled={i === selectedCessionIndex}
-                                    style="border-width:1px;"
-                                  >
-                                    <div class="absolute inset-y-0 left-0 w-1 rounded-l-lg bg-indigo-500"></div>
-                                    <div class="relative pl-4">
-                                      <div class="flex items-start justify-between">
-                                        <div>
-                                          <div class="text-sm font-semibold text-gray-800">
-                                            {#if c.number}
-                                              {c.number}
-                                            {:else if c.reference}
-                                              {c.reference}
-                                            {:else}
-                                              الإحالة {i + 1}
-                                            {/if}
-                                          </div>
-                                          <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
-                                        </div>
-                                        <div class="text-xs text-gray-500">{i === selectedCessionIndex ? 'الإحالة الأساسية' : ''}</div>
-                                      </div>
-
-                                      <div class="mt-3 flex items-center justify-between">
-                                        <div class="text-sm text-gray-600">المبلغ الجملي</div>
-                                        <div class="text-sm font-semibold text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</div>
-                                      </div>
-                                      <div class="mt-1 flex items-center justify-between">
-                                        <div class="text-sm text-gray-600">القسط الشهري</div>
-                                        <div class="text-sm font-medium text-gray-800" dir="ltr">{formatCurrency(c.monthlyPayment)}</div>
-                                      </div>
-
-                                      <div class="mt-2 flex items-center justify-between text-sm text-gray-600">
-                                        <div>المقتطَع: <span dir="ltr" class="font-medium">{formatCurrency(c.deduction)}</span></div>
-                                        <div>المتبقي: <span dir="ltr" class="font-medium text-indigo-700">{remainingForCession(c)} د</span></div>
-                                      </div>
-                                    </div>
-                                    <div class="absolute top-2 right-2 text-green-600" aria-hidden>
-                                      {#if i === selectedSecondCessionIndex}
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                      {/if}
-                                    </div>
-                                    {#if i === selectedCessionIndex}
-                                      <div class="absolute inset-0 bg-white/70 flex items-center justify-center text-sm font-semibold text-gray-500">الإحالة الأساسية</div>
-                                    {/if}
-                                  </div>
-                            {/each}
-                          </div>
-                        </div>
-                      {/if}
-
-                      {#if includeThirdCession}
-                        <div class="md:col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-2">اختر الإحالة الثالثة</label>
-                          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {#each cessions as c, i}
-                              <div
-                                role="button"
-                                tabindex="0"
-                                class="relative p-3 rounded-lg border shadow-sm hover:shadow-md transition cursor-pointer flex flex-col focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                on:click={() => { if (i !== selectedCessionIndex && i !== selectedSecondCessionIndex) { selectedThirdCessionIndex = i; fillCessionIntoForm(i, '3'); } }}
-                                on:keydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && i !== selectedCessionIndex && i !== selectedSecondCessionIndex) { e.preventDefault(); selectedThirdCessionIndex = i; fillCessionIntoForm(i, '3'); } }}
-                                aria-disabled={i === selectedCessionIndex || i === selectedSecondCessionIndex}
-                                style="border-width:1px;"
-                              >
-                                <div class="flex justify-between items-start">
-                                    <div class="text-sm font-semibold text-gray-800">
+                                <!-- Content -->
+                                <div class="flex-1 min-w-0">
+                                  <div class="flex items-center justify-between mb-1">
+                                    <div class="text-sm font-semibold text-gray-900 truncate">
                                       {#if c.number}
                                         {c.number}
                                       {:else if c.reference}
@@ -1645,49 +1528,201 @@
                                     </div>
                                     <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
                                   </div>
-                                  <div class="mt-2 text-sm text-gray-700">المبلغ الجملي: <span dir="ltr" class="font-medium">{formatCurrency(c.totalLoanAmount)}</span></div>
-                                  <div class="text-sm text-gray-700">القسط الشهري: <span dir="ltr" class="font-medium">{formatCurrency(c.monthlyPayment)}</span></div>
-                                      <div class="absolute inset-y-0 left-0 w-1 rounded-l-lg bg-rose-500"></div>
-                                      <div class="relative pl-4">
-                                        <div class="flex items-start justify-between">
-                                          <div>
-                                            <div class="text-sm font-semibold text-gray-800">
-                                              {#if c.number}
-                                                {c.number}
-                                              {:else if c.reference}
-                                                {c.reference}
-                                              {:else}
-                                                الإحالة {i + 1}
-                                              {/if}
-                                            </div>
-                                            <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
-                                          </div>
-                                          <div class="text-sm text-gray-500">{i === selectedCessionIndex || i === selectedSecondCessionIndex ? 'مشغول' : ''}</div>
-                                        </div>
 
-                                        <div class="mt-3 flex items-center justify-between">
-                                          <div class="text-sm text-gray-600">المبلغ الجملي</div>
-                                          <div class="text-sm font-semibold text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</div>
-                                        </div>
-                                        <div class="mt-1 flex items-center justify-between">
-                                          <div class="text-sm text-gray-600">القسط الشهري</div>
-                                          <div class="text-sm font-medium text-gray-800" dir="ltr">{formatCurrency(c.monthlyPayment)}</div>
-                                        </div>
+                                  <div class="flex items-center justify-between text-xs">
+                                    <span class="text-gray-600">المبلغ:</span>
+                                    <span class="font-medium text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</span>
+                                  </div>
 
-                                        <div class="mt-2 flex items-center justify-between text-sm text-gray-600">
-                                          <div>المقتطَع: <span dir="ltr" class="font-medium">{formatCurrency(c.deduction)}</span></div>
-                                          <div>المتبقي: <span dir="ltr" class="font-medium text-indigo-700">{remainingForCession(c)} د</span></div>
-                                        </div>
-                                      </div>
-                                      <div class="absolute top-2 right-2 text-green-600" aria-hidden>
-                                        {#if i === selectedThirdCessionIndex}
-                                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                  <div class="flex items-center justify-between text-xs mt-0.5">
+                                    <span class="text-gray-600">المتبقي:</span>
+                                    <span class="font-medium text-green-600" dir="ltr">{remainingForCession(c)} د</span>
+                                  </div>
+
+                                  <!-- Mini progress bar -->
+                                  <div class="mt-2 w-full bg-gray-200 rounded-full h-1">
+                                    <div
+                                      class="h-1 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all duration-300"
+                                      style="width: {Math.min(100, ((Number(remainingForCession(c)) / Number(c.totalLoanAmount || 1)) * 100))}%"
+                                    ></div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- Keyboard hint -->
+                              {#if i < 3}
+                                <div class="absolute bottom-1 left-1 text-xs text-gray-400 font-mono">
+                                  {i+1}
+                                </div>
+                              {/if}
+                            </div>
+                          {/each}
+                        </div>
+
+                        <div class="mt-3 flex items-center gap-3">
+                          <label class="flex items-center text-sm">
+                            <input type="checkbox" bind:checked={includeSecondCession} class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500" /> تضمين إحالة ثانية
+                          </label>
+                        </div>
+                      </div>
+
+                      {#if includeSecondCession}
+                        <div class="md:col-span-2">
+                          <label class="block text-sm font-medium text-gray-700 mb-3">اختر الإحالة الثانية</label>
+                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {#each cessions as c, i}
+                              <div
+                                role="button"
+                                tabindex="0"
+                                class="group relative p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1"
+                                class:border-blue-500={i === selectedSecondCessionIndex}
+                                class:border-gray-200={! (i === selectedSecondCessionIndex)}
+                                class:bg-blue-50={i === selectedSecondCessionIndex}
+                                class:opacity-50={i === selectedCessionIndex}
+                                on:click={() => { if (i !== selectedCessionIndex) { selectedSecondCessionIndex = i; fillCessionIntoForm(i, '2'); } }}
+                                on:keydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && i !== selectedCessionIndex) { e.preventDefault(); selectedSecondCessionIndex = i; fillCessionIntoForm(i, '2'); } }}
+                                aria-disabled={i === selectedCessionIndex}
+                              >
+                                <!-- Selection indicator -->
+                                {#if i === selectedSecondCessionIndex}
+                                  <div class="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                  </div>
+                                {/if}
+
+                                <div class="flex items-center gap-3">
+                                  <!-- Icon -->
+                                  <div class="w-8 h-8 rounded-md bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                  </div>
+
+                                  <!-- Content -->
+                                  <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                      <div class="text-sm font-semibold text-gray-900 truncate">
+                                        {#if c.number}
+                                          {c.number}
+                                        {:else if c.reference}
+                                          {c.reference}
+                                        {:else}
+                                          الإحالة {i + 1}
                                         {/if}
                                       </div>
-                                      {#if i === selectedCessionIndex || i === selectedSecondCessionIndex}
-                                        <div class="absolute inset-0 bg-white/70 flex items-center justify-center text-sm font-semibold text-gray-500">مشغول</div>
-                                      {/if}
+                                      <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
                                     </div>
+
+                                    <div class="flex items-center justify-between text-xs">
+                                      <span class="text-gray-600">المبلغ:</span>
+                                      <span class="font-medium text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between text-xs mt-0.5">
+                                      <span class="text-gray-600">المتبقي:</span>
+                                      <span class="font-medium text-green-600" dir="ltr">{remainingForCession(c)} د</span>
+                                    </div>
+
+                                    <!-- Mini progress bar -->
+                                    <div class="mt-2 w-full bg-gray-200 rounded-full h-1">
+                                      <div
+                                        class="h-1 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-full transition-all duration-300"
+                                        style="width: {Math.min(100, ((Number(remainingForCession(c)) / Number(c.totalLoanAmount || 1)) * 100))}%"
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <!-- Disabled indicator -->
+                                {#if i === selectedCessionIndex}
+                                  <div class="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                                    <div class="text-xs font-medium text-gray-500">الأساسية</div>
+                                  </div>
+                                {/if}
+                              </div>
+                            {/each}
+                          </div>
+                        </div>
+                      {/if}
+
+                      {#if includeThirdCession}
+                        <div class="md:col-span-2">
+                          <label class="block text-sm font-medium text-gray-700 mb-3">اختر الإحالة الثالثة</label>
+                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {#each cessions as c, i}
+                              <div
+                                role="button"
+                                tabindex="0"
+                                class="group relative p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-1"
+                                class:border-purple-500={i === selectedThirdCessionIndex}
+                                class:border-gray-200={! (i === selectedThirdCessionIndex)}
+                                class:bg-purple-50={i === selectedThirdCessionIndex}
+                                class:opacity-50={(i === selectedCessionIndex || i === selectedSecondCessionIndex)}
+                                on:click={() => { if (i !== selectedCessionIndex && i !== selectedSecondCessionIndex) { selectedThirdCessionIndex = i; fillCessionIntoForm(i, '3'); } }}
+                                on:keydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && i !== selectedCessionIndex && i !== selectedSecondCessionIndex) { e.preventDefault(); selectedThirdCessionIndex = i; fillCessionIntoForm(i, '3'); } }}
+                                aria-disabled={i === selectedCessionIndex || i === selectedSecondCessionIndex}
+                              >
+                                <!-- Selection indicator -->
+                                {#if i === selectedThirdCessionIndex}
+                                  <div class="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center shadow-sm">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                  </div>
+                                {/if}
+
+                                <div class="flex items-center gap-3">
+                                  <!-- Icon -->
+                                  <div class="w-8 h-8 rounded-md bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                  </div>
+
+                                  <!-- Content -->
+                                  <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                      <div class="text-sm font-semibold text-gray-900 truncate">
+                                        {#if c.number}
+                                          {c.number}
+                                        {:else if c.reference}
+                                          {c.reference}
+                                        {:else}
+                                          الإحالة {i + 1}
+                                        {/if}
+                                      </div>
+                                      <div class="text-xs text-gray-500">{formatDate(c.startDate)}</div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between text-xs">
+                                      <span class="text-gray-600">المبلغ:</span>
+                                      <span class="font-medium text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between text-xs mt-0.5">
+                                      <span class="text-gray-600">المتبقي:</span>
+                                      <span class="font-medium text-green-600" dir="ltr">{remainingForCession(c)} د</span>
+                                    </div>
+
+                                    <!-- Mini progress bar -->
+                                    <div class="mt-2 w-full bg-gray-200 rounded-full h-1">
+                                      <div
+                                        class="h-1 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full transition-all duration-300"
+                                        style="width: {Math.min(100, ((Number(remainingForCession(c)) / Number(c.totalLoanAmount || 1)) * 100))}%"
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <!-- Disabled indicator -->
+                                {#if i === selectedCessionIndex || i === selectedSecondCessionIndex}
+                                  <div class="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                                    <div class="text-xs font-medium text-gray-500">غير متاح</div>
+                                  </div>
+                                {/if}
+                              </div>
                             {/each}
                           </div>
                         </div>
@@ -1706,7 +1741,7 @@
                             <span class="text-red-500">*</span>
                           {/if}
                         </label>
-                        
+
                         {#if field.type === 'date'}
                           <input
                             type="date"
