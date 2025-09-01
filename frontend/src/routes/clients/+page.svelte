@@ -23,8 +23,10 @@
   let filteredClients = [];
   let jobs = [];
   let jobsMap = {};
+  let filteredJobs = [];
   let workplaces = [];
   let workplacesMap = {};
+  let filteredWorkplaces = [];
   let cessions = [];
   let cessionsByClient = {};
 

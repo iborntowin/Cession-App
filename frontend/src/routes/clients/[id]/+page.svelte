@@ -532,7 +532,7 @@
       pdfData.issuerName = 'مسر المعاوي';
       pdfData.issuerTaxId = '1851501J/N/C/000';
 
-      // Generate document URL
+      // Generate document URL and open for printing
       const documentUrl = await generateDocumentUrl(pdfData);
       currentDocumentUrl = documentUrl;
       currentDocumentTitle = selectedDocumentType;
@@ -605,13 +605,133 @@
 
   function printDocument() {
     if (currentDocumentUrl) {
-      const printWindow = window.open(currentDocumentUrl, '_blank', 'noopener=yes,noreferrer=yes');
-      if (printWindow) {
-        printWindow.opener = null;
-        // Wait for the document to load, then trigger print
-        printWindow.onload = () => {
-          printWindow.print();
-        };
+      try {
+        // Check if the URL is an HTML blob (our HTML fallback) or PDF
+        const isHTMLBlob = currentDocumentUrl.includes('text/html') || 
+                          currentDocumentUrl.startsWith('blob:') && !currentDocumentUrl.includes('.pdf');
+        
+        if (isHTMLBlob) {
+          // For HTML content, use iframe approach
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'absolute';
+          iframe.style.left = '-9999px';
+          iframe.style.width = '1px';
+          iframe.style.height = '1px';
+          iframe.src = currentDocumentUrl;
+          
+          document.body.appendChild(iframe);
+          
+          iframe.onload = () => {
+            try {
+              setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                
+                setTimeout(() => {
+                  if (iframe.parentNode) {
+                    iframe.parentNode.removeChild(iframe);
+                  }
+                }, 1000);
+              }, 500);
+            } catch (printError) {
+              console.warn('Iframe printing failed:', printError);
+              if (iframe.parentNode) {
+                iframe.parentNode.removeChild(iframe);
+              }
+              fallbackPrint();
+            }
+          };
+          
+          iframe.onerror = () => {
+            if (iframe.parentNode) {
+              iframe.parentNode.removeChild(iframe);
+            }
+            fallbackPrint();
+          };
+          
+        } else {
+          // For PDF content, try window.open first
+          tryWindowPrint();
+        }
+        
+        function tryWindowPrint() {
+          try {
+            const printWindow = window.open(currentDocumentUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+            if (printWindow && !printWindow.closed) {
+              printWindow.onload = () => {
+                setTimeout(() => {
+                  try {
+                    printWindow.print();
+                  } catch (e) {
+                    console.warn('Window print failed:', e);
+                  }
+                }, 1000);
+              };
+              
+              // Check if window was blocked after a short delay
+              setTimeout(() => {
+                if (printWindow.closed) {
+                  fallbackPrint();
+                }
+              }, 100);
+            } else {
+              fallbackPrint();
+            }
+          } catch (error) {
+            console.warn('Window open failed:', error);
+            fallbackPrint();
+          }
+        }
+        
+        function fallbackPrint() {
+          // Create a styled download/print link
+          const link = document.createElement('a');
+          link.href = currentDocumentUrl;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = 'فتح الوثيقة للطباعة';
+          link.style.cssText = `
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: #3B82F6; 
+            color: white; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            z-index: 9999; 
+            font-weight: bold; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 2px solid #2563EB;
+            cursor: pointer;
+          `;
+          
+          // Add click handler for the link
+          link.onclick = (e) => {
+            e.preventDefault();
+            // Try to open the link manually
+            window.open(currentDocumentUrl, '_blank');
+            // Also provide download option
+            downloadDocument();
+          };
+          
+          document.body.appendChild(link);
+          
+          showAlert('النقر على الرابط لفتح الوثيقة. إذا لم تعمل الطباعة تلقائياً، استخدم Ctrl+P', 'info');
+          
+          // Remove the link after 10 seconds
+          setTimeout(() => {
+            if (link.parentNode) {
+              link.parentNode.removeChild(link);
+            }
+          }, 10000);
+        }
+        
+      } catch (error) {
+        console.error('Error in print function:', error);
+        showAlert('حدث خطأ في الطباعة. يرجى تحميل الوثيقة والطباعة يدوياً.', 'error');
+        downloadDocument(); // Fallback to download
       }
     }
   }
@@ -1483,13 +1603,13 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {#if selectedDocumentType === 'شهادة في إحالة' && cessions.length > 0}
                       <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">اختر الإحالة (اضغط على صندوق الإحالة)</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-4 text-center">اختر الإحالة (اضغط على صندوق الإحالة)</label>
+                        <div class="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
                           {#each cessions as c, i}
                             <div
                               role="button"
                               tabindex="0"
-                              class="group relative p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-1"
+                              class="group relative w-full sm:w-80 md:w-72 lg:w-64 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-1 hover:shadow-lg"
                               class:border-purple-500={i === selectedCessionIndex}
                               class:border-gray-200={! (i === selectedCessionIndex)}
                               class:bg-purple-50={i === selectedCessionIndex}
@@ -1568,13 +1688,13 @@
 
                       {#if includeSecondCession}
                         <div class="md:col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-3">اختر الإحالة الثانية</label>
-                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          <label class="block text-sm font-medium text-gray-700 mb-4 text-center">اختر الإحالة الثانية</label>
+                          <div class="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
                             {#each cessions as c, i}
                               <div
                                 role="button"
                                 tabindex="0"
-                                class="group relative p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1"
+                                class="group relative w-full sm:w-80 md:w-72 lg:w-64 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 hover:shadow-lg"
                                 class:border-blue-500={i === selectedSecondCessionIndex}
                                 class:border-gray-200={! (i === selectedSecondCessionIndex)}
                                 class:bg-blue-50={i === selectedSecondCessionIndex}
@@ -1649,13 +1769,13 @@
 
                       {#if includeThirdCession}
                         <div class="md:col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-3">اختر الإحالة الثالثة</label>
-                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          <label class="block text-sm font-medium text-gray-700 mb-4 text-center">اختر الإحالة الثالثة</label>
+                          <div class="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
                             {#each cessions as c, i}
                               <div
                                 role="button"
                                 tabindex="0"
-                                class="group relative p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-1"
+                                class="group relative w-full sm:w-80 md:w-72 lg:w-64 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-1 hover:shadow-lg"
                                 class:border-purple-500={i === selectedThirdCessionIndex}
                                 class:border-gray-200={! (i === selectedThirdCessionIndex)}
                                 class:bg-purple-50={i === selectedThirdCessionIndex}
