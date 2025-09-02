@@ -341,11 +341,12 @@ public class SalaryAssignmentPdfGeneratorService {
         sectionHeader.setSpacingAfter(8);
         document.add(sectionHeader);
         
-        // Fixed agreement text with dynamic workplace
-        String agreementText = "بمقتضى هذه الإحالة يأذن السيد الأمين العام للمصاريف لدى " + 
-                              safeGetValue(data.getWorkplace(), "وزارة الدفاع") + 
-                              " الاقتطاع شهريا من راتبه المبلغ المذكور أعلاه و تحويله حسب الطرق الإجرائية المعتمدة للمزود مسر معاوي حتى الخلاص النهائي " +
-                              "ما لم تطرأ موانع قانونية أو مهنية أو غيرها تحول دون ذلك.";
+        // Fixed agreement text with dynamic workplace - reversed order as requested
+        String agreementText = "حسب الطرق الإجرائية المعتمدة للمزود مسر معاوي حتى الخلاص النهائي " +
+                              "ما لم تطرأ موانع قانونية أو مهنية أو غيرها تحول دون ذلك. " +
+                              "بمقتضى هذه الإحالة يأذن السيد الأمين العام للمصاريف لدى " +
+                              safeGetValue(data.getWorkplace(), "وزارة الدفاع") +
+                              " الاقتطاع شهريا من راتبه المبلغ المذكور أعلاه و تحويله";
         
         String formattedAgreementText = formatArabicText(agreementText);
         Paragraph agreement = new Paragraph(formattedAgreementText, arabicFieldFont); // 12px Normal font for agreement content

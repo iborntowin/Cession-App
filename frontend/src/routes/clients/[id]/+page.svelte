@@ -991,6 +991,16 @@
     `;
   }
 
+  function getNextMonthInArabic() {
+    const months = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    return months[nextMonth.getMonth()] + ' ' + nextMonth.getFullYear();
+  }
+
   function generateSalaryAssignmentHTML(data) {
     return `
       <!DOCTYPE html>
@@ -1075,6 +1085,27 @@
           <span class="field-label">المبلغ الشهري: </span>
           <span class="field-value">${data.monthlyPayment || '_________________'}</span>
         </div>
+        <div class="field">
+          <span class="field-label">مدة الاقتطاع: </span>
+          <span class="field-value">18 شهرا</span>
+        </div>
+        <div class="field">
+          <span class="field-label">تاريخ بداية سريان أول اقتطاع من الأجر: </span>
+          <span class="field-value">${getNextMonthInArabic()}</span>
+        </div>
+        
+        <div class="section-header">محتوى الاتفاق:</div>
+        <div style="margin: 25px 0; line-height: 1.8;">
+          بمقتضى هذه الإحالة يأذن السيد الأمين العام للمصاريف لدى وزارة الدفاع الوطني الاقتطاع شهريا من راتبه المبلغ المذكور أعلاه و تحويله حسب الطرق الإجرائية المعتمدة للمزود مسر معاوي حتى الخلاص النهائي ما لم تطرأ موانع قانونية أو مهنية أو غيرها تحول دون ذلك.
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 40px; text-align: center;">
+          <div style="width: 30%;">امضاء المزود وختمه</div>
+          <div style="width: 30%;">امضاء المدين</div>
+          <div style="width: 30%;">ختم المؤجر</div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">ختم المحكمة و الإمضاء</div>
       </body>
       </html>
     `;
