@@ -873,10 +873,10 @@
   const c1monthly = data.cession1_monthly ? parseFloat(String(data.cession1_monthly)) || 0 : 0;
   const c1deduct = data.cession1_deduction ? parseFloat(String(data.cession1_deduction)) || 0 : 0;
 
-  // Use cession1_number primarily; if both دفتر and صفحة are provided, prefer 'دفتر/صفحة'
+  // Use cession1_number primarily; if both دفتر and صفحة are provided, prefer 'صفحة/دفتر'
   const c1daftr = data['الدفتر'] || data.daftr || '';
   const c1safha = data['الصفحة'] || data.safha || '';
-  const c1UnderNumber = (c1daftr && c1safha) ? `${c1daftr}/${c1safha}` : (c1num || '');
+  const c1UnderNumber = (c1daftr && c1safha) ? `${c1safha}/${c1daftr}` : (c1num || '');
 
   const c2num = data.cession2_number || '';
   const c2date = data.cession2_date || '';
@@ -949,42 +949,105 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>شهادة في إحالة</title>
         <style>
-          body { font-family: 'Times New Roman', serif; direction: rtl; unicode-bidi: isolate-override; padding: 28px; }
-          .container { max-width: 820px; margin: 0 auto; }
-          .hdr-table { width: 100%; }
-          .hdr-right { text-align: right; }
-          .hdr-left { text-align: left; }
-          .title { text-align: center; font-weight: bold; margin: 18px 0; font-size: 20px; }
-          .para { text-align: justify; line-height: 1.8; margin-bottom: 12px; }
-          .ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+          body { 
+            font-family: Arial, sans-serif; 
+            direction: rtl; 
+            unicode-bidi: isolate-override; 
+            padding: 28px; 
+            color: #000; 
+            margin: 0;
+          }
+          .container { 
+            max-width: 820px; 
+            margin: 0 auto; 
+          }
+          .header-line {
+            text-align: justify;
+            font-size: 17px;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.0;
+            display: flex;
+            justify-content: space-between;
+          }
+          .business-title {
+            text-align: right;
+            font-size: 17px;
+            font-family: Arial, sans-serif;
+            font-weight: normal;
+            margin: 0;
+            padding: 0;
+            line-height: 1.0;
+          }
+          .business-address {
+            text-align: right;
+            font-size: 17px;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.0;
+          }
+          .tax-info {
+            text-align: right;
+            font-size: 17px;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.0;
+          }
+          .tax-bold {
+            font-weight: bold;
+          }
+          .title { 
+            text-align: center; 
+            font-weight: bold; 
+            margin: 20px 0; 
+            font-size: 36px; 
+            font-family: Arial, sans-serif;
+          }
+          .para { 
+            text-align: right; 
+            line-height: 1.6; 
+            margin: 15px 0; 
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            font-weight: normal;
+          }
+          .para-bold {
+            font-weight: bold;
+          }
+          .ltr { 
+            direction: ltr; 
+            unicode-bidi: isolate; 
+            display: inline-block; 
+          }
+          .signature {
+            text-align: left;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            font-weight: normal;
+            margin: 20px 0;
+          }
         </style>
       </head>
       <body>
         <div class="container">
-          <table class="hdr-table"><tr>
-            <td class="hdr-right">${escapeHtml(issuer)}</td>
-            <td class="hdr-left">${escapeHtml(place)} في ${wrapLtr(printingDate)}</td>
-          </tr></table>
-
-          <div>${escapeHtml(businessTitle)}</div>
-          <div>${escapeHtml(businessAddress)}</div>
-          <div>المعرف الجبائي ${wrapLtr(taxId)}</div>
-
-          <div style="height:12px"></div>
-
+          <div class="header-line">
+            <span>${escapeHtml(issuer)}</span>
+            <span>${escapeHtml(place)} في ${wrapLtr(printingDate)}</span>
+          </div>
+          <div class="business-title">${escapeHtml(businessTitle)}</div>
+          <div class="business-address">${escapeHtml(businessAddress)}</div>
+          <div class="tax-info">المعرف الجبائي <span class="tax-bold">${wrapLtr(taxId)}</span></div>
           <div class="title">شهادة في إحالة</div>
-
           <div class="para">${paraIntro}</div>
           <div class="para">${paraC1}</div>
           ${c2amount > 0 ? `<div class="para">${paraC2}</div>` : ''}
           ${c3amount > 0 ? `<div class="para">${paraC3}</div>` : ''}
-
           <div class="para">${paraTotal}</div>
-
-          <div class="para">رقم الحساب البنكي لمحل لبيع الأجهزة الإلكترونية عدد ${wrapLtr(bankAccount)}  بالشركة التونسية للبنك فرع منزل بورقيبة.</div>
-
-          <div style="height:18px"></div>
-          <div>الامضاء و الختم</div>
+          <div class="para">رقم الحساب البنكي لمحل لبيع الأجهزة الإلكترونية عدد <span class="para-bold">${wrapLtr(bankAccount)}</span> بالشركة التونسية للبنك فرع منزل بورقيبة.</div>
+          <div class="signature">الامضاء و الختم</div>
         </div>
       </body>
       </html>
@@ -1139,56 +1202,70 @@
         <title>شهادة خلاص و رفع يد</title>
         <style>
           @page { margin: 40px; size: A4; }
-          @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700&display=swap');
           body {
-            font-family: "Times New Roman", serif;
-            font-size: 14px;
+            font-family: Arial, sans-serif;
             direction: rtl;
             text-align: right;
             margin: 0;
             padding: 40px;
             line-height: 1.6;
-            /* Force proper bidi handling */
-            -webkit-text-size-adjust: 100%;
-            unicode-bidi: embed;
-            word-break: break-word;
           }
           .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            font-weight: bold;
+            font-size: 17px;
+            font-family: Arial, sans-serif;
             padding: 0 20px;
           }
           .header-left { text-align: right; flex: 1; }
           .header-right { text-align: left; flex: 1; }
           .issuer-info {
-            text-align: center;
+            text-align: right;
             margin-bottom: 30px;
             line-height: 1.8;
+            font-size: 17px;
+            font-family: Arial, sans-serif;
+          }
+          .tax-id {
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 13px;
           }
           .title {
-            font-size: 20px;
+            font-size: 24px;
             font-weight: bold;
+            font-family: Arial, sans-serif;
             text-align: center;
             text-decoration: underline;
-            margin: 50px 0 30px 0;
+            margin: 15px 0 30px 0;
           }
           .body-text {
             text-align: justify;
             margin: 20px 0;
             line-height: 1.8;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+          }
+          .tax-id-inline {
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 18px;
           }
           .field-line {
             margin: 10px 0;
             text-align: right;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
           }
           .signature-section {
             margin-top: 80px;
-            text-align: right;
+            text-align: left;
             font-weight: bold;
-            padding-right: 350px;
+            padding-left: 350px;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
           }
           .spacing { margin: 20px 0; height: 25px; }
         </style>
@@ -1202,16 +1279,13 @@
         <div class="issuer-info">
           <div>بيع الأجهزة الالكترونية</div>
           <div>شارع الاستقلال منزل بورقيبة</div>
-          <div>المعرف الجبائي ${data.issuerTaxId || '1851501J/N/C/000'}</div>
+          <div>المعرف الجبائي <span class="tax-id">${data.issuerTaxId || '1851501J/N/C/000'}</span></div>
         </div>
-
-        <div class="spacing"></div>
-        <div class="spacing"></div>
 
         <div class="title">شهادة خلاص و رفع يد</div>
 
         <div class="body-text">
-          إني الممضي أسفله مسر المعاوي صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي <span dir="ltr">${data.issuerTaxId || '1851501J/N/C/000'}</span>
+          إني الممضي أسفله مسر المعاوي صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي <span class="tax-id-inline">${data.issuerTaxId || '1851501J/N/C/000'}</span>
         </div>
 
         <div class="body-text">
@@ -1264,10 +1338,8 @@
         <title>مطلب في رفع يد</title>
         <style>
           @page { margin: 40px; size: A4; }
-          @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700&display=swap');
           body {
-            font-family: "Times New Roman", serif;
-            font-size: 14px;
+            font-family: Arial, sans-serif;
             direction: rtl;
             text-align: right;
             margin: 0;
@@ -1279,19 +1351,28 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            font-weight: bold;
+            font-size: 17px;
+            font-family: Arial, sans-serif;
             padding: 0 20px;
           }
           .header-left { text-align: right; flex: 1; }
           .header-right { text-align: left; flex: 1; }
           .issuer-info {
-            text-align: center;
+            text-align: right;
             margin-bottom: 30px;
             line-height: 1.8;
+            font-size: 17px;
+            font-family: Arial, sans-serif;
+          }
+          .tax-id {
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 13px;
           }
           .title {
-            font-size: 20px;
+            font-size: 24px;
             font-weight: bold;
+            font-family: Arial, sans-serif;
             text-align: center;
             text-decoration: underline;
             margin: 50px 0 30px 0;
@@ -1300,16 +1381,27 @@
             text-align: justify;
             margin: 20px 0;
             line-height: 1.8;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+          }
+          .tax-id-inline {
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 18px;
           }
           .field-line {
             margin: 10px 0;
             text-align: right;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
           }
           .signature-section {
             margin-top: 80px;
-            text-align: right;
+            text-align: left;
             font-weight: bold;
-            padding-right: 350px;
+            padding-left: 350px;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
           }
           .spacing { margin: 20px 0; height: 25px; }
         </style>
@@ -1323,16 +1415,14 @@
         <div class="issuer-info">
           <div>بيع الأجهزة الالكترونية</div>
           <div>شارع الاستقلال منزل بورقيبة</div>
-          <div>المعرف الجبائي ${data.issuerTaxId || '1851501J/N/C/000'}</div>
+          <div>المعرف الجبائي <span class="tax-id">${data.issuerTaxId || '1851501J/N/C/000'}</span></div>
         </div>
 
-        <div class="spacing"></div>
-        <div class="spacing"></div>
-
+      
         <div class="title">مطلب في رفع يد</div>
 
         <div class="body-text">
-          إني الممضي أسفله مسر المعاوي صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي ${data.issuerTaxId || '1851501J/N/C/000'}
+          إني الممضي أسفله مسر المعاوي صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي <span class="tax-id-inline">${data.issuerTaxId || '1851501J/N/C/000'}</span>
         </div>
 
         <div class="body-text">
