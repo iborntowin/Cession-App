@@ -1796,55 +1796,82 @@
         {#if viewMode === 'cards'}
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {#each paginatedProducts as product (product.id)}
-              <div 
-                class="group bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden"
-                in:scale={{ duration: 300, delay: 50, easing: backOut }}
-                out:scale={{ duration: 200, easing: quintOut }}
-              >
-                <!-- Product Image/Icon -->
-                <div class="h-48 bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center relative overflow-hidden">
-                  <span class="text-6xl opacity-80">📦</span>
-                  <div class="absolute top-3 right-3">
-                    <span class="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium {(product.stock_quantity || 0) > 10 ? 'text-green-700 bg-green-100' : (product.stock_quantity || 0) > 0 ? 'text-yellow-700 bg-yellow-100' : 'text-red-700 bg-red-100'}">
-                      {product.stock_quantity || 0} in stock
+              <div class="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group overflow-hidden">
+                <!-- Compact Product Card Design -->
+                <div class="p-4">
+                  <!-- Product Image - Smaller and Conditional -->
+                  {#if product.image_url}
+                    <div class="w-full h-24 mb-3 rounded-lg overflow-hidden">
+                      <img src={product.image_url} alt={product.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+                  {/if}
+
+                  <!-- Product Header -->
+                  <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1 min-w-0">
+                      <h3 class="text-base font-semibold text-gray-900 truncate">{product.name}</h3>
+                      <p class="text-sm text-gray-500 truncate">{product.sku}</p>
+                    </div>
+                    <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {product.stock_quantity <= (product.reorder_point || 0) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                      {product.stock_quantity <= (product.reorder_point || 0) ? 'Low' : 'OK'}
                     </span>
                   </div>
-                </div>
-                
-                <!-- Product Info -->
-                <div class="p-6">
-                  <div class="mb-4">
-                    <h3 class="font-bold text-gray-900 text-lg mb-2 line-clamp-2" style="text-align: {textAlign}">
-                      {product.name || 'Unnamed Product'}
-                    </h3>
-                    <p class="text-sm text-gray-600 mb-2" style="text-align: {textAlign}">
-                      SKU: {product.sku || 'N/A'}
-                    </p>
-                    <p class="text-sm text-gray-600" style="text-align: {textAlign}">
-                      Category: {categories.find(c => c.id === product.category_id)?.name || 'Uncategorized'}
-                    </p>
-                  </div>
-                  
-                  <!-- Price & Actions -->
-                  <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+
+                  <!-- Key Info Grid -->
+                  <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
                     <div>
-                      <p class="text-2xl font-bold text-blue-600" style="text-align: {textAlign}">
-                        {formatCurrency(product.selling_price)}
-                      </p>
-                      {#if product.purchase_price}
-                        <p class="text-sm text-gray-500 line-through" style="text-align: {textAlign}">
-                          {formatCurrency(product.purchase_price)}
-                        </p>
-                      {/if}
+                      <span class="text-gray-500">Stock:</span>
+                      <span class="font-semibold ml-1 {product.stock_quantity <= (product.reorder_point || 0) ? 'text-red-600' : 'text-green-600'}">
+                        {product.stock_quantity}
+                      </span>
                     </div>
-                    
-                    <button
-                      on:click={() => selectProduct(product)}
-                      class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
-                      disabled={!product.stock_quantity || product.stock_quantity <= 0}
-                    >
-                      🛒 Sell
-                    </button>
+                    <div>
+                      <span class="text-gray-500">Category:</span>
+                      <span class="font-medium ml-1 text-gray-700 truncate block">
+                        {categories.find(c => c.id === product.category_id)?.name || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Price Section -->
+                  <div class="flex items-center justify-between mb-4 pt-3 border-t border-gray-100">
+                    <div>
+                      <p class="text-xl font-bold text-gray-900">{formatCurrency(product.selling_price || 0)}</p>
+                      <p class="text-xs text-gray-500">Selling Price</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-sm font-semibold text-green-600">
+                        +{formatCurrency((product.selling_price || 0) - (product.purchase_price || 0))}
+                      </p>
+                      <p class="text-xs text-gray-500">
+                        {product.purchase_price ? (((product.selling_price || 0) - product.purchase_price) / (product.selling_price || 1) * 100).toFixed(1) : '0.0'}% margin
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Compact Action Buttons -->
+                  <div class="flex space-x-2">
+                    {#if product.stock_quantity > 0}
+                      <button
+                        on:click={() => selectProduct(product)}
+                        class="flex-1 inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg transition-all duration-200"
+                      >
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5L21 21H7"/>
+                        </svg>
+                        Sell
+                      </button>
+                    {:else}
+                      <button
+                        disabled
+                        class="flex-1 inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg cursor-not-allowed"
+                      >
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"/>
+                        </svg>
+                        Out of Stock
+                      </button>
+                    {/if}
                   </div>
                 </div>
               </div>
