@@ -224,6 +224,34 @@
     @apply bg-yellow-100 text-yellow-800;
   }
   
+  /* Status Indicator Styles for Emoji Fallback */
+  .status-indicator {
+    @apply inline-flex items-center justify-center w-4 h-4 text-xs font-bold rounded-full transition-colors;
+  }
+  
+  .status-indicator.active {
+    @apply bg-green-500 text-white shadow-sm;
+  }
+  
+  .status-indicator.inactive {
+    @apply bg-gray-300 text-gray-600;
+  }
+  
+  /* Emoji fallback specific styles */
+  .status-indicator.active::before {
+    content: '●';
+    @apply text-green-500 bg-transparent shadow-none;
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  
+  .status-indicator.inactive::before {
+    content: '○';
+    @apply text-gray-400 bg-transparent shadow-none;
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  
   .toast {
     @apply fixed bottom-4 right-4 px-4 py-3 rounded-md shadow-lg flex items-center gap-2 animate-fade-in;
   }

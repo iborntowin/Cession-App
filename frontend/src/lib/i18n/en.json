@@ -178,7 +178,9 @@
     "showing_results": "Showing {count} results",
     "no_results": "No results found",
     "try_adjusting_filters": "Try adjusting filters",
-    "months": "months"
+    "months": "months",
+    "clients_count": "{count} clients",
+    "of_total_short": "of total"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -294,7 +296,32 @@
       "worker_number_placeholder": "Enter worker number...",
       "client_number": "Search by Client Number",
       "client_number_placeholder": "Enter client number...",
-      "clear": "Clear Search"
+      "clear": "Clear Search",
+      "advanced_search": "Advanced Search",
+      "advanced_search_description": "Use advanced filters to find specific clients",
+      "tips": {
+        "title": "Search Tips",
+        "partial_names": "• Use partial names for broader results",
+        "combine_criteria": "• Combine multiple criteria for precise results",
+        "select_workplace": "• Select workplace to filter by organization",
+        "press_enter": "• Press Enter to search instantly"
+      },
+      "quick_search_placeholder": "Quick search by name, CIN, or worker number...",
+      "identity_search": "Identity Search",
+      "cin_label": "CIN (National ID)",
+      "worker_number_label": "Worker Number",
+      "client_number_label": "Client Number",
+      "organization_filters": "Organization Filters",
+      "workplace_label": "Workplace",
+      "all_workplaces": "All Workplaces",
+      "job_title_label": "Job Title",
+      "select_workplace_first": "Please select a workplace first",
+      "quick_filters": "Quick Filters",
+      "has_cessions": "Has Active Cessions",
+      "clients_found": "clients found",
+      "search_now": "Search Now",
+      "clear_all": "Clear All",
+      "clear_search": "Clear Search"
     },
     "details": {
       "title": "Client Details",
@@ -310,7 +337,14 @@
         "full_name": "Full Name",
         "cin": "National ID Number",
         "phone": "Phone Number",
-        "address": "Address"
+        "email": "Email",
+        "address": "Address",
+        "labels": {
+          "id": "ID:",
+          "worker": "Worker:",
+          "workplace": "Workplace:",
+          "client": "Client:"
+        }
       },
       "work_info": {
         "title": "Work Information",
@@ -323,6 +357,7 @@
         "details": {},
         "view_all": "View All Cessions",
         "no_cessions": "No cessions found for this client",
+        "active_cessions": "Active Cessions",
         "table": {
           "id": "ID",
           "start_date": "Start Date",
@@ -349,6 +384,118 @@
       "zero": "No clients",
       "one": "{count} client",
       "other": "{count} clients"
+    },
+    "loading": "Loading clients...",
+    "analytics": {
+      "title": "Client Analytics",
+      "subtitle": "Comprehensive insights into your client portfolio",
+      "view_selector": {
+        "overview": "Overview",
+        "demographics": "Demographics",
+        "workplace": "Workplace",
+        "activity": "Activity",
+        "trends": "Trends"
+      },
+      "time_range": {
+        "this_week": "This Week",
+        "this_month": "This Month",
+        "month": "Month",
+        "last_3_months": "Last 3 Months",
+        "last_6_months": "Last 6 Months",
+        "this_year": "This Year",
+        "all_time": "All Time"
+      },
+      "metrics": {
+        "total_clients": "Total Clients",
+        "active_clients": "Active Clients",
+        "new_this_month": "New This Month",
+        "growth_rate": "Growth Rate"
+      },
+      "charts": {
+        "insight_label": "Insight",
+        "client_creation_trends": {
+          "title": "Client Creation Trends",
+          "subtitle": "Monthly client acquisition over time",
+          "insight": "Client acquisition shows steady growth with seasonal patterns"
+        },
+        "job_distribution": {
+          "title": "Distribution by Job Category",
+          "subtitle": "Client distribution across different professions",
+          "total_clients": "Total Clients",
+          "insight": "Diverse client base across multiple job categories",
+          "show_less": "Show Less",
+          "show_more": "Show {count} More Categories"
+        },
+        "top_workplaces": {
+          "title": "Top Workplaces",
+          "subtitle": "Most represented organizations",
+          "total_workplaces": "Total Workplaces",
+          "top_partner": "Top Partner",
+          "market_share": "Market Share",
+          "insight": "Strong presence in key organizations"
+        },
+        "client_segments": {
+          "title": "Client Segments"
+        },
+        "predictive_insights": {
+          "title": "Predictive Insights",
+          "confidence": "Confidence"
+        },
+        "contact_completeness": {
+          "title": "Contact Information Completeness",
+          "phone_numbers": "Phone Numbers",
+          "email_addresses": "Email Addresses",
+          "addresses": "Addresses"
+        },
+        "geographical_distribution": {
+          "title": "Geographical Distribution"
+        },
+        "activity_levels": {
+          "title": "Client Activity Levels"
+        },
+        "workplace_diversity": {
+          "title": "Workplace Diversity",
+          "description": "Unique workplaces represented"
+        },
+        "top_workplace": {
+          "title": "Top Workplace"
+        },
+        "growth_trends": {
+          "title": "Growth Trends",
+          "new_clients": "New Clients",
+          "cumulative_total": "Cumulative Total"
+        },
+        "data_quality": {
+          "title": "Data Quality Issues",
+          "duplicate_cin": {
+            "title": "Duplicate CIN Numbers",
+            "description": "Found {count} clients with duplicate CIN numbers"
+          },
+          "duplicate_worker": {
+            "title": "Duplicate Worker Numbers",
+            "description": "Found {count} clients with duplicate worker numbers"
+          }
+        },
+        "kpis": {
+          "retention_rate": {
+            "title": "Retention Rate",
+            "description": "Percentage of clients retained over time"
+          },
+          "avg_cessions": {
+            "title": "Avg Cessions per Client",
+            "description": "Average number of cessions per active client"
+          },
+          "completion_rate": {
+            "title": "Completion Rate",
+            "description": "Percentage of cessions completed successfully"
+          }
+        }
+      }
+    },
+    "empty": {
+      "title": "No Clients Found",
+      "add_first": "Add Your First Client",
+      "clear_filters": "Clear Search Filters"
     },
     "edit": {
       "title": "Edit Client",
@@ -444,7 +591,6 @@
       "client_info": "Client Information",
       "cession_info": "Cession Information",
       "client": "Client",
-      "view_profile": "View Profile",
       "bank_agency": "Bank / Agency",
       "total_loan": "Total Loan",
       "monthly_payment": "Monthly Payment",

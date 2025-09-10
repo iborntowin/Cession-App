@@ -322,23 +322,151 @@
       "worker_number_placeholder": "Entrez le numéro d'employé...",
       "client_number": "Rechercher par numéro de client",
       "client_number_placeholder": "Entrez le numéro de client...",
-      "job": "Emploi",
-      "workplace": "Lieu de Travail",
-      "phone": "Téléphone",
-      "address": "Adresse",
       "clear": "Effacer la recherche",
-      "placeholder": "Rechercher des clients...",
-      "toggle": "Basculer la recherche"
+      "advanced_search": "Recherche Avancée",
+      "advanced_search_description": "Utilisez des filtres avancés pour trouver des clients spécifiques",
+      "tips": {
+        "title": "Conseils de Recherche",
+        "partial_names": "• Utilisez des noms partiels pour des résultats plus larges",
+        "combine_criteria": "• Combinez plusieurs critères pour des résultats précis",
+        "select_workplace": "• Sélectionnez un lieu de travail pour filtrer par organisation",
+        "press_enter": "• Appuyez sur Entrée pour rechercher instantanément"
+      },
+      "quick_search_placeholder": "Recherche rapide par nom, CIN ou numéro d'employé...",
+      "identity_search": "Recherche d'Identité",
+      "cin_label": "CIN (Carte d'Identité Nationale)",
+      "worker_number_label": "Numéro d'Employé",
+      "client_number_label": "Numéro de Client",
+      "organization_filters": "Filtres d'Organisation",
+      "workplace_label": "Lieu de Travail",
+      "all_workplaces": "Tous les Lieux de Travail",
+      "job_title_label": "Titre du Poste",
+      "select_workplace_first": "Veuillez d'abord sélectionner un lieu de travail",
+      "quick_filters": "Filtres Rapides",
+      "has_cessions": "A des Cessions Actives",
+      "clients_found": "clients trouvés",
+      "search_now": "Rechercher Maintenant",
+      "clear_all": "Tout Effacer",
+      "clear_search": "Effacer la Recherche"
     },
     "view": {
       "grid": "Vue grille",
       "list": "Vue liste"
+    },
+    "analytics": {
+      "title": "Analyses Clients",
+      "subtitle": "Aperçu complet de votre portefeuille client",
+      "view_selector": {
+        "overview": "Aperçu",
+        "demographics": "Démographie",
+        "workplace": "Lieu de travail",
+        "activity": "Activité",
+        "trends": "Tendances"
+      },
+      "time_range": {
+        "this_week": "Cette semaine",
+        "this_month": "Ce mois",
+        "month": "Mois",
+        "last_3_months": "3 derniers mois",
+        "last_6_months": "6 derniers mois",
+        "this_year": "Cette année",
+        "all_time": "Tout le temps"
+      },
+      "metrics": {
+        "total_clients": "Total Clients",
+        "active_clients": "Clients Actifs",
+        "new_this_month": "Nouveaux ce Mois",
+        "growth_rate": "Taux de Croissance"
+      },
+      "charts": {
+        "insight_label": "Aperçu",
+        "client_creation_trends": {
+          "title": "Tendances de Création de Clients",
+          "subtitle": "Acquisition mensuelle de clients au fil du temps",
+          "insight": "L'acquisition de clients montre une croissance régulière avec des modèles saisonniers"
+        },
+        "job_distribution": {
+          "title": "Distribution par Catégorie de Poste",
+          "subtitle": "Distribution des clients selon différentes professions",
+          "total_clients": "Total Clients",
+          "insight": "Base de clients diversifiée dans plusieurs catégories de postes",
+          "show_less": "Afficher Moins",
+          "show_more": "Afficher {count} de Plus"
+        },
+        "top_workplaces": {
+          "title": "Meilleurs Lieux de Travail",
+          "subtitle": "Organisations les plus représentées",
+          "total_workplaces": "Total Lieux de Travail",
+          "top_partner": "Partenaire Principal",
+          "market_share": "Part de Marché",
+          "insight": "Présence forte dans les organisations clés"
+        },
+        "client_segments": {
+          "title": "Segments Clients"
+        },
+        "predictive_insights": {
+          "title": "Aperçus Prédictifs",
+          "confidence": "Confiance"
+        },
+        "contact_completeness": {
+          "title": "Complétude des Informations de Contact",
+          "phone_numbers": "Numéros de Téléphone",
+          "email_addresses": "Adresses Email",
+          "addresses": "Adresses"
+        },
+        "geographical_distribution": {
+          "title": "Distribution Géographique"
+        },
+        "activity_levels": {
+          "title": "Niveaux d'Activité des Clients"
+        },
+        "workplace_diversity": {
+          "title": "Diversité des Lieux de Travail",
+          "description": "Lieux de travail uniques représentés"
+        },
+        "top_workplace": {
+          "title": "Meilleur Lieu de Travail"
+        },
+        "growth_trends": {
+          "title": "Tendances de Croissance",
+          "new_clients": "Nouveaux Clients",
+          "cumulative_total": "Total Cumulé"
+        },
+        "data_quality": {
+          "title": "Problèmes de Qualité des Données",
+          "duplicate_cin": {
+            "title": "Numéros CIN Dupliqués",
+            "description": "Trouvé {count} clients avec des numéros CIN dupliqués"
+          },
+          "duplicate_worker": {
+            "title": "Numéros d'Employé Dupliqués",
+            "description": "Trouvé {count} clients avec des numéros d'employé dupliqués"
+          }
+        },
+        "kpis": {
+          "retention_rate": {
+            "title": "Taux de Rétention",
+            "description": "Pourcentage de clients retenus au fil du temps"
+          },
+          "avg_cessions": {
+            "title": "Cessions Moyennes par Client",
+            "description": "Nombre moyen de cessions par client actif"
+          },
+          "completion_rate": {
+            "title": "Taux d'Achèvement",
+            "description": "Pourcentage de cessions terminées avec succès"
+          }
+        }
+      },
+      "clients_count": "{count} clients",
+      "of_total_short": "sur total"
     },
     "count": {
       "zero": "Aucun client",
       "one": "{count} client",
       "other": "{count} clients"
     },
+    "loading": "Chargement des clients...",
     "details": {
       "title": "Détails du Client",
       "subtitle": "Voir et gérer les informations du client",
@@ -354,6 +482,7 @@
         "view_all": "Voir toutes les cessions",
         "no_cessions": "Aucune cession trouvée",
         "title": "Cessions",
+        "active_cessions": "Cessions Actives",
         "table": {
           "start_date": "Date de début",
           "view_details": "Voir les détails",
@@ -383,7 +512,13 @@
         "phone": "Téléphone",
         "address": "Adresse",
         "worker_number": "Numéro d'Employé",
-        "workplace": "Lieu de Travail"
+        "workplace": "Lieu de Travail",
+        "labels": {
+          "id": "ID :",
+          "worker": "Employé :",
+          "workplace": "Lieu de Travail :",
+          "client": "Client :"
+        }
       }
     },
     "actions": {
@@ -532,7 +667,8 @@
       "amount": "Montant",
       "status": "Statut",
       "all_status": "Tous les statuts",
-      "client_email": "E-mail"
+      "client_email": "E-mail",
+      "clear": "Effacer les Filtres"
     },
     "errors": {
       "invalid_id": "ID de cession invalide",
@@ -820,11 +956,6 @@
       "month": "Ce mois",
       "year": "Cette année",
       "all": "Toutes périodes"
-    },
-    "stats": {
-      "total_profit": "Bénéfice total",
-      "total_sales": "Ventes totales",
-      "average_profit": "Bénéfice moyen par vente"
     },
     "chart": {
       "title": "Aperçu des ventes",

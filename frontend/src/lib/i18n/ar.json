@@ -287,7 +287,32 @@
       "worker_number_placeholder": "أدخل رقم العامل...",
       "client_number": "البحث برقم العميل",
       "client_number_placeholder": "أدخل رقم العميل...",
-      "clear": "مسح البحث"
+      "clear": "مسح البحث",
+      "advanced_search": "بحث متقدم",
+      "advanced_search_description": "استخدم المرشحات المتقدمة للعثور على عملاء محددين",
+      "tips": {
+        "title": "نصائح البحث",
+        "partial_names": "• استخدم الأسماء الجزئية للحصول على نتائج أوسع",
+        "combine_criteria": "• اجمع بين معايير متعددة للحصول على نتائج دقيقة",
+        "select_workplace": "• حدد مكان العمل للتصفية حسب المنظمة",
+        "press_enter": "• اضغط على Enter للبحث فوراً"
+      },
+      "quick_search_placeholder": "بحث سريع بالاسم، رقم البطاقة الوطنية أو رقم العامل...",
+      "identity_search": "بحث الهوية",
+      "cin_label": "رقم البطاقة الوطنية (CIN)",
+      "worker_number_label": "رقم العامل",
+      "client_number_label": "رقم العميل",
+      "organization_filters": "مرشحات المنظمة",
+      "workplace_label": "مكان العمل",
+      "all_workplaces": "جميع أماكن العمل",
+      "job_title_label": "المسمى الوظيفي",
+      "select_workplace_first": "يرجى تحديد مكان العمل أولاً",
+      "quick_filters": "مرشحات سريعة",
+      "has_cessions": "لديه إحالات نشطة",
+      "clients_found": "عملاء تم العثور عليهم",
+      "search_now": "البحث الآن",
+      "clear_all": "مسح الكل",
+      "clear_search": "مسح البحث"
     },
     "details": {
       "title": "تفاصيل العميل",
@@ -303,7 +328,13 @@
         "full_name": "الاسم الكامل",
         "cin": "رقم البطاقة الوطنية",
         "phone": "رقم الهاتف",
-        "address": "العنوان"
+        "address": "العنوان",
+        "labels": {
+          "id": "المعرف:",
+          "worker": "العامل:",
+          "workplace": "مكان العمل:",
+          "client": "العميل:"
+        }
       },
       "work_info": {
         "title": "معلومات العمل",
@@ -316,6 +347,7 @@
         "details": {},
         "view_all": "عرض جميع الإحالات",
         "no_cessions": "لا توجد الإحالةات لهذا العميل",
+        "active_cessions": "الإحالات النشطة",
         "table": {
           "id": "المعرف",
           "start_date": "تاريخ البدء",
@@ -339,10 +371,121 @@
       "inactive": "غير نشط"
     },
     "count": {
-      "zero": "لا يوجد عملاء",
-      "one": "عميل واحد",
-      "other": "{count} عملاء"
+      "clients_found": "عملاء تم العثور عليهم",
+      "no_clients_found": "لم يتم العثور على عملاء",
+      "try_adjusting_criteria": "حاول تعديل معايير البحث",
+      "get_started": "ابدأ بإضافة عميلك الأول",
+      "add_first_client": "إضافة العميل الأول"
     },
+    "analytics": {
+      "title": "تحليلات العملاء",
+      "subtitle": "نظرة شاملة على بيانات العملاء",
+      "view_selector": {
+        "overview": "نظرة عامة",
+        "demographics": "التركيبة السكانية",
+        "workplace": "مكان العمل",
+        "activity": "النشاط",
+        "trends": "الاتجاهات"
+      },
+      "time_range": {
+        "this_week": "هذا الأسبوع",
+        "this_month": "هذا الشهر",
+        "month": "الشهر",
+        "last_3_months": "آخر 3 أشهر",
+        "last_6_months": "آخر 6 أشهر",
+        "this_year": "هذا العام",
+        "all_time": "كل الوقت"
+      },
+      "metrics": {
+        "total_clients": "إجمالي العملاء",
+        "active_clients": "العملاء النشطين",
+        "new_this_month": "جديد هذا الشهر",
+        "growth_rate": "معدل النمو"
+      },
+      "charts": {
+        "insight_label": "رؤية",
+        "client_creation_trends": {
+          "title": "اتجاهات إنشاء العملاء",
+          "subtitle": "اكتساب العملاء الشهري مع مرور الوقت",
+          "insight": "يظهر اكتساب العملاء نمواً منتظماً مع أنماط موسمية"
+        },
+        "job_distribution": {
+          "title": "التوزيع حسب فئة الوظيفة",
+          "subtitle": "توزيع العملاء عبر المهن المختلفة",
+          "total_clients": "إجمالي العملاء",
+          "insight": "قاعدة عملاء متنوعة عبر فئات وظيفية متعددة",
+          "show_less": "عرض أقل",
+          "show_more": "عرض {count} المزيد"
+        },
+        "top_workplaces": {
+          "title": "أفضل أماكن العمل",
+          "subtitle": "المنظمات الأكثر تمثيلاً",
+          "total_workplaces": "إجمالي أماكن العمل",
+          "top_partner": "الشريك الرئيسي",
+          "market_share": "حصة السوق",
+          "insight": "حضور قوي في المنظمات الرئيسية"
+        },
+        "client_segments": {
+          "title": "شرائح العملاء"
+        },
+        "predictive_insights": {
+          "title": "الرؤى التنبؤية",
+          "confidence": "الثقة"
+        },
+        "contact_completeness": {
+          "title": "اكتمال معلومات الاتصال",
+          "phone_numbers": "أرقام الهواتف",
+          "email_addresses": "عناوين البريد الإلكتروني",
+          "addresses": "العناوين"
+        },
+        "geographical_distribution": {
+          "title": "التوزيع الجغرافي"
+        },
+        "activity_levels": {
+          "title": "مستويات نشاط العملاء"
+        },
+        "workplace_diversity": {
+          "title": "تنوع أماكن العمل",
+          "description": "أماكن عمل فريدة ممثلة"
+        },
+        "top_workplace": {
+          "title": "أفضل مكان عمل"
+        },
+        "growth_trends": {
+          "title": "اتجاهات النمو",
+          "new_clients": "عملاء جدد",
+          "cumulative_total": "المجموع التراكمي"
+        },
+        "data_quality": {
+          "title": "مشاكل جودة البيانات",
+          "duplicate_cin": {
+            "title": "أرقام CIN مكررة",
+            "description": "تم العثور على {count} عميل بأرقام CIN مكررة"
+          },
+          "duplicate_worker": {
+            "title": "أرقام عامل مكررة",
+            "description": "تم العثور على {count} عميل بأرقام عامل مكررة"
+          }
+        },
+        "kpis": {
+          "retention_rate": {
+            "title": "معدل الاحتفاظ",
+            "description": "نسبة العملاء المحتفظ بهم مع مرور الوقت"
+          },
+          "avg_cessions": {
+            "title": "متوسط الإحالات لكل عميل",
+            "description": "عدد الإحالات المتوسط لكل عميل نشط"
+          },
+          "completion_rate": {
+            "title": "معدل الإنجاز",
+            "description": "نسبة الإحالات المكتملة بنجاح"
+          }
+        }
+      },
+      "clients_count": "{count} عميل",
+      "of_total_short": "من المجموع"
+    },
+    "loading": "جاري تحميل العملاء...",
     "edit": {
       "title": "تعديل العميل",
       "subtitle": "تحديث معلومات العميل",
@@ -699,6 +842,7 @@
       "add_product": "إضافة منتج"
     }
   },
+"selling": {
   "title": "المبيعات",
   "subtitle": "إدارة مبيعاتك",
   "new": "بيع جديد",
@@ -761,9 +905,9 @@
     "error": "خطأ في بيع المنتج: {error}"
   },
   "validation": {
-    "select_product": "الرجاء اختيار منتج للبيع.",
-    "invalid_quantity": "كمية غير صالحة. الرجاء إدخال قيمة موجبة أقل من أو تساوي المخزون الحالي.",
-    "invalid_price": "يجب أن يكون سعر البيع 0 أو أكبر."
+    "select_product": "الرجاء اختيار منتج للبيع",
+    "invalid_quantity": "كمية غير صالحة. الرجاء إدخال قيمة موجبة أقل من أو تساوي المخزون الحالي",
+    "invalid_price": "يجب أن يكون سعر البيع 0 أو أكبر"
   },
   "recent_sales": {
     "title": "المبيعات الأخيرة",
@@ -804,4 +948,435 @@
     "products": "جاري تحميل المنتجات...",
     "sales": "جاري تحميل المبيعات..."
   }
+},
+"finance": {
+  "title": "التتبع المالي",
+  "subtitle": "مراقبة المصروفات و المبيعات",
+  "dashboard": {
+    "title": "لوحة التحكم المالية",
+    "subtitle": "تتبع الأداء المالي"
+  },
+  "months": {
+    "january": "يناير",
+    "february": "فبراير",
+    "march": "مارس",
+    "april": "أبريل",
+    "may": "مايو",
+    "june": "يونيو",
+    "july": "يوليو",
+    "august": "أغسطس",
+    "september": "سبتمبر",
+    "october": "أكتوبر",
+    "november": "نوفمبر",
+    "december": "ديسمبر"
+  },
+  "search": {
+    "placeholder": "البحث في المعاملات، الفئات، أو المبالغ..."
+  },
+  "actions": {
+    "filters": "المرشحات",
+    "quick_actions": "الإجراءات السريعة",
+    "track_expense": "تتبع مصروف جديد",
+    "record_income": "تسجيل دخل جديد",
+    "export_report": "تصدير التقرير",
+    "download_data": "تحميل البيانات المالية",
+    "generate_report": "إنشاء تقرير"
+  },
+  "error": {
+    "title": "خطأ",
+    "load_data": "فشل في تحميل البيانات المالية",
+    "load_summary": "فشل في تحميل ملخص الشهر"
+  },
+  "loading": {
+    "title": "تحميل البيانات المالية",
+    "description": "يرجى الانتظار أثناء جمع المعلومات الأحدث"
+  },
+  "charts": {
+    "coming_soon": "قريباً",
+    "advanced_analytics": "التحليلات المتقدمة قريباً",
+    "add_expenses_first": "أضف بعض المصروفات لرؤية الرسم البياني",
+    "expense_distribution": "توزيع المصروفات",
+    "title": "المصروفات حسب الفئة",
+    "no_data": "لا توجد بيانات متاحة",
+    "expenses_by_category": "المصروفات حسب الفئة",
+    "sales_trend": "اتجاه المبيعات",
+    "income_by_category": "الدخل حسب الفئة",
+    "profit_trend": "اتجاه الربح",
+    "download": "تحميل التقرير",
+    "print": "طباعة التقرير"
+  },
+  "reports": {
+    "title": "التقارير المالية",
+    "subtitle": "تقارير شاملة وتصدير البيانات",
+    "monthly_report": "التقرير الشهري",
+    "quarterly_report": "التقرير الربع سنوي",
+    "annual_report": "التقرير السنوي",
+    "profit_loss": "حساب الربح والخسارة",
+    "cash_flow": "جدول التدفق النقدي",
+    "expense_report": "تقرير المصروفات",
+    "sales_report": "تقرير المبيعات",
+    "tax_report": "التقرير الضريبي",
+    "custom_report": "تقرير مخصص",
+    "export_options": "خيارات التصدير",
+    "generate_report": "إنشاء التقرير",
+    "download_pdf": "تحميل PDF",
+    "download_excel": "تحميل Excel",
+    "download_csv": "تحميل CSV",
+    "email_report": "إرسال بالبريد الإلكتروني",
+    "schedule_report": "جدولة التقرير",
+    "report_settings": "إعدادات التقرير",
+    "date_range": "النطاق الزمني",
+    "include_charts": "تضمين الرسوم البيانية",
+    "include_details": "تضمين التفاصيل",
+    "coming_soon": "قريباً",
+    "description": "ستكون التقارير التفصيلية وخيارات التصدير متاحة قريباً لمساعدتك في تتبع الأداء المالي."
+  },
+  "export": {
+    "title": "تصدير البيانات",
+    "description": "اختر تنسيق التصدير المفضل",
+    "options": {
+      "pdf": "تقرير PDF",
+      "excel": "جدول Excel",
+      "csv": "ملف CSV"
+    },
+    "generate": "إنشاء التصدير",
+    "format": "تنسيق التصدير",
+    "include_charts": "تضمين الرسوم البيانية",
+    "include_details": "تضمين تفاصيل المعاملات"
+  },
+  "insights": {
+    "title": "الرؤى المالية",
+    "subtitle": "توصيات وتنبؤات مدعومة بالذكاء الاصطناعي",
+    "recommendations": "التوصيات الذكية",
+    "predictions": "التنبؤات المالية",
+    "alerts": "التنبيهات المالية",
+    "opportunities": "فرص النمو",
+    "risks": "تحليل المخاطر",
+    "optimization": "تحسين التكاليف",
+    "budget_insights": "رؤى الميزانية",
+    "spending_patterns": "أنماط الإنفاق",
+    "revenue_opportunities": "فرص الإيرادات",
+    "cost_savings": "إمكانيات توفير التكاليف",
+    "market_trends": "اتجاهات السوق",
+    "seasonal_analysis": "التحليل الموسمي",
+    "predictive_analytics": "التحليلات التنبؤية",
+    "financial_health": "نتيجة الصحة المالية",
+    "cash_flow_forecast": "توقعات التدفق النقدي",
+    "expense_optimization": "تحسين المصروفات",
+    "revenue_growth": "إمكانية نمو الإيرادات",
+    "risk_assessment": "تقييم المخاطر",
+    "investment_suggestions": "اقتراحات الاستثمار",
+    "tax_optimization": "نصائح تحسين الضرائب"
+  },
+  "expense": {
+    "add_title": "إضافة مصروف جديد",
+    "add_subtitle": "تتبع مصروفات العمل بكفاءة",
+    "success_title": "تم إضافة المصروف بنجاح!",
+    "success_message": "تم تسجيل مصروفك وسيظهر في التقارير المالية.",
+    "step_category": "الفئة",
+    "step_details": "التفاصيل",
+    "step_review": "المراجعة",
+    "category": "الفئة",
+    "search_category": "البحث في الفئات...",
+    "description": "الوصف",
+    "description_placeholder": "أدخل وصف المصروف...",
+    "amount": "المبلغ (دينار تونسي)",
+    "formatted_amount": "المبلغ المنسق",
+    "date": "التاريخ",
+    "notes": "ملاحظات إضافية",
+    "notes_placeholder": "أضف أي تفاصيل إضافية حول هذا المصروف...",
+    "review_title": "مراجعة مصروفك",
+    "adding": "جاري الإضافة...",
+    "add_button": "إضافة مصروف",
+    "success": "تم إضافة المصروف بنجاح",
+    "error": "فشل في إضافة المصروف"
+  },
+  "categories": {
+    "water": "الماء",
+    "electricity": "الكهرباء",
+    "transport": "النقل",
+    "rent": "الإيجار",
+    "supplies": "اللوازم",
+    "maintenance": "الصيانة",
+    "salaries": "الرواتب",
+    "insurance": "التأمين",
+    "taxes": "الضرائب",
+    "marketing": "التسويق",
+    "other": "أخرى"
+  },
+  "validation": {
+    "category_required": "يرجى اختيار فئة",
+    "description_required": "يجب أن يكون الوصف 3 أحرف على الأقل",
+    "amount_required": "يرجى إدخال مبلغ صحيح أكبر من 0",
+    "date_required": "يرجى اختيار تاريخ",
+    "fix_errors": "يرجى إصلاح الأخطاء قبل الإرسال"
+  },
+  "modals": {
+    "add_expense": "إضافة مصروف"
+  },
+  "unknown_product": "منتج غير معروف"
+},
+"payments": {
+  "title": "ذكاء المدفوعات",
+  "subtitle": "تحليل وإدارة المدفوعات المتقدمة",
+  "loading": "جاري تحميل ذكاء المدفوعات...",
+  "stats": {
+    "total_paid": "إجمالي المدفوعات",
+    "remaining_balance": "الرصيد المتبقي",
+    "progress": "التقدم",
+    "total_revenue": "إجمالي الإيرادات",
+    "total_payments": "إجمالي المدفوعات",
+    "average_payment": "متوسط الدفعة",
+    "active_clients": "العملاء النشطين"
+  },
+  "form": {
+    "add_payment": "إضافة دفعة",
+    "amount": "المبلغ",
+    "payment_date": "تاريخ الدفع",
+    "notes": "ملاحظات"
+  },
+  "history": {
+    "title": "سجل المدفوعات",
+    "start_date": "تاريخ البدء",
+    "end_date": "تاريخ الانتهاء",
+    "loading": "جاري تحميل المدفوعات...",
+    "no_payments": "لم يتم العثور على مدفوعات للفترة المحددة",
+    "columns": {
+      "date": "التاريخ",
+      "amount": "المبلغ",
+      "notes": "ملاحظات"
+    }
+  },
+  "search": {
+    "placeholder": "البحث في المدفوعات، العملاء، المبالغ...",
+    "advanced_filters": "المرشحات المتقدمة",
+    "min_amount": "الحد الأدنى للمبلغ",
+    "max_amount": "الحد الأقصى للمبلغ",
+    "client": "العميل",
+    "all_clients": "جميع العملاء",
+    "time_range": "النطاق الزمني",
+    "last_7_days": "آخر 7 أيام",
+    "last_30_days": "آخر 30 يوماً",
+    "last_3_months": "آخر 3 أشهر",
+    "last_year": "السنة الماضية",
+    "all_time": "كل الوقت"
+  },
+  "views": {
+    "table": "جدول",
+    "analytics": "التحليلات"
+  },
+  "analytics": {
+    "title": "لوحة التحليلات",
+    "kpi_cards": "مؤشرات الأداء الرئيسية",
+    "payment_trends": "اتجاهات المدفوعات (12 شهراً)",
+    "top_clients": "أفضل العملاء أداءً",
+    "risk_analysis": "تحليل العملاء عالي المخاطر",
+    "monthly_trends": "الاتجاهات الشهرية",
+    "client_performance": "أداء العميل",
+    "vs_last_month": "مقارنة بالشهر الماضي",
+    "this_week": "هذا الأسبوع",
+    "vs_average": "مقارنة بالمتوسط",
+    "new": "جديد",
+    "this_month": "هذا الشهر"
+  },
+  "risk": {
+    "title": "تحليل المخاطر",
+    "high_risk_clients": "العملاء عالي المخاطر",
+    "clients_at_risk": "عملاء في خطر",
+    "overdue_clients": "العملاء المتأخرون (≥ 3 أشهر)",
+    "risk_score": "المخاطر",
+    "cession_days_ago": "الإحالة: منذ {days} يوماً",
+    "last_payment_days_ago": "آخر دفعة: منذ {days} يوماً",
+    "no_payments_recorded": "لم يتم تسجيل أي مدفوعات",
+    "requires_attention": "يتطلب اهتماماً فورياً"
+  },
+  "danger_clients": {
+    "title": "العملاء في خطر",
+    "subtitle": "العملاء ذوي التأخيرات الكبيرة في الدفع",
+    "summary": {
+      "total_clients": "العملاء في خطر",
+      "total_cessions": "الإحالات المتأخرة",
+      "average_missed": "متوسط التأخير (أشهر)",
+      "total_missed_amount": "إجمالي المبلغ المفقود"
+    },
+    "table": {
+      "client": "العميل",
+      "cession_id": "معرف الإحالة",
+      "start_date": "تاريخ البدء",
+      "monthly_amount": "المبلغ الشهري",
+      "due_months": "الأشهر المستحقة",
+      "paid_months": "الأشهر المدفوعة",
+      "missed_months": "الأشهر المتأخرة",
+      "last_payment": "آخر دفعة",
+      "severity": "الخطورة"
+    },
+    "severity": {
+      "warning": "تحذير",
+      "danger": "خطر",
+      "critical": "حرج"
+    },
+    "filters": {
+      "severity": "الخطورة",
+      "all_severities": "جميع مستويات الخطورة",
+      "threshold_months": "الحد (أشهر)",
+      "date_range": "النطاق الزمني",
+      "coach": "المدرب",
+      "business_unit": "وحدة العمل"
+    },
+    "actions": {
+      "view_client": "عرض العميل",
+      "view_cession": "عرض الإحالة",
+      "send_reminder": "إرسال تذكير",
+      "export_csv": "تصدير CSV"
+    },
+    "empty_state": {
+      "title": "لا يوجد عملاء في خطر",
+      "description": "لا يوجد عملاء لديهم تأخيرات في الدفع وفقاً للمعايير الحالية.",
+      "explanation": "يُعتبر العملاء في خطر عندما يفوتون شهراً واحداً أو أكثر من الدفعات الشهرية.",
+      "link_text": "عرض جميع المدفوعات"
+    },
+    "loading": "جاري تحميل تحليل العملاء في خطر...",
+    "error": "خطأ في تحميل بيانات العملاء في خطر"
+  },
+  "alerts": {
+    "critical_alerts": "التنبيهات الحرجة",
+    "overdue_message": "{count} عميل لديهم مدفوعات متأخرة (>3 أشهر)",
+    "risk_message": "{count} عميل عالي المخاطر تم تحديده"
+  },
+  "table": {
+    "client": "العميل",
+    "amount": "المبلغ",
+    "date": "التاريخ",
+    "status": "الحالة",
+    "notes": "ملاحظات",
+    "actions": "الإجراءات",
+    "completed": "مكتمل",
+    "view": "عرض",
+    "edit": "تعديل",
+    "delete": "حذف"
+  },
+  "bulk_actions": {
+    "selected": "{count} مدفوعة محددة",
+    "export_selected": "تصدير المحدد",
+    "clear_selection": "مسح التحديد"
+  },
+  "pagination": {
+    "show": "عرض",
+    "per_page": "لكل صفحة",
+    "page_of": "صفحة {current} من {total}",
+    "results": "({count} نتيجة)"
+  },
+  "export": {
+    "title": "تصدير",
+    "success": "تم تصدير المدفوعات بنجاح",
+    "error": "فشل في التصدير: {error}"
+  },
+  "validation": {
+    "required_fields": "يرجى ملء جميع الحقول المطلوبة",
+    "invalid_amount": "يرجى إدخال مبلغ دفع صحيح",
+    "amount_exceeds_balance": "لا يمكن أن يتجاوز مبلغ الدفع الرصيد المتبقي"
+  },
+  "success": {
+    "added": "تم إضافة الدفعة بنجاح",
+    "updated": "تم تحديث الدفعة بنجاح",
+    "deleted": "تم حذف الدفعة بنجاح"
+  },
+  "errors": {
+    "invalid_cession_id": "معرف الإحالة غير صالح",
+    "load_failed": "فشل في تحميل المدفوعات",
+    "add_failed": "فشل في إضافة الدفعة"
+  },
+  "tracker": {
+    "title": "متتبع المدفوعات لمدة 18 شهراً",
+    "month": "الشهر {n}",
+    "paid_on": "تم الدفع في {date} ({amount})",
+    "partial_paid": "{percent}% من الشهر مدفوع",
+    "months_paid": "أشهر مدفوعة",
+    "months_left": "أشهر متبقية",
+    "fully_paid": "مدفوع بالكامل!"
+  }
+},
+"auth": {
+  "login": {
+    "title": "تسجيل الدخول",
+    "subtitle": "تسجيل الدخول إلى حسابك",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "remember": "تذكرني",
+    "forgot": "نسيت كلمة المرور؟",
+    "submit": "تسجيل الدخول",
+    "no_account": "ليس لديك حساب؟",
+    "signup": "إنشاء حساب",
+    "error": {
+      "invalid": "بريد إلكتروني أو كلمة مرور غير صالحة",
+      "required": "يرجى إدخال البريد الإلكتروني وكلمة المرور"
+    }
+  },
+  "signup": {
+    "title": "إنشاء حساب",
+    "subtitle": "إنشاء حساب جديد",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirm_password": "تأكيد كلمة المرور",
+    "first_name": "الاسم الأول",
+    "last_name": "اسم العائلة",
+    "submit": "إنشاء حساب",
+    "have_account": "لديك حساب بالفعل؟",
+    "login": "تسجيل الدخول",
+    "error": {
+      "required": "يرجى ملء جميع الحقول",
+      "password_length": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+      "password_match": "يجب أن تتطابق كلمات المرور",
+      "email_invalid": "يرجى إدخال بريد إلكتروني صالح"
+    }
+  }
+},
+"salary_cessions": {
+  "title": "القائمة الاسمية لإحالات الراتب",
+  "subtitle": "ملخص شهري لتعيينات إحالات الراتب",
+  "loading": "جاري تحميل إحالات الراتب...",
+  "tabs": {
+    "list": "القائمة",
+    "analytics": "التحليلات"
+  },
+  "filters": {
+    "month": "الشهر",
+    "all_clients": "جميع العملاء",
+    "group_by_client": "تجميع حسب العميل"
+  },
+  "search": {
+    "placeholder": "البحث في العملاء، البنوك..."
+  },
+  "table": {
+    "index": "الفهرس",
+    "full_name": "الاسم الكامل",
+    "monthly_installment": "القسط الشهري",
+    "assigned_amount": "المبلغ المخصص",
+    "bank_agency": "البنك/الوكالة"
+  },
+  "analytics": {
+    "total_installments": "إجمالي الأقساط الشهرية",
+    "total_assigned": "إجمالي المبالغ المخصصة",
+    "client_count": "العملاء",
+    "cession_count": "الإحالات"
+  },
+  "totals": {
+    "label": "المجاميع"
+  },
+  "export": {
+    "csv": "تصدير CSV",
+    "print": "طباعة التقرير",
+    "success": "تم تصدير التقرير بنجاح",
+    "error": "فشل في التصدير: {error}"
+  },
+  "pagination": {
+    "show": "عرض",
+    "per_page": "لكل صفحة",
+    "page_of": "صفحة {current} من {total}",
+    "results": "نتائج"
+  }
+},
+"footer": {
+  "copyright": "© 2024 إدارة الإحالات. جميع الحقوق محفوظة."
+}
 }

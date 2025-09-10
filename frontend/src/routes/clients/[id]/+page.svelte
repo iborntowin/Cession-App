@@ -863,8 +863,8 @@
     const taxId = data.issuer_tax_id || data.issuerTaxId || '1851501J/N/C/000';
 
     const clientName = data.client_name || data.fullName || '';
-    const clientCIN = data.client_cin || data.nationalId || '';
-    const clientCINIssued = data.client_cin_issued || '';
+    const clientCIN = '01585987';
+    const clientCINIssued ='24/12/2020';
     const workerNumber = data.workerNumber || data.client_worker_number || (data.workerNumber || '');
 
   const c1num = data.cession1_number || '';
@@ -900,7 +900,7 @@
   const totalDebt = explicitTotal ? parseFloat(data.total_debt) : totalRemaining;
   const bankAccount = data.bank_account || data.bankAccount || '10201015090725478840';
 
-    const paraIntro = `إني الممضي أسفله ${escapeHtml(issuer)} صاحب بطاقة تعريف وطنية عدد ${wrapLtr(clientCIN)} الصادرة بتونس في ${wrapLtr(clientCINIssued)} صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي ${wrapLtr(taxId)}`;
+    const paraIntro = `إني الممضي أسفله ${escapeHtml(issuer)} صاحب بطاقة تعريف وطنية عدد ${wrapLtr(clientCIN)}  الصادرة بتونس في ${wrapLtr(clientCINIssued)} صاحب محل لبيع الأجهزة الإلكترونية بشارع الاستقلال منزل بورقيبة معرفه الجبائي ${wrapLtr(taxId)}`;
 
     // Robust parsing for printingDate to avoid 'Invalid Date' and use fixed month names
     function parseDateForMonth(ds) {
