@@ -380,17 +380,20 @@
     "analytics": {
       "title": "تحليلات العملاء",
       "subtitle": "نظرة شاملة على بيانات العملاء",
-      "view_selector": {
+      "views": {
         "overview": "نظرة عامة",
         "demographics": "التركيبة السكانية",
         "workplace": "مكان العمل",
         "activity": "النشاط",
         "trends": "الاتجاهات"
       },
-      "time_range": {
+      "time_ranges": {
+        "week": "أسبوع",
         "this_week": "هذا الأسبوع",
-        "this_month": "هذا الشهر",
         "month": "الشهر",
+        "this_month": "هذا الشهر",
+        "quarter": "ربع سنة",
+        "year": "سنة",
         "last_3_months": "آخر 3 أشهر",
         "last_6_months": "آخر 6 أشهر",
         "this_year": "هذا العام",

@@ -207,9 +207,25 @@
     },
     "actions": {
       "title": "Actions Rapides",
+      "workplaces": "Lieux de travail",
+      "workplaces_desc": "Gérer vos lieux de travail",
+      "payments": "Paiements",
+      "payments_desc": "Gérer vos paiements",
       "new_client": "Nouveau Client",
       "new_cession": "Nouvelle Cession",
-      "manage_inventory": "Gérer l'Inventaire"
+      "manage_inventory": "Gérer l'Inventaire",
+      "salary_cessions": "Cessions sur Salaire",
+      "salary_cessions_desc": "Rapports mensuels des cessions sur salaire",
+      "new_product": "Nouveau Produit",
+      "new_sale": "Nouvelle Vente",
+      "view_clients": "Voir les clients",
+      "new_expense": "Nouvelle Dépense",
+      "new_client_desc": "Créer un nouveau client",
+      "new_cession_desc": "Créer une nouvelle cession",
+      "new_product_description": "Créer un nouveau produit",
+      "new_sale_description": "Créer une nouvelle vente",
+      "new_expense_description": "Créer une nouvelle dépense",
+      "view_clients_desc": "Voir tous les clients"
     },
     "smart_insights": "Intelligence d'Affaires",
     "total_cessions": "Total Cessions",
@@ -219,14 +235,10 @@
     "top_clients": "Meilleurs Clients",
     "recent_activity": "Activité Récente",
     "payment_trends": "Tendances de Paiement",
-    "quick_actions": "Actions Rapides",
     "cessions": "cessions",
     "no_clients_data": "Aucune donnée client disponible",
     "no_recent_activity": "Aucune activité récente",
     "no_trends_data": "Aucune donnée de tendance disponible",
-    "new_cession": "Nouvelle Cession",
-    "new_client": "Nouveau Client",
-    "view_payments": "Voir les Paiements",
     "financial_overview": "Aperçu Financier",
     "stats": {
       "total_clients": "Total Clients",
@@ -249,26 +261,6 @@
       "finished_expenses": "Dépenses Terminées",
       "total_expenses": "Total Dépenses",
       "monthly_revenue": "Revenus Mensuels"
-    },
-    "actions": {
-      "workplaces": "Lieux de travail",
-      "workplaces_desc": "Gérer vos lieux de travail",
-      "payments": "Paiements",
-      "payments_desc": "Gérer vos paiements",
-      "new_client": "Nouveau Client",
-      "new_cession": "Nouvelle Cession",
-      "salary_cessions": "Cessions sur Salaire",
-      "salary_cessions_desc": "Rapports mensuels des cessions sur salaire",
-      "new_product": "Nouveau Produit",
-      "new_sale": "Nouvelle Vente",
-      "view_clients": "Voir les clients",
-      "new_expense": "Nouvelle Dépense",
-      "new_client_desc": "Créer un nouveau client",
-      "new_cession_desc": "Créer une nouvelle cession",
-      "new_product_description": "Créer un nouveau produit",
-      "new_sale_description": "Créer une nouvelle vente",
-      "new_expense_description": "Créer une nouvelle dépense",
-      "view_clients_desc": "Voir tous les clients"
     },
     "recent_clients": {
       "title": "Clients Récents",
@@ -356,17 +348,20 @@
     "analytics": {
       "title": "Analyses Clients",
       "subtitle": "Aperçu complet de votre portefeuille client",
-      "view_selector": {
+      "views": {
         "overview": "Aperçu",
         "demographics": "Démographie",
         "workplace": "Lieu de travail",
         "activity": "Activité",
         "trends": "Tendances"
       },
-      "time_range": {
+      "time_ranges": {
+        "week": "Semaine",
         "this_week": "Cette semaine",
-        "this_month": "Ce mois",
         "month": "Mois",
+        "this_month": "Ce mois",
+        "quarter": "Trimestre",
+        "year": "Année",
         "last_3_months": "3 derniers mois",
         "last_6_months": "6 derniers mois",
         "this_year": "Cette année",

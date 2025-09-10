@@ -389,17 +389,20 @@
     "analytics": {
       "title": "Client Analytics",
       "subtitle": "Comprehensive insights into your client portfolio",
-      "view_selector": {
+      "views": {
         "overview": "Overview",
         "demographics": "Demographics",
         "workplace": "Workplace",
         "activity": "Activity",
         "trends": "Trends"
       },
-      "time_range": {
+      "time_ranges": {
+        "week": "Week",
         "this_week": "This Week",
-        "this_month": "This Month",
         "month": "Month",
+        "this_month": "This Month",
+        "quarter": "Quarter",
+        "year": "Year",
         "last_3_months": "Last 3 Months",
         "last_6_months": "Last 6 Months",
         "this_year": "This Year",
