@@ -651,11 +651,10 @@
   }
 
   function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-TN', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      currency: 'TND',
+      minimumFractionDigits: 3
     }).format(amount);
   }
 

@@ -13,6 +13,7 @@
   import { slide, fade, fly, scale, blur } from 'svelte/transition';
   import { quintOut, cubicOut, elasticOut } from 'svelte/easing';
   import { PerformanceMonitor } from '$lib/utils/performance.js';
+  import { formatCurrency } from '$lib/utils/formatters.js';
 
   // Initialize performance monitoring
   const perfMonitor = new PerformanceMonitor('InventoryPage');
@@ -804,7 +805,7 @@
               <div class="mx-2 w-px h-4 bg-gray-300"></div>
               <div class="flex items-center space-x-1">
                 <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span class="text-xs font-bold text-blue-800">${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}</span>
+                <span class="text-xs font-bold text-blue-800">{formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)}</span>
                 <span class="text-xs font-medium text-blue-700">Valeur</span>
               </div>
               {#if stockAlerts.length > 0}
@@ -825,7 +826,7 @@
               <span class="text-xs text-green-600 ml-1">P</span>
             </div>
             <div class="flex items-center px-2 py-1 bg-blue-100 rounded-lg">
-              <span class="text-xs font-bold text-blue-800">${Math.round((inventoryAnalytics.totalPurchaseValue || 0) / 1000)}k</span>
+              <span class="text-xs font-bold text-blue-800">{formatCurrency(Math.round((inventoryAnalytics.totalPurchaseValue || 0) / 1000) * 1000)}</span>
             </div>
             {#if stockAlerts.length > 0}
               <div class="flex items-center px-2 py-1 bg-red-100 rounded-lg">
@@ -937,7 +938,7 @@
                     </div>
                   </div>
                   <div class="text-3xl font-bold text-white mb-1">
-                    ${(inventoryAnalytics.totalValue || 0).toLocaleString()}
+                    {formatCurrency(inventoryAnalytics.totalValue || 0)}
                   </div>
                   <div class="text-sm text-emerald-300">
                     Total Selling Value
@@ -946,7 +947,7 @@
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    Potential profit: ${((inventoryAnalytics.totalValue || 0) - (inventoryAnalytics.totalPurchaseValue || 0)).toLocaleString()}
+                    Potential profit: {formatCurrency((inventoryAnalytics.totalValue || 0) - (inventoryAnalytics.totalPurchaseValue || 0))}
                   </div>
                 </div>
 
@@ -963,7 +964,7 @@
                     </div>
                   </div>
                   <div class="text-3xl font-bold text-white mb-1">
-                    ${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()}
+                    {formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)}
                   </div>
                   <div class="text-sm text-blue-300">
                     Stock Investment
@@ -1419,7 +1420,7 @@
                   <div>
                     <div class="font-semibold text-purple-800">Portfolio Health</div>
                     <div class="text-sm text-purple-700">
-                      ${(inventoryAnalytics.totalPurchaseValue || 0).toLocaleString()} invested across {products.length} products
+                      {formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)} invested across {products.length} products
                     </div>
                   </div>
                 </div>
@@ -1636,12 +1637,12 @@
                 <!-- Price Section -->
                 <div class="flex items-center justify-between mb-4 pt-3 border-t border-gray-100">
                   <div>
-                    <p class="text-xl font-bold text-gray-900">${product.selling_price?.toFixed(2) || '0.00'}</p>
+                    <p class="text-xl font-bold text-gray-900">{formatCurrency(product.selling_price || 0)}</p>
                     <p class="text-xs text-gray-500">Selling Price</p>
                   </div>
                   <div class="text-right">
                     <p class="text-sm font-semibold text-green-600">
-                      +${calculateProfitAmount(product).toFixed(2)}
+                      +{formatCurrency(calculateProfitAmount(product))}
                     </p>
                     <p class="text-xs text-gray-500">
                       {calculateProfitPercentage(product).toFixed(1)}% margin
@@ -1759,12 +1760,12 @@
                     
                     <!-- Purchase Price -->
                     <div class="col-span-2">
-                      <span class="font-medium text-gray-900">${(product.purchase_price || 0).toFixed(2)}</span>
+                      <span class="font-medium text-gray-900">{formatCurrency(product.purchase_price || 0)}</span>
                     </div>
                     
                     <!-- Selling Price -->
                     <div class="col-span-2">
-                      <span class="font-medium text-gray-900">${(product.selling_price || 0).toFixed(2)}</span>
+                      <span class="font-medium text-gray-900">{formatCurrency(product.selling_price || 0)}</span>
                     </div>
                     
                     <!-- Margin -->
@@ -1931,13 +1932,13 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Purchase Price *</label>
                     <div class="relative">
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 sm:text-sm">$</span>
+                        <span class="text-gray-500 sm:text-sm">TND</span>
                       </div>
                       <input 
                         type="number" 
                         step="0.01" 
                         bind:value={newProduct.purchase_price} 
-                        class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                        class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
                         required 
                       />
                     </div>
@@ -1946,13 +1947,13 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Selling Price *</label>
                     <div class="relative">
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 sm:text-sm">$</span>
+                        <span class="text-gray-500 sm:text-sm">TND</span>
                       </div>
                       <input 
                         type="number" 
                         step="0.01" 
                         bind:value={newProduct.selling_price} 
-                        class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
+                        class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
                         required 
                       />
                     </div>
@@ -2143,7 +2144,7 @@
             <div>
               <span class="text-gray-600">{$t('inventory.profit.expected')}:</span>
               <span class="font-medium ml-2 text-green-600">
-                ${((restockProduct.selling_price - restockProduct.purchase_price) * restockQuantity).toFixed(2)}
+                {formatCurrency((restockProduct.selling_price - restockProduct.purchase_price) * restockQuantity)}
               </span>
             </div>
           </div>
@@ -2186,7 +2187,7 @@
                 <span class="text-sm font-medium text-yellow-800">{$t('inventory.restock.purchase_price_change')}</span>
               </div>
               <p class="text-sm text-yellow-700 mt-1">
-                {$t('inventory.restock.old_purchase_price')}: ${restockProduct.purchase_price?.toFixed(2) || '0.00'}
+                {$t('inventory.restock.old_purchase_price')}: {formatCurrency(restockProduct.purchase_price || 0)}
               </p>
               <p class="text-sm text-yellow-700">
                 {$t('inventory.restock.update_purchase_price')}

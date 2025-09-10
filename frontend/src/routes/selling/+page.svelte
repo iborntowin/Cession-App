@@ -453,7 +453,8 @@
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(numericAmount)) return 'N/A';
     return new Intl.NumberFormat('fr-TN', {
-      style: 'decimal',
+      style: 'currency',
+      currency: 'TND',
       minimumFractionDigits: 3,
       maximumFractionDigits: 3
     }).format(numericAmount);

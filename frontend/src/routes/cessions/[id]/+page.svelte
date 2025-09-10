@@ -77,9 +77,10 @@
   
   function formatCurrency(amount) {
     if (amount === undefined || amount === null) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-TN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'TND',
+      minimumFractionDigits: 3
     }).format(amount);
   }
   
