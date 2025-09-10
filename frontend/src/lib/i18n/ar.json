@@ -947,6 +947,102 @@
     "list": "قائمة",
     "grid": "شبكة"
   },
+  "history": {
+    "title": "لوحة تحكم تاريخ المبيعات",
+    "subtitle": "تحليل شامل لأداء مبيعاتك",
+    "dashboard": "لوحة تحكم تاريخ المبيعات",
+    "kpi": {
+      "total_revenue": "إجمالي الإيرادات",
+      "total_profit": "إجمالي الربح",
+      "avg_order_value": "متوسط قيمة الطلب",
+      "monthly_growth": "النمو الشهري",
+      "per_transaction": "لكل معاملة",
+      "profit_margin": "هامش الربح",
+      "vs_last_month": "مقارنة بالشهر الماضي",
+      "from_transactions": "من {count} معاملة"
+    },
+    "filters": {
+      "title": "المرشحات المتقدمة",
+      "reset": "إعادة تعيين المرشحات",
+      "time_period": "الفترة الزمنية",
+      "product": "المنتج",
+      "amount_range": "نطاق المبلغ",
+      "sort_by": "ترتيب حسب",
+      "date_ranges": {
+        "week": "الأسبوع الماضي",
+        "month": "الشهر الماضي",
+        "quarter": "الربع الماضي",
+        "year": "السنة الماضية",
+        "custom": "نطاق مخصص"
+      },
+      "placeholders": {
+        "product_search": "البحث باسم المنتج...",
+        "min_amount": "الحد الأدنى للمبلغ",
+        "max_amount": "الحد الأقصى للمبلغ",
+        "start_date": "تاريخ البداية",
+        "end_date": "تاريخ النهاية"
+      },
+      "sort_options": {
+        "date": "التاريخ",
+        "product": "اسم المنتج",
+        "amount": "إجمالي المبلغ",
+        "profit": "الربح",
+        "quantity": "الكمية"
+      },
+      "sort_order": {
+        "desc": "تنازلي",
+        "asc": "تصاعدي"
+      }
+    },
+    "top_products": {
+      "title": "أفضل المنتجات أداءً",
+      "best_selling": "أفضل منتج مبيعاً",
+      "most_profitable": "أكثر منتج ربحية",
+      "units_sold": "وحدة مباعة",
+      "total_profit": "إجمالي الربح",
+      "no_data": "لا توجد بيانات مبيعات متاحة"
+    },
+    "trend_chart": {
+      "title": "اتجاه المبيعات",
+      "periods": {
+        "daily": "يومي",
+        "weekly": "أسبوعي",
+        "monthly": "شهري"
+      },
+      "metrics": {
+        "revenue": "الإيرادات",
+        "profit": "الربح",
+        "quantity": "الكمية",
+        "transactions": "المعاملات"
+      },
+      "no_data": "لا توجد بيانات اتجاه متاحة"
+    },
+    "table": {
+      "title": "تاريخ المبيعات التفصيلي",
+      "columns": {
+        "date": "التاريخ",
+        "product": "المنتج",
+        "quantity": "الكمية",
+        "unit_price": "سعر الوحدة",
+        "total_amount": "إجمالي المبلغ",
+        "profit": "الربح",
+        "margin": "الهامش"
+      },
+      "showing": "عرض {start}-{end} من {total}",
+      "pagination": {
+        "page": "{current} / {total}"
+      },
+      "empty": {
+        "title": "لم يتم العثور على تاريخ مبيعات",
+        "subtitle": "لا توجد مبيعات تطابق المرشحات الحالية",
+        "clear_filters": "مسح المرشحات"
+      }
+    },
+    "actions": {
+      "export_csv": "تصدير CSV",
+      "refresh": "تحديث"
+    }
+  },
   "loading": {
     "products": "جاري تحميل المنتجات...",
     "sales": "جاري تحميل المبيعات..."

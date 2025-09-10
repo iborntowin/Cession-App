@@ -956,6 +956,102 @@
       "list": "List",
       "grid": "Grid"
     },
+    "history": {
+      "title": "Sales History Dashboard",
+      "subtitle": "Comprehensive analysis of your sales performance",
+      "dashboard": "Sales History Dashboard",
+      "kpi": {
+        "total_revenue": "TOTAL REVENUE",
+        "total_profit": "TOTAL PROFIT",
+        "avg_order_value": "AVG ORDER VALUE",
+        "monthly_growth": "MONTHLY GROWTH",
+        "per_transaction": "Per transaction",
+        "profit_margin": "profit margin",
+        "vs_last_month": "vs last month",
+        "from_transactions": "From {count} transactions"
+      },
+      "filters": {
+        "title": "Advanced Filters",
+        "reset": "Reset Filters",
+        "time_period": "Time Period",
+        "product": "Product",
+        "amount_range": "Amount Range",
+        "sort_by": "Sort By",
+        "date_ranges": {
+          "week": "Last Week",
+          "month": "Last Month",
+          "quarter": "Last Quarter",
+          "year": "Last Year",
+          "custom": "Custom Range"
+        },
+        "placeholders": {
+          "product_search": "Search by product name...",
+          "min_amount": "Min amount",
+          "max_amount": "Max amount",
+          "start_date": "Start Date",
+          "end_date": "End Date"
+        },
+        "sort_options": {
+          "date": "Date",
+          "product": "Product Name",
+          "amount": "Total Amount",
+          "profit": "Profit",
+          "quantity": "Quantity"
+        },
+        "sort_order": {
+          "desc": "Descending",
+          "asc": "Ascending"
+        }
+      },
+      "top_products": {
+        "title": "Top Performing Products",
+        "best_selling": "Best Selling Product",
+        "most_profitable": "Most Profitable Product",
+        "units_sold": "units sold",
+        "total_profit": "total profit",
+        "no_data": "No sales data available"
+      },
+      "trend_chart": {
+        "title": "Sales Trend",
+        "periods": {
+          "daily": "Daily",
+          "weekly": "Weekly",
+          "monthly": "Monthly"
+        },
+        "metrics": {
+          "revenue": "Revenue",
+          "profit": "Profit",
+          "quantity": "Quantity",
+          "transactions": "Transactions"
+        },
+        "no_data": "No trend data available"
+      },
+      "table": {
+        "title": "Detailed Sales History",
+        "columns": {
+          "date": "Date",
+          "product": "Product",
+          "quantity": "Quantity",
+          "unit_price": "Unit Price",
+          "total_amount": "Total Amount",
+          "profit": "Profit",
+          "margin": "Margin"
+        },
+        "showing": "Showing {start}-{end} of {total}",
+        "pagination": {
+          "page": "{current} / {total}"
+        },
+        "empty": {
+          "title": "No sales history found",
+          "subtitle": "No sales match your current filters",
+          "clear_filters": "Clear Filters"
+        }
+      },
+      "actions": {
+        "export_csv": "Export CSV",
+        "refresh": "Refresh"
+      }
+    },
     "loading": {
       "products": "Loading products...",
       "sales": "Loading sales..."

@@ -25,7 +25,7 @@
   let showSearchSuggestions = false;
   
   // 🎯 Advanced UI State
-  let viewMode = 'cards'; // cards, table, analytics, timeline
+  let viewMode = 'cards'; // cards, table, analytics, timeline, history
   let showQuickActions = false;
   let selectedProducts = new Set();
   let showBulkActions = false;
@@ -83,12 +83,50 @@
   let trendData = [];
   let monthlyData = [];
   
-  // 📈 Sales analytics
+  // 📈 Sales analytics with enhanced history tracking
   let recentSales = [];
   let topProducts = [];
   let categoryDistribution = [];
+  let salesHistory = [];
+  let filteredSalesHistory = [];
+  let salesAnalytics = {
+    totalRevenue: 0,
+    totalProfit: 0,
+    totalTransactions: 0,
+    averageOrderValue: 0,
+    topSellingProduct: null,
+    bestProfitProduct: null,
+    salesTrend: [],
+    monthlyGrowth: 0,
+    dailyAverage: 0
+  };
   
-  // 🚨 Stock alerts
+  // 📅 History filtering
+  let historyFilters = {
+    dateRange: 'month', // week, month, quarter, year, custom
+    startDate: '',
+    endDate: '',
+    productName: '',
+    minAmount: '',
+    maxAmount: '',
+    sortBy: 'date',
+    sortOrder: 'desc'
+  };
+
+  // 📊 History pagination
+  let paginatedHistory = [];
+  let historyPage = 1;
+  let historyItemsPerPage = 20;
+  let totalHistoryPages = 1;
+
+  // 📈 Chart configuration
+  let chartConfig = {
+    type: 'line', // line, bar, pie, area
+    period: 'daily', // daily, weekly, monthly
+    metric: 'revenue' // revenue, profit, quantity, transactions
+  };
+  
+  //  Stock alerts
   let lowStockAlerts = [];
   let outOfStockAlerts = [];
   
@@ -114,11 +152,26 @@
   let sellingPriceToSell = 0;
   let isSelling = false;
   
+  // 🔄 Reactive statements for selling history
+  $: if (viewMode === 'history' && salesHistory.length === 0) {
+    loadSalesHistory();
+  }
+  
+  $: if (salesHistory.length > 0 && viewMode === 'history') {
+    generateSalesAnalytics();
+  }
+
+  $: if (historyFilters && viewMode === 'history') {
+    applyHistoryFilters();
+  }
+  
   onMount(async () => {
     await loadProducts();
     await loadCategories();
     await loadRecentSales();
+    await loadSalesHistory();
     generateEnhancedAnalytics();
+    generateSalesAnalytics();
   });
   
   async function loadProducts() {
@@ -168,6 +221,302 @@
     } catch (error) {
       console.error('Error loading recent sales:', error);
     }
+  }
+  
+  async function loadSalesHistory() {
+    try {
+      const response = await api.stockMovements.getRecent('OUTBOUND', 1000);
+      if (response.success) {
+        salesHistory = response.data.map(sale => ({
+          id: sale.id,
+          date: sale.createdAt,
+          productId: sale.productId,
+          productName: sale.productName || sale.product?.name || 'Unknown Product',
+          quantity: Math.abs(sale.quantity || 0),
+          unitPrice: sale.sellingPriceAtSale || 0,
+          totalAmount: Math.abs(sale.quantity || 0) * (sale.sellingPriceAtSale || 0),
+          purchasePrice: sale.purchasePrice || sale.purchasePriceAtSale || 0,
+          profit: calculateProfit(sale),
+          profitMargin: calculateProfitMargin(sale),
+          notes: sale.notes || '',
+          category: sale.product?.category || 'Uncategorized'
+        })).sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        applyHistoryFilters();
+      }
+    } catch (error) {
+      console.error('Error loading sales history:', error);
+      showAlert('Failed to load sales history', 'error');
+    }
+  }
+  
+  function calculateProfitMargin(sale) {
+    const sellingPrice = Number(sale.sellingPriceAtSale) || 0;
+    const purchasePrice = Number(sale.purchasePrice || sale.purchasePriceAtSale) || 0;
+    
+    if (purchasePrice === 0) return 0;
+    return ((sellingPrice - purchasePrice) / purchasePrice) * 100;
+  }
+  
+  function generateSalesAnalytics() {
+    if (salesHistory.length === 0) {
+      salesAnalytics = {
+        totalRevenue: 0,
+        totalProfit: 0,
+        totalTransactions: 0,
+        averageOrderValue: 0,
+        topSellingProduct: null,
+        bestProfitProduct: null,
+        salesTrend: [],
+        monthlyGrowth: 0,
+        dailyAverage: 0
+      };
+      return;
+    }
+    
+    const totalRevenue = salesHistory.reduce((sum, sale) => sum + sale.totalAmount, 0);
+    const totalProfit = salesHistory.reduce((sum, sale) => sum + sale.profit, 0);
+    const totalTransactions = salesHistory.length;
+    const averageOrderValue = totalRevenue / totalTransactions;
+    
+    // Find top selling product by quantity
+    const productQuantities = {};
+    const productProfits = {};
+    
+    salesHistory.forEach(sale => {
+      const productName = sale.productName;
+      productQuantities[productName] = (productQuantities[productName] || 0) + sale.quantity;
+      productProfits[productName] = (productProfits[productName] || 0) + sale.profit;
+    });
+    
+    const topSellingProduct = Object.entries(productQuantities)
+      .sort((a, b) => b[1] - a[1])[0];
+    
+    const bestProfitProduct = Object.entries(productProfits)
+      .sort((a, b) => b[1] - a[1])[0];
+    
+    // Generate sales trend data
+    const salesTrend = generateSalesTrend();
+    
+    // Calculate monthly growth
+    const now = new Date();
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    
+    const currentMonthSales = salesHistory.filter(sale => 
+      new Date(sale.date) >= currentMonth
+    );
+    const lastMonthSales = salesHistory.filter(sale => 
+      new Date(sale.date) >= lastMonth && new Date(sale.date) < currentMonth
+    );
+    
+    const currentMonthRevenue = currentMonthSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+    const lastMonthRevenue = lastMonthSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+    
+    const monthlyGrowth = lastMonthRevenue > 0 
+      ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+      : currentMonthRevenue > 0 ? 100 : 0;
+    
+    // Calculate daily average (last 30 days)
+    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const recentSales = salesHistory.filter(sale => new Date(sale.date) >= thirtyDaysAgo);
+    const dailyAverage = recentSales.reduce((sum, sale) => sum + sale.totalAmount, 0) / 30;
+    
+    salesAnalytics = {
+      totalRevenue,
+      totalProfit,
+      totalTransactions,
+      averageOrderValue,
+      topSellingProduct: topSellingProduct ? {
+        name: topSellingProduct[0],
+        quantity: topSellingProduct[1]
+      } : null,
+      bestProfitProduct: bestProfitProduct ? {
+        name: bestProfitProduct[0],
+        profit: bestProfitProduct[1]
+      } : null,
+      salesTrend,
+      monthlyGrowth,
+      dailyAverage
+    };
+  }
+  
+  function generateSalesTrend() {
+    const trendData = [];
+    const groupedSales = {};
+    
+    salesHistory.forEach(sale => {
+      const date = new Date(sale.date);
+      let key;
+      
+      switch (chartConfig.period) {
+        case 'daily':
+          key = date.toISOString().split('T')[0];
+          break;
+        case 'weekly':
+          const weekStart = new Date(date.setDate(date.getDate() - date.getDay()));
+          key = weekStart.toISOString().split('T')[0];
+          break;
+        case 'monthly':
+          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          break;
+        default:
+          key = date.toISOString().split('T')[0];
+      }
+      
+      if (!groupedSales[key]) {
+        groupedSales[key] = {
+          date: key,
+          revenue: 0,
+          profit: 0,
+          quantity: 0,
+          transactions: 0
+        };
+      }
+      
+      groupedSales[key].revenue += sale.totalAmount;
+      groupedSales[key].profit += sale.profit;
+      groupedSales[key].quantity += sale.quantity;
+      groupedSales[key].transactions += 1;
+    });
+    
+    return Object.values(groupedSales).sort((a, b) => new Date(a.date) - new Date(b.date));
+  }
+  
+  function applyHistoryFilters() {
+    let filtered = [...salesHistory];
+    
+    // Apply date range filter
+    if (historyFilters.dateRange !== 'custom') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (historyFilters.dateRange) {
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'quarter':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case 'year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+      
+      filtered = filtered.filter(sale => new Date(sale.date) >= startDate);
+    } else {
+      // Custom date range
+      if (historyFilters.startDate) {
+        filtered = filtered.filter(sale => new Date(sale.date) >= new Date(historyFilters.startDate));
+      }
+      if (historyFilters.endDate) {
+        filtered = filtered.filter(sale => new Date(sale.date) <= new Date(historyFilters.endDate));
+      }
+    }
+    
+    // Apply product name filter
+    if (historyFilters.productName.trim()) {
+      const query = historyFilters.productName.toLowerCase();
+      filtered = filtered.filter(sale => 
+        sale.productName.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply amount range filter
+    if (historyFilters.minAmount) {
+      filtered = filtered.filter(sale => sale.totalAmount >= Number(historyFilters.minAmount));
+    }
+    if (historyFilters.maxAmount) {
+      filtered = filtered.filter(sale => sale.totalAmount <= Number(historyFilters.maxAmount));
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (historyFilters.sortBy) {
+        case 'date':
+          aVal = new Date(a.date);
+          bVal = new Date(b.date);
+          break;
+        case 'product':
+          aVal = a.productName.toLowerCase();
+          bVal = b.productName.toLowerCase();
+          break;
+        case 'amount':
+          aVal = a.totalAmount;
+          bVal = b.totalAmount;
+          break;
+        case 'profit':
+          aVal = a.profit;
+          bVal = b.profit;
+          break;
+        case 'quantity':
+          aVal = a.quantity;
+          bVal = b.quantity;
+          break;
+        default:
+          aVal = new Date(a.date);
+          bVal = new Date(b.date);
+      }
+      
+      if (historyFilters.sortOrder === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      } else {
+        return aVal < bVal ? 1 : -1;
+      }
+    });
+    
+    filteredSalesHistory = filtered;
+    totalHistoryPages = Math.ceil(filtered.length / historyItemsPerPage);
+    historyPage = Math.min(historyPage, totalHistoryPages || 1);
+    updateHistoryPagination();
+  }
+  
+  function updateHistoryPagination() {
+    const startIndex = (historyPage - 1) * historyItemsPerPage;
+    const endIndex = startIndex + historyItemsPerPage;
+    paginatedHistory = filteredSalesHistory.slice(startIndex, endIndex);
+  }
+  
+  // Export functionality
+  function exportSalesHistory(format = 'csv') {
+    const data = filteredSalesHistory;
+    let content = '';
+    let filename = `sales_history_${new Date().toISOString().split('T')[0]}`;
+    
+    if (format === 'csv') {
+      const headers = ['Date', 'Product', 'Quantity', 'Unit Price', 'Total Amount', 'Profit', 'Profit Margin (%)'];
+      content = headers.join(',') + '\n';
+      
+      data.forEach(sale => {
+        const row = [
+          new Date(sale.date).toLocaleDateString(),
+          `"${sale.productName}"`,
+          sale.quantity,
+          formatCurrency(sale.unitPrice).replace(/[^\d.-]/g, ''),
+          formatCurrency(sale.totalAmount).replace(/[^\d.-]/g, ''),
+          formatCurrency(sale.profit).replace(/[^\d.-]/g, ''),
+          sale.profitMargin.toFixed(2)
+        ];
+        content += row.join(',') + '\n';
+      });
+      
+      filename += '.csv';
+    }
+    
+    const blob = new Blob([content], { type: format === 'csv' ? 'text/csv' : 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showAlert(`Sales history exported successfully as ${format.toUpperCase()}`, 'success');
   }
   
   function calculateProfit(sale) {
@@ -429,7 +778,11 @@
         sellingPriceToSell = 0;
         showQuickSell = false;
         
+        // 🔄 Auto-refresh sales history and analytics
         await loadProducts();
+        await loadSalesHistory();
+        generateSalesAnalytics();
+        applyHistoryFilters();
       } else {
         throw new Error(result.error);
       }
@@ -586,6 +939,13 @@
             >
               <span class="text-lg {isRTL ? 'ml-2' : 'mr-2'}">📈</span>
               Analytics
+            </button>
+            <button 
+              on:click={() => viewMode = 'history'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {viewMode === 'history' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              <span class="text-lg {isRTL ? 'ml-2' : 'mr-2'}">📋</span>
+              History
             </button>
           </div>
           
@@ -869,6 +1229,524 @@
         </div>
         
 
+      </div>
+    {:else if viewMode === 'history'}
+      <!-- 📋 Comprehensive Sales History Dashboard -->
+      <div class="space-y-6">
+        <!-- History Header with Quick Stats -->
+        <div class="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 rounded-3xl p-8 text-white shadow-2xl">
+          <div class="flex items-center justify-between mb-6" class:flex-row-reverse={isRTL}>
+            <div>
+              <h2 class="text-3xl font-bold mb-2" style="text-align: {textAlign}">
+                📋 {$t('selling.history.dashboard')}
+              </h2>
+              <p class="text-indigo-200" style="text-align: {textAlign}">
+                {$t('selling.history.subtitle')}
+              </p>
+            </div>
+            <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+              <button
+                on:click={() => exportSalesHistory('csv')}
+                class="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-all duration-200 text-white border border-white/20"
+              >
+                📊 {$t('selling.history.actions.export_csv')}
+              </button>
+              <button
+                on:click={() => { loadSalesHistory(); generateSalesAnalytics(); }}
+                class="px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-all duration-200 text-white border border-white/20"
+              >
+                🔄 {$t('selling.history.actions.refresh')}
+              </button>
+            </div>
+          </div>
+          
+          <!-- Key Performance Indicators -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-500 rounded-xl flex items-center justify-center">
+                  <span class="text-xl">💰</span>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-green-300 font-medium">{$t('selling.history.kpi.total_revenue')}</div>
+                </div>
+              </div>
+              <div class="text-3xl font-bold text-white mb-1">
+                {formatCurrency(salesAnalytics.totalRevenue)}
+              </div>
+              <div class="text-sm text-green-300">
+                {$t('selling.history.kpi.from_transactions', { count: salesAnalytics.totalTransactions })}
+              </div>
+            </div>
+            
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center">
+                  <span class="text-xl">📈</span>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-blue-300 font-medium">{$t('selling.history.kpi.total_profit')}</div>
+                </div>
+              </div>
+              <div class="text-3xl font-bold text-white mb-1">
+                {formatCurrency(salesAnalytics.totalProfit)}
+              </div>
+              <div class="text-sm text-blue-300">
+                {((salesAnalytics.totalProfit / (salesAnalytics.totalRevenue || 1)) * 100).toFixed(1)}% {$t('selling.history.kpi.profit_margin')}
+              </div>
+            </div>
+            
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-500 rounded-xl flex items-center justify-center">
+                  <span class="text-xl">🛍️</span>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-purple-300 font-medium">{$t('selling.history.kpi.avg_order_value')}</div>
+                </div>
+              </div>
+              <div class="text-3xl font-bold text-white mb-1">
+                {formatCurrency(salesAnalytics.averageOrderValue)}
+              </div>
+              <div class="text-sm text-purple-300">
+                {$t('selling.history.kpi.per_transaction')}
+              </div>
+            </div>
+            
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-gradient-to-r from-orange-400 to-red-500 rounded-xl flex items-center justify-center">
+                  <span class="text-xl">📊</span>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-orange-300 font-medium">{$t('selling.history.kpi.monthly_growth')}</div>
+                </div>
+              </div>
+              <div class="text-3xl font-bold text-white mb-1">
+                {salesAnalytics.monthlyGrowth >= 0 ? '+' : ''}{salesAnalytics.monthlyGrowth.toFixed(1)}%
+              </div>
+              <div class="text-sm text-orange-300">
+                {$t('selling.history.kpi.vs_last_month')}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Advanced Filters Panel -->
+        <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
+          <div class="flex items-center justify-between mb-6" class:flex-row-reverse={isRTL}>
+            <h3 class="text-xl font-bold text-gray-900" style="text-align: {textAlign}">
+              🔍 {$t('selling.history.filters.title')}
+            </h3>
+            <button
+              on:click={() => {
+                historyFilters = {
+                  dateRange: 'month',
+                  startDate: '',
+                  endDate: '',
+                  productName: '',
+                  minAmount: '',
+                  maxAmount: '',
+                  sortBy: 'date',
+                  sortOrder: 'desc'
+                };
+                applyHistoryFilters();
+              }}
+              class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+            >
+              🔄 {$t('selling.history.filters.reset')}
+            </button>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Date Range Filter -->
+            <div class="space-y-3">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">📅 {$t('selling.history.filters.time_period')}</h4>
+              <select
+                bind:value={historyFilters.dateRange}
+                on:change={() => applyHistoryFilters()}
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              >
+                <option value="week">{$t('selling.history.filters.date_ranges.week')}</option>
+                <option value="month">{$t('selling.history.filters.date_ranges.month')}</option>
+                <option value="quarter">{$t('selling.history.filters.date_ranges.quarter')}</option>
+                <option value="year">{$t('selling.history.filters.date_ranges.year')}</option>
+                <option value="custom">{$t('selling.history.filters.date_ranges.custom')}</option>
+              </select>
+              
+              {#if historyFilters.dateRange === 'custom'}
+                <div class="space-y-2">
+                  <input
+                    type="date"
+                    bind:value={historyFilters.startDate}
+                    on:change={() => applyHistoryFilters()}
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    placeholder="{$t('selling.history.filters.placeholders.start_date')}"
+                  />
+                  <input
+                    type="date"
+                    bind:value={historyFilters.endDate}
+                    on:change={() => applyHistoryFilters()}
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    placeholder="{$t('selling.history.filters.placeholders.end_date')}"
+                  />
+                </div>
+              {/if}
+            </div>
+            
+            <!-- Product Filter -->
+            <div class="space-y-3">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">🏷️ {$t('selling.history.filters.product')}</h4>
+              <input
+                type="text"
+                bind:value={historyFilters.productName}
+                on:input={() => applyHistoryFilters()}
+                placeholder="{$t('selling.history.filters.placeholders.product_search')}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              />
+            </div>
+            
+            <!-- Amount Range Filter -->
+            <div class="space-y-3">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">💰 {$t('selling.history.filters.amount_range')}</h4>
+              <input
+                type="number"
+                bind:value={historyFilters.minAmount}
+                on:input={() => applyHistoryFilters()}
+                placeholder="{$t('selling.history.filters.placeholders.min_amount')}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              />
+              <input
+                type="number"
+                bind:value={historyFilters.maxAmount}
+                on:input={() => applyHistoryFilters()}
+                placeholder="{$t('selling.history.filters.placeholders.max_amount')}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              />
+            </div>
+            
+            <!-- Sort Options -->
+            <div class="space-y-3">
+              <h4 class="font-semibold text-gray-900" style="text-align: {textAlign}">🔄 {$t('selling.history.filters.sort_by')}</h4>
+              <select
+                bind:value={historyFilters.sortBy}
+                on:change={() => applyHistoryFilters()}
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              >
+                <option value="date">{$t('selling.history.filters.sort_options.date')}</option>
+                <option value="product">{$t('selling.history.filters.sort_options.product')}</option>
+                <option value="amount">{$t('selling.history.filters.sort_options.amount')}</option>
+                <option value="profit">{$t('selling.history.filters.sort_options.profit')}</option>
+                <option value="quantity">{$t('selling.history.filters.sort_options.quantity')}</option>
+              </select>
+              <select
+                bind:value={historyFilters.sortOrder}
+                on:change={() => applyHistoryFilters()}
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                style="text-align: {textAlign}"
+              >
+                <option value="desc">{$t('selling.history.filters.sort_order.desc')}</option>
+                <option value="asc">{$t('selling.history.filters.sort_order.asc')}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Top Products & Insights -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Top Performing Products -->
+          <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center" style="text-align: {textAlign}">
+              <span class="{isRTL ? 'ml-3' : 'mr-3'}">🏆</span>
+              {$t('selling.history.top_products.title')}
+            </h3>
+            
+            {#if salesAnalytics.topSellingProduct || salesAnalytics.bestProfitProduct}
+              <div class="space-y-4">
+                {#if salesAnalytics.topSellingProduct}
+                  <div class="bg-green-50 rounded-xl p-4">
+                    <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+                      <div>
+                        <h4 class="font-semibold text-green-800" style="text-align: {textAlign}">
+                          🥇 {$t('selling.history.top_products.best_selling')}
+                        </h4>
+                        <p class="text-green-700 font-medium" style="text-align: {textAlign}">
+                          {salesAnalytics.topSellingProduct.name}
+                        </p>
+                      </div>
+                      <div class="text-right" style="text-align: {isRTL ? 'left' : 'right'}">
+                        <span class="text-2xl font-bold text-green-600">
+                          {salesAnalytics.topSellingProduct.quantity}
+                        </span>
+                        <p class="text-sm text-green-600">{$t('selling.history.top_products.units_sold')}</p>
+                      </div>
+                    </div>
+                  </div>
+                {/if}
+                
+                {#if salesAnalytics.bestProfitProduct}
+                  <div class="bg-blue-50 rounded-xl p-4">
+                    <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+                      <div>
+                        <h4 class="font-semibold text-blue-800" style="text-align: {textAlign}">
+                          💎 {$t('selling.history.top_products.most_profitable')}
+                        </h4>
+                        <p class="text-blue-700 font-medium" style="text-align: {textAlign}">
+                          {salesAnalytics.bestProfitProduct.name}
+                        </p>
+                      </div>
+                      <div class="text-right" style="text-align: {isRTL ? 'left' : 'right'}">
+                        <span class="text-2xl font-bold text-blue-600">
+                          {formatCurrency(salesAnalytics.bestProfitProduct.profit)}
+                        </span>
+                        <p class="text-sm text-blue-600">{$t('selling.history.top_products.total_profit')}</p>
+                      </div>
+                    </div>
+                  </div>
+                {/if}
+              </div>
+            {:else}
+              <div class="text-center py-8">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span class="text-2xl">📊</span>
+                </div>
+                <p class="text-gray-500">{$t('selling.history.top_products.no_data')}</p>
+              </div>
+            {/if}
+          </div>
+          
+          <!-- Sales Trend Chart -->
+          <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl p-6">
+            <div class="flex items-center justify-between mb-6" class:flex-row-reverse={isRTL}>
+              <h3 class="text-xl font-bold text-gray-900" style="text-align: {textAlign}">
+                📈 {$t('selling.history.trend_chart.title')}
+              </h3>
+              <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
+                <select
+                  bind:value={chartConfig.period}
+                  on:change={() => { generateSalesAnalytics(); }}
+                  class="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                >
+                  <option value="daily">{$t('selling.history.trend_chart.periods.daily')}</option>
+                  <option value="weekly">{$t('selling.history.trend_chart.periods.weekly')}</option>
+                  <option value="monthly">{$t('selling.history.trend_chart.periods.monthly')}</option>
+                </select>
+                <select
+                  bind:value={chartConfig.metric}
+                  on:change={() => { generateSalesAnalytics(); }}
+                  class="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                >
+                  <option value="revenue">{$t('selling.history.trend_chart.metrics.revenue')}</option>
+                  <option value="profit">{$t('selling.history.trend_chart.metrics.profit')}</option>
+                  <option value="quantity">{$t('selling.history.trend_chart.metrics.quantity')}</option>
+                  <option value="transactions">{$t('selling.history.trend_chart.metrics.transactions')}</option>
+                </select>
+              </div>
+            </div>
+            
+            {#if salesAnalytics.salesTrend.length > 0}
+              <!-- Simple chart representation -->
+              <div class="space-y-2">
+                {#each salesAnalytics.salesTrend.slice(-10) as point, index}
+                  {@const value = point[chartConfig.metric] || 0}
+                  {@const maxValue = Math.max(...salesAnalytics.salesTrend.map(p => p[chartConfig.metric] || 0))}
+                  {@const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0}
+                  
+                  <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                    <div class="w-20 text-xs text-gray-600 text-right" style="text-align: {isRTL ? 'left' : 'right'}">
+                      {new Date(point.date).toLocaleDateString()}
+                    </div>
+                    <div class="flex-1 bg-gray-200 rounded-full h-3">
+                      <div 
+                        class="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full transition-all duration-500"
+                        style="width: {percentage}%"
+                      ></div>
+                    </div>
+                    <div class="w-24 text-xs font-medium text-gray-700" style="text-align: {textAlign}">
+                      {chartConfig.metric === 'revenue' || chartConfig.metric === 'profit' ? formatCurrency(value) : value}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <div class="text-center py-8">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span class="text-2xl">📈</span>
+                </div>
+                <p class="text-gray-500">{$t('selling.history.trend_chart.no_data')}</p>
+              </div>
+            {/if}
+          </div>
+        </div>
+        
+        <!-- Sales History Table -->
+        <div class="bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/80 backdrop-blur-sm">
+            <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
+              <h3 class="text-lg font-bold text-gray-900" style="text-align: {textAlign}">
+                📋 {$t('selling.history.table.title')}
+              </h3>
+              <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>
+                <span class="text-sm text-gray-600">
+                  {$t('selling.history.table.showing', { 
+                    start: (historyPage - 1) * historyItemsPerPage + 1,
+                    end: Math.min(historyPage * historyItemsPerPage, filteredSalesHistory.length),
+                    total: filteredSalesHistory.length
+                  })}
+                </span>
+                
+                {#if totalHistoryPages > 1}
+                  <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
+                    <button
+                      on:click={() => { historyPage = Math.max(1, historyPage - 1); updateHistoryPagination(); }}
+                      disabled={historyPage === 1}
+                      class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg class="w-4 h-4 {isRTL ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                      </svg>
+                    </button>
+                    
+                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium">
+                      {$t('selling.history.table.pagination.page', { current: historyPage, total: totalHistoryPages })}
+                    </span>
+                    
+                    <button
+                      on:click={() => { historyPage = Math.min(totalHistoryPages, historyPage + 1); updateHistoryPagination(); }}
+                      disabled={historyPage === totalHistoryPages}
+                      class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg class="w-4 h-4 {isRTL ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </button>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          </div>
+          
+          {#if paginatedHistory.length > 0}
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50/80 backdrop-blur-sm">
+                  <tr>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      📅 {$t('selling.history.table.columns.date')}
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      🏷️ {$t('selling.history.table.columns.product')}
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      📦 {$t('selling.history.table.columns.quantity')}
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      💰 {$t('selling.history.table.columns.unit_price')}
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      💵 {$t('selling.history.table.columns.total_amount')}
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      📈 {$t('selling.history.table.columns.profit')}
+                    </th>
+                    <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: {textAlign}">
+                      📊 {$t('selling.history.table.columns.margin')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  {#each paginatedHistory as sale, index}
+                    <tr class="hover:bg-gray-50/50 transition-colors duration-150" 
+                        in:fade={{ duration: 200, delay: index * 20 }}>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" style="text-align: {textAlign}">
+                        <div class="flex flex-col">
+                          <span class="font-medium">
+                            {new Date(sale.date).toLocaleDateString()}
+                          </span>
+                          <span class="text-xs text-gray-500">
+                            {new Date(sale.date).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap" style="text-align: {textAlign}">
+                        <div class="flex items-center" class:flex-row-reverse={isRTL}>
+                          <div class="w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center {isRTL ? 'ml-3' : 'mr-3'}">
+                            <span class="text-sm">📦</span>
+                          </div>
+                          <div>
+                            <div class="text-sm font-medium text-gray-900" style="text-align: {textAlign}">
+                              {sale.productName}
+                            </div>
+                            <div class="text-xs text-gray-500" style="text-align: {textAlign}">
+                              ID: {sale.productId}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" style="text-align: {textAlign}">
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                          {sale.quantity}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600" style="text-align: {textAlign}">
+                        {formatCurrency(sale.unitPrice)}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" style="text-align: {textAlign}">
+                        {formatCurrency(sale.totalAmount)}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" style="text-align: {textAlign}">
+                        <span class="text-{sale.profit >= 0 ? 'green' : 'red'}-600">
+                          {formatCurrency(sale.profit)}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap" style="text-align: {textAlign}">
+                        <span class="px-2 py-1 text-xs font-medium rounded-full {
+                          sale.profitMargin > 30 ? 'bg-green-100 text-green-800' :
+                          sale.profitMargin > 15 ? 'bg-yellow-100 text-yellow-800' :
+                          sale.profitMargin > 0 ? 'bg-orange-100 text-orange-800' :
+                          'bg-red-100 text-red-800'
+                        }">
+                          {sale.profitMargin.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {:else}
+            <div class="text-center py-12">
+              <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-4xl">📋</span>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">{$t('selling.history.table.empty.title')}</h3>
+              <p class="text-gray-600 mb-4">{$t('selling.history.table.empty.subtitle')}</p>
+              <button
+                on:click={() => {
+                  historyFilters = {
+                    dateRange: 'month',
+                    startDate: '',
+                    endDate: '',
+                    productName: '',
+                    minAmount: '',
+                    maxAmount: '',
+                    sortBy: 'date',
+                    sortOrder: 'desc'
+                  };
+                  applyHistoryFilters();
+                }}
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150"
+              >
+                {$t('selling.history.table.empty.clear_filters')}
+              </button>
+            </div>
+          {/if}
+        </div>
       </div>
     {:else}
       <!-- 🎴 Products Grid/Table View -->

@@ -1003,6 +1003,102 @@
       "grid": "Grille",
       "list": "Liste"
     },
+    "history": {
+      "title": "Tableau de Bord de l'Historique des Ventes",
+      "subtitle": "Analyse complète de vos performances de vente",
+      "dashboard": "Tableau de Bord de l'Historique des Ventes",
+      "kpi": {
+        "total_revenue": "CHIFFRE D'AFFAIRES TOTAL",
+        "total_profit": "BÉNÉFICE TOTAL",
+        "avg_order_value": "VALEUR MOYENNE COMMANDE",
+        "monthly_growth": "CROISSANCE MENSUELLE",
+        "per_transaction": "Par transaction",
+        "profit_margin": "marge bénéficiaire",
+        "vs_last_month": "par rapport au mois dernier",
+        "from_transactions": "À partir de {count} transactions"
+      },
+      "filters": {
+        "title": "Filtres Avancés",
+        "reset": "Réinitialiser les Filtres",
+        "time_period": "Période",
+        "product": "Produit",
+        "amount_range": "Fourchette de Montant",
+        "sort_by": "Trier par",
+        "date_ranges": {
+          "week": "Semaine Dernière",
+          "month": "Mois Dernier",
+          "quarter": "Trimestre Dernier",
+          "year": "Année Dernière",
+          "custom": "Période Personnalisée"
+        },
+        "placeholders": {
+          "product_search": "Rechercher par nom de produit...",
+          "min_amount": "Montant minimum",
+          "max_amount": "Montant maximum",
+          "start_date": "Date de début",
+          "end_date": "Date de fin"
+        },
+        "sort_options": {
+          "date": "Date",
+          "product": "Nom du Produit",
+          "amount": "Montant Total",
+          "profit": "Bénéfice",
+          "quantity": "Quantité"
+        },
+        "sort_order": {
+          "desc": "Décroissant",
+          "asc": "Croissant"
+        }
+      },
+      "top_products": {
+        "title": "Produits les Plus Performants",
+        "best_selling": "Produit le Plus Vendu",
+        "most_profitable": "Produit le Plus Rentable",
+        "units_sold": "unités vendues",
+        "total_profit": "bénéfice total",
+        "no_data": "Aucune donnée de vente disponible"
+      },
+      "trend_chart": {
+        "title": "Tendance des Ventes",
+        "periods": {
+          "daily": "Quotidien",
+          "weekly": "Hebdomadaire",
+          "monthly": "Mensuel"
+        },
+        "metrics": {
+          "revenue": "Chiffre d'Affaires",
+          "profit": "Bénéfice",
+          "quantity": "Quantité",
+          "transactions": "Transactions"
+        },
+        "no_data": "Aucune donnée de tendance disponible"
+      },
+      "table": {
+        "title": "Historique Détaillé des Ventes",
+        "columns": {
+          "date": "Date",
+          "product": "Produit",
+          "quantity": "Quantité",
+          "unit_price": "Prix Unitaire",
+          "total_amount": "Montant Total",
+          "profit": "Bénéfice",
+          "margin": "Marge"
+        },
+        "showing": "Affichage {start}-{end} sur {total}",
+        "pagination": {
+          "page": "{current} / {total}"
+        },
+        "empty": {
+          "title": "Aucun historique de ventes trouvé",
+          "subtitle": "Aucune vente ne correspond à vos filtres actuels",
+          "clear_filters": "Effacer les Filtres"
+        }
+      },
+      "actions": {
+        "export_csv": "Exporter CSV",
+        "refresh": "Actualiser"
+      }
+    },
     "validation": {
       "select_product": "Veuillez sélectionner un produit à vendre.",
       "invalid_quantity": "Quantité invalide. Veuillez entrer une valeur positive inférieure ou égale au stock actuel.",
