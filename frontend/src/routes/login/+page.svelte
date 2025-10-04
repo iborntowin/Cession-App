@@ -44,35 +44,72 @@
     // Enable login only when backend is reachable and database is connected
     canLogin = backend && db && status === 'healthy';
 
-    // Start realistic loading sequence immediately, regardless of status
+    // Start realistic loading sequence based on actual system checks
     if (!isLoadingComplete && loadingBarProgress === 0) {
       startRealisticLoading();
     }
 
-    // Update progress based on actual status
-    if (status === 'healthy' && canLogin) {
-      // System is ready - complete the loading
-      if (loadingBarProgress < 100) {
-        finishLoading();
-      }
-    } else if (status === 'starting' || status === 'checking') {
-      // Show intermediate progress for system startup
-      if (loadingBarProgress < 30) {
-        animateProgressTo(30, 'Connecting to services...');
-      }
-    } else if (status === 'unhealthy' || status === 'error') {
-      // Auto-refresh when system has issues to retry connection
-      if (loadingBarProgress < 100) {
-        setTimeout(() => {
-          console.log('System unhealthy, refreshing page to retry...');
-          window.location.reload();
-        }, 3000); // Wait 3 seconds before refresh to show error state
-      }
-    }
+    // Update progress based on ACTUAL system status - no artificial completion
+    updateLoadingProgress(status, backend, db);
 
     // If backend becomes available and we were waiting, try login again
     if (canLogin && isLoading && email && password) {
       handleLogin();
+    }
+  }
+
+  // Update loading progress based on actual system status
+  function updateLoadingProgress(status, backend, db) {
+    let targetProgress = 0;
+    let message = 'Initializing...';
+
+    // Progress based on actual system state
+    if (status === 'checking') {
+      targetProgress = 20;
+      message = 'Checking system status...';
+    } else if (status === 'starting') {
+      targetProgress = 40;
+      message = 'Backend starting up...';
+    } else if (backend && !db) {
+      targetProgress = 70;
+      message = 'Connecting to database...';
+    } else if (backend && db && status === 'healthy') {
+      targetProgress = 100;
+      message = 'All systems operational!';
+      // Only complete loading when ALL systems are actually ready
+      if (!isLoadingComplete) {
+        setTimeout(() => {
+          isLoadingComplete = true;
+        }, 500);
+      }
+    } else if (status === 'unhealthy') {
+      if (backend) {
+        targetProgress = Math.max(50, loadingBarProgress);
+        message = 'Database connection issues';
+      } else {
+        targetProgress = Math.max(20, loadingBarProgress);
+        message = 'Backend connection issues';
+      }
+    } else if (status === 'error') {
+      targetProgress = Math.max(10, loadingBarProgress);
+      message = 'System error detected';
+    }
+
+    // Only animate progress forward, never backward (except for resets)
+    if (targetProgress > loadingBarProgress || status === 'checking') {
+      animateProgressTo(targetProgress, message);
+    } else if (targetProgress < loadingBarProgress && (status === 'error' || status === 'unhealthy')) {
+      // Update message but don't move progress backward
+      loadingMessage = message;
+    }
+
+    // Add emergency timeout after 60 seconds with manual override
+    if (!isLoadingComplete && loadingStartTime > 0) {
+      const elapsed = Date.now() - loadingStartTime;
+      if (elapsed > 60000) { // 60 seconds
+        loadingMessage = 'System taking longer than expected. You can try to refresh or contact support.';
+        // Don't auto-complete, let user decide
+      }
     }
   }
 
@@ -81,54 +118,8 @@
     
     loadingStartTime = Date.now();
     
-    // Set maximum wait timeout (reduced to 15 seconds)
-    const maxWaitTimeout = setTimeout(() => {
-      if (!isLoadingComplete) {
-        loadingMessage = 'Taking longer than expected...';
-        animateProgressTo(95, 'Retrying connection...', 1000);
-        
-        setTimeout(() => {
-          console.log('Max wait time exceeded, refreshing page...');
-          refreshPage();
-        }, 2000);
-      }
-    }, 15000); // Reduced from 30 seconds to 15 seconds
-    
-    // Stage 1: Fast initial progress (0% → 60% in 1s)
-    animateProgressTo(60, 'Loading workspace...', 1000);
-    
-    setTimeout(() => {
-      // Stage 2: Slower progress (60% → 90% in 2s) - reduced time
-      animateProgressTo(90, 'Syncing data...', 2000);
-      
-      setTimeout(() => {
-        // Stage 3: Check if system is ready, if not wait briefly then complete anyway
-        if (canLogin) {
-          clearTimeout(maxWaitTimeout);
-          finishLoading();
-        } else {
-          // Wait for backend to be ready but with shorter timeout
-          let waitCount = 0;
-          const maxWaitCount = 10; // Maximum 5 seconds (10 * 500ms)
-          
-          const waitForBackend = setInterval(() => {
-            waitCount++;
-            
-            if (canLogin) {
-              clearInterval(waitForBackend);
-              clearTimeout(maxWaitTimeout);
-              finishLoading();
-            } else if (waitCount >= maxWaitCount) {
-              // If backend still not ready after 5 seconds, complete anyway
-              clearInterval(waitForBackend);
-              clearTimeout(maxWaitTimeout);
-              console.log('Backend not ready after 5 seconds, completing loading anyway');
-              finishLoading();
-            }
-          }, 500);
-        }
-      }, 2000); // Reduced from 2500ms to 2000ms
-    }, 1000);
+    // Initial loading state - just show we're starting
+    animateProgressTo(10, 'Initializing system check...', 500);
   }
 
   function animateProgressTo(targetProgress, message, duration = 500) {
@@ -155,16 +146,14 @@
   }
 
   function finishLoading() {
-    animateProgressTo(100, 'System ready!', 800);
-    
-    setTimeout(() => {
-      isLoadingComplete = true;
-      // Enable login when loading completes, regardless of health status
-      if (!canLogin) {
-        canLogin = true;
-        console.log('Login enabled after loading completion');
-      }
-    }, 800);
+    // Only finish loading if system is actually ready
+    if (canLogin && backendReachable && databaseConnected && healthStatus === 'healthy') {
+      animateProgressTo(100, 'System ready!', 800);
+      
+      setTimeout(() => {
+        isLoadingComplete = true;
+      }, 800);
+    }
   }
 
   function refreshPage() {
@@ -196,21 +185,13 @@
       backgroundLoaded = true;
     }, 100);
 
-    // Fallback: Start loading after 2 seconds if not started yet
+    // Start initial loading check after a brief delay
     setTimeout(() => {
       if (loadingBarProgress === 0 && !isLoadingComplete) {
-        console.log('Fallback: Starting loading sequence');
+        console.log('Starting initial system check');
         startRealisticLoading();
       }
-    }, 2000);
-
-    // Ultimate fallback: Complete loading after 20 seconds no matter what
-    setTimeout(() => {
-      if (!isLoadingComplete) {
-        console.log('Ultimate fallback: Forcing loading completion');
-        finishLoading();
-      }
-    }, 20000);
+    }, 500);
   });
 
   // Cleanup intervals on component destroy
@@ -431,21 +412,24 @@
             <div class="flex items-center justify-center space-x-4 mt-3 pt-2 border-t border-gray-100">
               <div class="flex items-center space-x-1">
                 <div class="w-2 h-2 rounded-full transition-all duration-300 {
-                  backendReachable ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-gray-300'
+                  healthStatus === 'checking' ? 'bg-blue-500 animate-pulse' :
+                  backendReachable ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-red-500'
                 }"></div>
-                <span class="text-xs text-gray-600">API</span>
+                <span class="text-xs text-gray-600">Backend</span>
               </div>
               <div class="flex items-center space-x-1">
                 <div class="w-2 h-2 rounded-full transition-all duration-300 {
-                  databaseConnected ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-gray-300'
+                  healthStatus === 'checking' ? 'bg-blue-500 animate-pulse' :
+                  databaseConnected ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-red-500'
                 }"></div>
                 <span class="text-xs text-gray-600">Database</span>
               </div>
               <div class="flex items-center space-x-1">
                 <div class="w-2 h-2 rounded-full transition-all duration-300 {
-                  canLogin ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-gray-300'
+                  healthStatus === 'checking' ? 'bg-blue-500 animate-pulse' :
+                  canLogin ? 'bg-emerald-500 shadow-emerald-500/50 shadow-sm' : 'bg-red-500'
                 }"></div>
-                <span class="text-xs text-gray-600">Auth</span>
+                <span class="text-xs text-gray-600">Ready</span>
               </div>
             </div>
           </div>
@@ -454,7 +438,7 @@
           <div class="mt-3">
             <HealthStatus 
               on:healthUpdate={handleHealthUpdate}
-              autoRefresh={false}
+              autoRefresh={true}
               showActions={false}
             />
           </div>
@@ -554,7 +538,7 @@
               <div>
                 <button
                   type="submit"
-                  disabled={isLoading || (!canLogin && !isLoadingComplete)}
+                  disabled={isLoading || !canLogin}
                   class="group relative w-full flex justify-center items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium border border-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg"
                 >
                   {#if isLoading}
@@ -562,34 +546,44 @@
                       <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       <span>Signing in...</span>
                     </div>
-                  {:else if !canLogin && !isLoadingComplete}
+                  {:else if !backendReachable}
                     <div class="flex items-center space-x-3">
                       <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>
-                        {#if loadingBarProgress < 100}
-                          Loading system...
-                        {:else if healthStatus === 'starting'}
-                          Waiting for backend...
-                        {:else if healthStatus === 'checking'}
-                          Checking system...
-                        {:else}
-                          System unavailable
-                        {/if}
-                      </span>
+                      <span>Connecting to server...</span>
                     </div>
-                  {:else}
+                  {:else if !databaseConnected}
+                    <div class="flex items-center space-x-3">
+                      <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Connecting to database...</span>
+                    </div>
+                  {:else if healthStatus === 'starting'}
+                    <div class="flex items-center space-x-3">
+                      <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>System starting up...</span>
+                    </div>
+                  {:else if healthStatus === 'checking'}
+                    <div class="flex items-center space-x-3">
+                      <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Checking system...</span>
+                    </div>
+                  {:else if canLogin && isLoadingComplete}
                     <div class="flex items-center space-x-2">
                       <span>Sign in</span>
                       <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                       </svg>
                     </div>
+                  {:else}
+                    <div class="flex items-center space-x-3">
+                      <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>System not ready</span>
+                    </div>
                   {/if}
                 </button>
               </div>
 
               <!-- System Status Help -->
-              {#if !canLogin && !isLoadingComplete && (healthStatus === 'error' || healthStatus === 'unhealthy')}
+              {#if !canLogin && (healthStatus === 'error' || healthStatus === 'unhealthy' || !backendReachable || !databaseConnected)}
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-4" in:slide={{ duration: 300 }}>
                   <div class="flex items-start">
                     <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
@@ -598,11 +592,36 @@
                       </svg>
                     </div>
                     <div>
-                      <p class="text-sm font-medium text-amber-800">System Not Ready</p>
-                      <p class="text-sm text-amber-700 mt-1">Please wait for the system to be ready before signing in.</p>
+                      <p class="text-sm font-medium text-amber-800">System Status</p>
+                      <div class="text-sm text-amber-700 mt-1">
+                        {#if !backendReachable}
+                          <p>❌ Backend: Not reachable</p>
+                        {:else}
+                          <p>✅ Backend: Connected</p>
+                        {/if}
+                        
+                        {#if !databaseConnected}
+                          <p>❌ Database: Not connected</p>
+                        {:else}
+                          <p>✅ Database: Connected</p>
+                        {/if}
+                        
+                        {#if !canLogin}
+                          <p class="mt-2 font-medium">Please wait for all systems to be ready before signing in.</p>
+                        {/if}
+                      </div>
                       {#if healthError}
-                        <p class="text-sm text-red-600 mt-2 font-medium">Issue: {healthError}</p>
+                        <p class="text-sm text-red-600 mt-2 font-medium">Details: {healthError}</p>
                       {/if}
+                      <div class="mt-3 flex space-x-2">
+                        <button 
+                          type="button"
+                          on:click={refreshPage}
+                          class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-lg transition-colors"
+                        >
+                          Refresh Status
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -216,6 +216,8 @@ public class PaymentService {
                 dangerClient.setClientId(cession.getClient().getId());
                 dangerClient.setClientName(cession.getClient().getFullName());
                 dangerClient.setClientCin(cession.getClient().getCin());
+                dangerClient.setClientWorkerNumber(cession.getClient().getWorkerNumber());
+                dangerClient.setClientWorkplace(cession.getClient().getWorkplace() != null ? cession.getClient().getWorkplace().getName() : null);
                 dangerClient.setCessionId(cession.getId());
                 dangerClient.setStartDate(cession.getStartDate());
                 dangerClient.setMonthlyAmount(cession.getMonthlyPayment());

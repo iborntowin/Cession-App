@@ -15,6 +15,8 @@ public class DangerClientDTO {
     private UUID clientId;
     private String clientName;
     private String clientCin;
+    private String clientWorkerNumber; // Added for CSV export
+    private String clientWorkplace; // Added for CSV export and filtering
     private UUID cessionId;
     private LocalDate startDate;
     private BigDecimal monthlyAmount;

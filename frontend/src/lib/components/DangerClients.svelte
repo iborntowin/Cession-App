@@ -17,9 +17,12 @@
   let error = null;
   let analysis = null;
   let filteredClients = [];
+  let workplaces = [];
+  let workplacesMap = {};
 
   // Filters
   let selectedSeverity = 'all';
+  let selectedWorkplace = null; // Workplace filter
   let thresholdMonths = 1; // Changed default to 1 to include warnings
   let searchQuery = '';
   let sortField = 'severity';
@@ -32,8 +35,22 @@
   let filteredCount = 0; // Track filtered results count
 
   onMount(async () => {
+    await loadWorkplaces();
     await loadDangerClients();
   });
+
+  async function loadWorkplaces() {
+    try {
+      const { workplacesApi } = await import('$lib/api');
+      workplaces = await workplacesApi.getAll();
+      workplacesMap = {};
+      for (const w of workplaces) {
+        workplacesMap[w.id] = w.name;
+      }
+    } catch (error) {
+      console.error('Error loading workplaces:', error);
+    }
+  }
 
   async function loadDangerClients() {
     try {
@@ -68,12 +85,19 @@
       clients = clients.filter(client => client.severity === selectedSeverity);
     }
 
+    // Apply workplace filter
+    if (selectedWorkplace) {
+      clients = clients.filter(client => client.clientWorkplace === selectedWorkplace);
+    }
+
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       clients = clients.filter(client => 
         client.clientName?.toLowerCase().includes(query) ||
         client.clientCin?.toLowerCase().includes(query) ||
+        client.clientWorkerNumber?.toLowerCase().includes(query) ||
+        client.clientWorkplace?.toLowerCase().includes(query) ||
         client.cessionId?.toString().toLowerCase().includes(query)
       );
     }
@@ -179,33 +203,35 @@
 
     const headers = [
       $t('payments.danger_clients.table.client'),
-      $t('payments.danger_clients.table.cession_id'),
+      'Worker Number',
+      'Workplace',
       $t('payments.danger_clients.table.start_date'),
       $t('payments.danger_clients.table.monthly_amount'),
       $t('payments.danger_clients.table.due_months'),
       $t('payments.danger_clients.table.paid_months'),
       $t('payments.danger_clients.table.missed_months'),
-      $t('payments.danger_clients.table.last_payment'),
-      $t('payments.danger_clients.table.severity')
+      $t('payments.danger_clients.table.last_payment')
     ];
 
-    const rows = analysis.dangerClients.map(client => [
+    const rows = filteredClients.map(client => [
       client.clientName || '',
-      client.cessionId || '',
+      client.clientWorkerNumber || 'N/A',
+      client.clientWorkplace || 'N/A',
       formatDate(client.startDate),
       client.monthlyAmount || 0,
       client.dueMonths || 0,
       client.paidMonths || 0,
       client.missedMonths || 0,
-      client.lastPaymentDate ? formatDate(client.lastPaymentDate) : 'N/A',
-      $t(`payments.danger_clients.severity.${client.severity}`)
+      client.lastPaymentDate ? formatDate(client.lastPaymentDate) : 'N/A'
     ]);
 
     const csvContent = [headers, ...rows]
       .map(row => row.map(field => `"${field}"`).join(','))
       .join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    // Add UTF-8 BOM for proper encoding of Arabic characters
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -427,6 +453,21 @@
           <option value="warning">{$t('payments.danger_clients.severity.warning')}</option>
         </select>
 
+        <!-- Workplace Filter -->
+        <div class="flex items-center space-x-2">
+          <label class="text-sm font-medium text-gray-700">Workplace:</label>
+          <select 
+            bind:value={selectedWorkplace} 
+            on:change={handleFilterChange}
+            class="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value={null}>All workplaces</option>
+            {#each workplaces as workplace}
+              <option value={workplace.name}>{workplace.name}</option>
+            {/each}
+          </select>
+        </div>
+
         <!-- Items per page -->
         <div class="flex items-center space-x-2">
           <label class="text-sm font-medium text-gray-700">Show:</label>
@@ -440,6 +481,8 @@
             <option value={20}>20</option>
             <option value={25}>25</option>
             <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value={200}>200</option>
           </select>
         </div>
 
@@ -474,6 +517,9 @@
             {#if selectedSeverity !== 'all'}
               with <strong>{$t(`payments.danger_clients.severity.${selectedSeverity}`)}</strong> severity
             {/if}
+            {#if selectedWorkplace}
+              at <strong>{selectedWorkplace}</strong>
+            {/if}
             {#if searchQuery}
               matching "<strong>{searchQuery}</strong>"
             {/if}
@@ -494,7 +540,10 @@
               {/if}
             </th>
             <th class="text-left py-3 px-4 font-semibold text-gray-700">
-              {$t('payments.danger_clients.table.cession_id')}
+              Worker Number
+            </th>
+            <th class="text-left py-3 px-4 font-semibold text-gray-700">
+              Workplace
             </th>
             <th class="text-left py-3 px-4 font-semibold text-gray-700">
               {$t('payments.danger_clients.table.start_date')}
@@ -547,7 +596,10 @@
                 </div>
               </td>
               <td class="py-3 px-4">
-                <span class="font-mono text-sm text-gray-700">{client.cessionId?.toString().slice(-8) || 'N/A'}</span>
+                <span class="text-sm text-gray-700">{client.clientWorkerNumber || 'N/A'}</span>
+              </td>
+              <td class="py-3 px-4">
+                <span class="text-sm text-gray-700">{client.clientWorkplace || 'N/A'}</span>
               </td>
               <td class="py-3 px-4">
                 <span class="text-sm text-gray-700">{formatDate(client.startDate)}</span>
