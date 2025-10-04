@@ -633,10 +633,11 @@ export const paymentsApi = {
     }
   },
 
-  getDangerClientsAnalysis: async (thresholdMonths = 1) => {
+  getDangerClientsAnalysis: async (thresholdMonths = 1, unstartedDaysThreshold = 60) => {
     try {
       const params = new URLSearchParams();
       if (thresholdMonths) params.append('thresholdMonths', thresholdMonths.toString());
+      if (unstartedDaysThreshold) params.append('unstartedDaysThreshold', unstartedDaysThreshold.toString());
       
       const response = await fetch(`${BACKEND_URL}/api/v1/payments/danger-clients-analysis?${params.toString()}`, {
         headers: getAuthHeaders()

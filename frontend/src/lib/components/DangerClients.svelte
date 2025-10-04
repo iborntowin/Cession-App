@@ -17,14 +17,18 @@
   let error = null;
   let analysis = null;
   let filteredClients = [];
+  let filteredUnstartedClients = [];
   let workplaces = [];
   let workplacesMap = {};
 
   // Filters
   let selectedSeverity = 'all';
   let selectedWorkplace = null; // Workplace filter
+  let selectedUnstartedWorkplace = null; // Workplace filter for unstarted clients
   let thresholdMonths = 1; // Changed default to 1 to include warnings
+  let unstartedDaysThreshold = 60; // Customizable days threshold for unstarted clients
   let searchQuery = '';
+  let unstartedSearchQuery = '';
   let sortField = 'severity';
   let sortOrder = 'desc';
 
@@ -33,6 +37,12 @@
   let itemsPerPage = 10;
   let totalPages = 1;
   let filteredCount = 0; // Track filtered results count
+  
+  // Pagination for unstarted clients
+  let unstartedCurrentPage = 1;
+  let unstartedItemsPerPage = 10;
+  let unstartedTotalPages = 1;
+  let unstartedFilteredCount = 0;
 
   onMount(async () => {
     await loadWorkplaces();
@@ -56,16 +66,24 @@
     try {
       loading = true;
       error = null;
-      const response = await paymentsApi.getDangerClientsAnalysis(thresholdMonths);
+      const response = await paymentsApi.getDangerClientsAnalysis(thresholdMonths, unstartedDaysThreshold);
       
       if (response.success) {
         analysis = response.data;
+        console.log('✅ Danger Clients Analysis Loaded:', analysis);
+        console.log('📊 Unstarted Clients:', analysis.unstartedClients?.length || 0);
+        console.log('📊 Unstarted Clients Count:', analysis.unstartedClientsCount || 0);
+        console.log('🎯 Using Days Threshold:', unstartedDaysThreshold);
+        if (analysis.unstartedClients && analysis.unstartedClients.length > 0) {
+          console.log('📋 Sample Unstarted Client:', analysis.unstartedClients[0]);
+        }
         applyFilters();
       } else {
         error = response.error || 'Failed to load danger clients data';
       }
     } catch (e) {
       error = e.message;
+      console.error('❌ Error loading danger clients:', e);
     } finally {
       loading = false;
     }
@@ -136,6 +154,54 @@
     currentPage = Math.min(currentPage, totalPages);
     const start = (currentPage - 1) * itemsPerPage;
     filteredClients = clients.slice(start, start + itemsPerPage);
+    
+    // Apply filters for unstarted clients
+    applyUnstartedFilters();
+  }
+  
+  function applyUnstartedFilters() {
+    if (!analysis || !analysis.unstartedClients) {
+      filteredUnstartedClients = [];
+      unstartedFilteredCount = 0;
+      return;
+    }
+
+    let clients = [...analysis.unstartedClients];
+    
+    // Backend already filtered by days threshold, no need to filter again
+
+    // Apply workplace filter
+    if (selectedUnstartedWorkplace) {
+      clients = clients.filter(client => client.clientWorkplace === selectedUnstartedWorkplace);
+    }
+
+    // Apply search filter
+    if (unstartedSearchQuery) {
+      const query = unstartedSearchQuery.toLowerCase();
+      clients = clients.filter(client => 
+        client.clientName?.toLowerCase().includes(query) ||
+        client.clientCin?.toLowerCase().includes(query) ||
+        client.clientWorkerNumber?.toLowerCase().includes(query) ||
+        client.clientWorkplace?.toLowerCase().includes(query)
+      );
+    }
+
+    // Store filtered count before pagination
+    unstartedFilteredCount = clients.length;
+
+    // Sort by start date (oldest first)
+    clients.sort((a, b) => {
+      if (!a.startDate && !b.startDate) return 0;
+      if (!a.startDate) return 1;
+      if (!b.startDate) return -1;
+      return new Date(a.startDate) - new Date(b.startDate);
+    });
+
+    // Pagination
+    unstartedTotalPages = Math.max(1, Math.ceil(clients.length / unstartedItemsPerPage));
+    unstartedCurrentPage = Math.min(unstartedCurrentPage, unstartedTotalPages);
+    const start = (unstartedCurrentPage - 1) * unstartedItemsPerPage;
+    filteredUnstartedClients = clients.slice(start, start + unstartedItemsPerPage);
   }
 
   function getSeverityPriority(severity) {
@@ -179,6 +245,34 @@
     currentPage = page;
     applyFilters();
   }
+  
+  function handleUnstartedPageChange(page) {
+    unstartedCurrentPage = page;
+    applyUnstartedFilters();
+  }
+  
+  function handleUnstartedFilterChange() {
+    unstartedCurrentPage = 1;
+    applyUnstartedFilters();
+  }
+  
+  function handleUnstartedDaysThresholdChange() {
+    unstartedCurrentPage = 1;
+    
+    // Save current scroll position
+    const unstartedSection = document.querySelector('[data-section="unstarted-clients"]');
+    const scrollPosition = unstartedSection ? unstartedSection.offsetTop - 100 : 0;
+    
+    // Reload data from backend with new threshold
+    loadDangerClients().then(() => {
+      // Restore scroll position after data loads
+      if (scrollPosition > 0) {
+        setTimeout(() => {
+          window.scrollTo({ top: scrollPosition, behavior: 'smooth' });
+        }, 100);
+      }
+    });
+  }
 
   function handleThresholdChange() {
     currentPage = 1;
@@ -197,9 +291,62 @@
   function viewCession(cessionId) {
     goto(`/cessions/${cessionId}`);
   }
+  
+  function exportUnstartedClientsCSV() {
+    if (!analysis || !analysis.unstartedClients) return;
+    
+    // Get all unstarted clients from backend (already filtered by days threshold)
+    let clients = [...analysis.unstartedClients];
+    
+    // Apply workplace filter if selected
+    if (selectedUnstartedWorkplace) {
+      clients = clients.filter(client => client.clientWorkplace === selectedUnstartedWorkplace);
+    }
+    
+    // Apply search filter if exists
+    if (unstartedSearchQuery) {
+      const query = unstartedSearchQuery.toLowerCase();
+      clients = clients.filter(client => 
+        client.clientName?.toLowerCase().includes(query) ||
+        client.clientCin?.toLowerCase().includes(query) ||
+        client.clientWorkerNumber?.toLowerCase().includes(query) ||
+        client.clientWorkplace?.toLowerCase().includes(query)
+      );
+    }
+
+    // CSV Headers - only the requested columns
+    const headers = [
+      'Client Name',
+      'Worker Number',
+      'Monthly Payment',
+      'Start Date'
+    ];
+
+    // Create rows with only requested columns
+    const rows = clients.map(client => [
+      client.clientName || 'N/A',
+      client.clientWorkerNumber || 'N/A',
+      client.monthlyAmount || 0,
+      formatDate(client.startDate)
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    // Add UTF-8 BOM for proper encoding of Arabic characters
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `unstarted-clients-${unstartedDaysThreshold}days-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
 
   function exportCSV() {
-    if (!analysis || !analysis.dangerClients) return;
+    if (!analysis) return;
 
     const headers = [
       $t('payments.danger_clients.table.client'),
@@ -213,19 +360,50 @@
       $t('payments.danger_clients.table.last_payment')
     ];
 
-    const rows = filteredClients.map(client => [
-      client.clientName || '',
-      client.clientWorkerNumber || 'N/A',
-      client.clientWorkplace || 'N/A',
-      formatDate(client.startDate),
-      client.monthlyAmount || 0,
-      client.dueMonths || 0,
-      client.paidMonths || 0,
-      client.missedMonths || 0,
-      client.lastPaymentDate ? formatDate(client.lastPaymentDate) : 'N/A'
-    ]);
+    let csvRows = [];
+    
+    // Add danger clients section
+    if (analysis.dangerClients && analysis.dangerClients.length > 0) {
+      csvRows.push(['=== CLIENTS WITH PAYMENT DELAYS ===']);
+      csvRows.push(headers);
+      
+      const dangerRows = filteredClients.map(client => [
+        client.clientName || '',
+        client.clientWorkerNumber || 'N/A',
+        client.clientWorkplace || 'N/A',
+        formatDate(client.startDate),
+        client.monthlyAmount || 0,
+        client.dueMonths || 0,
+        client.paidMonths || 0,
+        client.missedMonths || 0,
+        client.lastPaymentDate ? formatDate(client.lastPaymentDate) : 'N/A'
+      ]);
+      
+      csvRows.push(...dangerRows);
+      csvRows.push([]); // Empty row separator
+    }
+    
+    // Add unstarted clients section
+    if (analysis.unstartedClients && analysis.unstartedClients.length > 0) {
+      csvRows.push(['=== CLIENTS WHO HAVE NOT STARTED PAYMENTS (60+ DAYS) ===']);
+      csvRows.push(headers);
+      
+      const unstartedRows = filteredUnstartedClients.map(client => [
+        client.clientName || '',
+        client.clientWorkerNumber || 'N/A',
+        client.clientWorkplace || 'N/A',
+        formatDate(client.startDate),
+        client.monthlyAmount || 0,
+        client.dueMonths || 0,
+        client.paidMonths || 0,
+        client.missedMonths || 0,
+        'Never'
+      ]);
+      
+      csvRows.push(...unstartedRows);
+    }
 
-    const csvContent = [headers, ...rows]
+    const csvContent = csvRows
       .map(row => row.map(field => `"${field}"`).join(','))
       .join('\n');
 
@@ -235,7 +413,7 @@
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `danger-clients-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `danger-clients-complete-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   }
@@ -749,5 +927,322 @@
         {filteredCount === 1 ? 'client' : 'clients'}
       </div>
     {/if}
+  {/if}
+  
+  <!-- Unstarted Clients Section -->
+  {#if !loading && !error && analysis}
+    <div class="mt-12 pt-8 border-t-2 border-orange-200" data-section="unstarted-clients">
+      <!-- Unstarted Clients Header -->
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-orange-800 mb-2">
+            🚫 Clients Who Haven't Started Payments
+          </h2>
+          <p class="text-sm text-gray-600">
+            Clients with cessions started {unstartedDaysThreshold}+ days ago but have never made a payment
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- Days Threshold Input -->
+          <div class="flex items-center space-x-2 bg-white px-4 py-3 rounded-lg border-2 border-orange-200">
+            <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Days:</label>
+            <input
+              type="number"
+              bind:value={unstartedDaysThreshold}
+              on:change={handleUnstartedDaysThresholdChange}
+              min="1"
+              max="365"
+              class="w-20 px-2 py-1 border border-orange-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent text-center font-semibold"
+            />
+          </div>
+          
+          <!-- Count Badge -->
+          <div class="bg-orange-50 px-4 py-3 rounded-lg border-2 border-orange-200">
+            <div class="text-center">
+              <div class="text-2xl font-bold text-orange-600">{unstartedFilteredCount || 0}</div>
+              <div class="text-xs text-gray-600 uppercase tracking-wide">Found</div>
+            </div>
+          </div>
+          
+          <!-- Export CSV Button -->
+          <button
+            on:click={exportUnstartedClientsCSV}
+            disabled={!analysis.unstartedClients || unstartedFilteredCount === 0}
+            class="flex items-center space-x-2 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            title="Export Unstarted Clients to CSV"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span class="font-medium">Export CSV</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Unstarted Filters -->
+      <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+        <div class="flex flex-wrap items-center gap-4">
+          <!-- Search -->
+          <div class="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="Search by name, CIN, worker number..."
+              bind:value={unstartedSearchQuery}
+              on:input={handleUnstartedFilterChange}
+              class="w-full px-4 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+          </div>
+          
+          <!-- Workplace Filter -->
+          <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium text-gray-700">Workplace:</label>
+            <select 
+              bind:value={selectedUnstartedWorkplace} 
+              on:change={handleUnstartedFilterChange}
+              class="px-3 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value={null}>All Workplaces</option>
+              {#each workplaces as workplace}
+                <option value={workplace.name}>{workplace.name}</option>
+              {/each}
+            </select>
+          </div>
+          
+          <!-- Items per page -->
+          <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium text-gray-700">Show:</label>
+            <select 
+              bind:value={unstartedItemsPerPage} 
+              on:change={handleUnstartedFilterChange}
+              class="px-3 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Active Filters Summary -->
+        {#if selectedUnstartedWorkplace || unstartedSearchQuery}
+          <div class="mt-3 pt-3 border-t border-orange-200">
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-gray-600">Active filters:</span>
+              {#if selectedUnstartedWorkplace}
+                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                  Workplace: {selectedUnstartedWorkplace}
+                </span>
+              {/if}
+              {#if unstartedSearchQuery}
+                <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                  Search: "{unstartedSearchQuery}"
+                </span>
+              {/if}
+              <button
+                on:click={() => {
+                  selectedUnstartedWorkplace = null;
+                  unstartedSearchQuery = '';
+                  handleUnstartedFilterChange();
+                }}
+                class="ml-2 text-orange-600 hover:text-orange-700 font-medium"
+              >
+                Clear all
+              </button>
+            </div>
+          </div>
+        {/if}
+      </div>
+      
+      <!-- Empty State or Table -->
+      {#if !analysis.unstartedClients || analysis.unstartedClients.length === 0}
+        <div class="bg-orange-50 border-2 border-orange-200 rounded-xl p-8 text-center">
+          <div class="text-6xl mb-4">✅</div>
+          <h3 class="text-xl font-bold text-orange-800 mb-2">Great News!</h3>
+          <p class="text-gray-600">No clients have cessions that started 60+ days ago without any payments.</p>
+          <p class="text-sm text-gray-500 mt-2">All clients have either started their payments or their cessions are less than 60 days old.</p>
+        </div>
+      {:else}
+        <!-- Unstarted Clients Table -->
+        <div class="overflow-x-auto rounded-xl border border-orange-200">
+        <table class="min-w-full divide-y divide-orange-200">
+          <thead class="bg-orange-100">
+            <tr>
+              <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                {$t('payments.danger_clients.table.client')}
+              </th>
+              <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                Worker Number
+              </th>
+              <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                Workplace
+              </th>
+              <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                {$t('payments.danger_clients.table.start_date')}
+              </th>
+              <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                Days Since Start
+              </th>
+              <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                {$t('payments.danger_clients.table.monthly_amount')}
+              </th>
+              <th class="py-3 px-4 text-center text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                Expected Payments
+              </th>
+              <th class="py-3 px-4 text-center text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                Total Due
+              </th>
+              <th class="py-3 px-4 text-center text-xs font-semibold text-orange-900 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-orange-100">
+            {#each filteredUnstartedClients as client}
+              <tr class="hover:bg-orange-50 transition-colors">
+                <td class="py-3 px-4">
+                  <div class="font-medium text-gray-900">{client.clientName || 'N/A'}</div>
+                  <div class="text-xs text-gray-500">{client.clientCin || 'N/A'}</div>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="text-sm text-gray-700">{client.clientWorkerNumber || 'N/A'}</span>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="text-sm text-gray-700">{client.clientWorkplace || 'N/A'}</span>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="text-sm text-gray-700">{formatDate(client.startDate)}</span>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="font-bold text-orange-600">
+                    {Math.floor((new Date() - new Date(client.startDate)) / (1000 * 60 * 60 * 24))} days
+                  </span>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="font-semibold text-gray-900">{formatCurrency(client.monthlyAmount || 0)}</span>
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <span class="text-sm text-gray-700">{client.dueMonths || 0}</span>
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <span class="font-bold text-orange-600">{formatCurrency(client.totalMissedAmount || 0)}</span>
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <div class="flex items-center justify-center space-x-2">
+                    <button
+                      on:click={() => viewClient(client.clientId)}
+                      class="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      title="View Client"
+                    >
+                      Client
+                    </button>
+                    <span class="text-gray-300">|</span>
+                    <button
+                      on:click={() => viewCession(client.cessionId)}
+                      class="text-green-600 hover:text-green-700 text-sm font-medium"
+                      title="View Cession"
+                    >
+                      Cession
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Unstarted Pagination -->
+      {#if unstartedTotalPages > 1}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 space-y-4 sm:space-y-0">
+          <!-- Results info -->
+          <div class="text-sm text-gray-700">
+            Showing 
+            <span class="font-medium">{(unstartedCurrentPage - 1) * unstartedItemsPerPage + 1}</span>
+            to 
+            <span class="font-medium">{Math.min(unstartedCurrentPage * unstartedItemsPerPage, unstartedFilteredCount)}</span>
+            of 
+            <span class="font-medium">{unstartedFilteredCount}</span>
+            {unstartedFilteredCount === 1 ? 'client' : 'clients'}
+          </div>
+          
+          <!-- Pagination controls -->
+          <div class="flex items-center space-x-2">
+            <button
+              on:click={() => handleUnstartedPageChange(1)}
+              disabled={unstartedCurrentPage === 1}
+              class="px-3 py-2 text-sm border border-orange-200 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+              </svg>
+            </button>
+            
+            <button
+              on:click={() => handleUnstartedPageChange(unstartedCurrentPage - 1)}
+              disabled={unstartedCurrentPage === 1}
+              class="px-3 py-2 text-sm border border-orange-200 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+
+            {#each Array.from({length: Math.min(5, unstartedTotalPages)}, (_, i) => {
+              const startPage = Math.max(1, unstartedCurrentPage - 2);
+              const endPage = Math.min(unstartedTotalPages, startPage + 4);
+              const actualStartPage = Math.max(1, endPage - 4);
+              return actualStartPage + i;
+            }).filter(page => page <= unstartedTotalPages) as page}
+              <button
+                on:click={() => handleUnstartedPageChange(page)}
+                class="px-3 py-2 text-sm border rounded-lg transition-colors {page === unstartedCurrentPage ? 'bg-orange-600 text-white border-orange-600' : 'border-orange-200 hover:bg-orange-50'}"
+              >
+                {page}
+              </button>
+            {/each}
+
+            {#if unstartedTotalPages > 5 && unstartedCurrentPage < unstartedTotalPages - 2}
+              <span class="text-gray-500">...</span>
+              <button
+                on:click={() => handleUnstartedPageChange(unstartedTotalPages)}
+                class="px-3 py-2 text-sm border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors"
+              >
+                {unstartedTotalPages}
+              </button>
+            {/if}
+            
+            <button
+              on:click={() => handleUnstartedPageChange(unstartedCurrentPage + 1)}
+              disabled={unstartedCurrentPage === unstartedTotalPages}
+              class="px-3 py-2 text-sm border border-orange-200 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+            
+            <button
+              on:click={() => handleUnstartedPageChange(unstartedTotalPages)}
+              disabled={unstartedCurrentPage === unstartedTotalPages}
+              class="px-3 py-2 text-sm border border-orange-200 rounded-lg hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      {:else if unstartedFilteredCount > 0}
+        <div class="mt-6 text-sm text-gray-700">
+          Showing <span class="font-medium">{unstartedFilteredCount}</span> 
+          {unstartedFilteredCount === 1 ? 'client' : 'clients'}
+        </div>
+      {/if}
+      {/if}
+    </div>
   {/if}
 </div>

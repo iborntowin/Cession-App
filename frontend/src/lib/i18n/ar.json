@@ -1312,7 +1312,8 @@
     "severity": {
       "warning": "تحذير",
       "danger": "خطر",
-      "critical": "حرج"
+      "critical": "حرج",
+      "unstarted": "لم يبدأ"
     },
     "filters": {
       "severity": "الخطورة",

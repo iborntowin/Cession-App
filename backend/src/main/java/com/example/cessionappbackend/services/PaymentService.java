@@ -123,13 +123,18 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    public DangerClientsAnalysisDTO getDangerClientsAnalysis(Integer thresholdMonths) {
+    public DangerClientsAnalysisDTO getDangerClientsAnalysis(Integer thresholdMonths, Integer unstartedDaysThreshold) {
         if (thresholdMonths == null) {
             thresholdMonths = 1; // Default threshold changed to 1 to include warnings
+        }
+        
+        if (unstartedDaysThreshold == null) {
+            unstartedDaysThreshold = 1; // Default minimum 1 day
         }
 
         List<Cession> activeCessions = cessionRepository.findByStatusIn(List.of("ACTIVE", "active", "in_progress"));
         List<DangerClientDTO> dangerClients = new ArrayList<>();
+        List<DangerClientDTO> unstartedClients = new ArrayList<>();
         
         // FIXED: Use UTC timezone consistently to avoid dev/prod differences
         LocalDate now = LocalDate.now(java.time.ZoneOffset.UTC);
@@ -152,6 +157,57 @@ public class PaymentService {
                 continue; // Skip cessions without start date
             }
             
+            // Calculate days since cession start
+            long daysSinceStart = ChronoUnit.DAYS.between(cessionStartDate, now);
+            
+            // Get total paid amount for this cession
+            BigDecimal totalPaid = paymentRepository.getTotalPaymentsByCession(cession.getId());
+            if (totalPaid == null) {
+                totalPaid = BigDecimal.ZERO;
+            }
+            
+            // Check if this is an unstarted client (using dynamic threshold, no payments)
+            if (daysSinceStart >= unstartedDaysThreshold && totalPaid.compareTo(BigDecimal.ZERO) == 0) {
+                // Get last payment date (should be null for unstarted)
+                LocalDate lastPaymentDate = paymentRepository.findLastPaymentDateByCession(cession.getId());
+                
+                // Calculate expected months and missed months
+                LocalDate normalizedStartDate = cessionStartDate.withDayOfMonth(1);
+                LocalDate normalizedNow = now.withDayOfMonth(1);
+                long monthsElapsed = ChronoUnit.MONTHS.between(normalizedStartDate, normalizedNow);
+                int dueMonths = (int) Math.max(0, monthsElapsed);
+                
+                Integer monthsTotal = null;
+                if (cession.getTotalLoanAmount() != null && cession.getMonthlyPayment().compareTo(BigDecimal.ZERO) > 0) {
+                    monthsTotal = cession.getTotalLoanAmount().divide(cession.getMonthlyPayment(), 0, RoundingMode.UP).intValue();
+                    dueMonths = Math.min(dueMonths, monthsTotal);
+                }
+                
+                BigDecimal missedAmount = cession.getMonthlyPayment().multiply(new BigDecimal(dueMonths));
+                
+                DangerClientDTO unstartedClient = new DangerClientDTO();
+                unstartedClient.setClientId(cession.getClient().getId());
+                unstartedClient.setClientName(cession.getClient().getFullName());
+                unstartedClient.setClientCin(cession.getClient().getCin());
+                unstartedClient.setClientWorkerNumber(cession.getClient().getWorkerNumber());
+                unstartedClient.setClientWorkplace(cession.getClient().getWorkplace() != null ? cession.getClient().getWorkplace().getName() : null);
+                unstartedClient.setCessionId(cession.getId());
+                unstartedClient.setStartDate(cession.getStartDate());
+                unstartedClient.setMonthlyAmount(cession.getMonthlyPayment());
+                unstartedClient.setMonthsTotal(monthsTotal);
+                unstartedClient.setDueMonths(dueMonths);
+                unstartedClient.setPaidMonths(0);
+                unstartedClient.setMissedMonths(dueMonths);
+                unstartedClient.setLastPaymentDate(lastPaymentDate);
+                unstartedClient.setSeverity("unstarted");
+                unstartedClient.setTotalPaidAmount(BigDecimal.ZERO);
+                unstartedClient.setTotalMissedAmount(missedAmount);
+                unstartedClient.setStatus(cession.getStatus());
+                
+                unstartedClients.add(unstartedClient);
+                continue; // Skip adding to danger clients list
+            }
+            
             // Normalize dates to first day of month for consistent month calculation
             LocalDate normalizedStartDate = cessionStartDate.withDayOfMonth(1);
             LocalDate normalizedNow = now.withDayOfMonth(1);
@@ -168,12 +224,6 @@ public class PaymentService {
             if (cession.getTotalLoanAmount() != null && cession.getMonthlyPayment().compareTo(BigDecimal.ZERO) > 0) {
                 monthsTotal = cession.getTotalLoanAmount().divide(cession.getMonthlyPayment(), 0, RoundingMode.UP).intValue();
                 dueMonths = Math.min(dueMonths, monthsTotal);
-            }
-
-            // Calculate total paid amount for this cession
-            BigDecimal totalPaid = paymentRepository.getTotalPaymentsByCession(cession.getId());
-            if (totalPaid == null) {
-                totalPaid = BigDecimal.ZERO;
             }
 
             // Calculate paid months (floor of total paid / monthly amount)
@@ -251,6 +301,14 @@ public class PaymentService {
             if (b.getLastPaymentDate() == null) return -1;
             return a.getLastPaymentDate().compareTo(b.getLastPaymentDate());
         });
+        
+        // Sort unstarted clients by start date (oldest first)
+        unstartedClients.sort((a, b) -> {
+            if (a.getStartDate() == null && b.getStartDate() == null) return 0;
+            if (a.getStartDate() == null) return 1;
+            if (b.getStartDate() == null) return -1;
+            return a.getStartDate().compareTo(b.getStartDate());
+        });
 
         // Calculate average missed months
         double averageMissedMonths = dangerClients.isEmpty() ? 0 : totalMissedMonths / dangerClients.size();
@@ -264,8 +322,16 @@ public class PaymentService {
         analysis.setWarningCount(warningCount);
         analysis.setDangerCount(dangerCount);
         analysis.setCriticalCount(criticalCount);
+        analysis.setUnstartedClients(unstartedClients);
+        analysis.setUnstartedClientsCount(unstartedClients.size());
 
         return analysis;
+    }
+
+    // Overload method for backward compatibility
+    @Transactional(readOnly = true)
+    public DangerClientsAnalysisDTO getDangerClientsAnalysis(Integer thresholdMonths) {
+        return getDangerClientsAnalysis(thresholdMonths, 1); // Default to 1 day
     }
 
     private int getSeverityPriority(String severity) {

@@ -55,8 +55,9 @@ public class PaymentController {
     @GetMapping("/danger-clients-analysis")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<com.example.cessionappbackend.dto.DangerClientsAnalysisDTO> getDangerClientsAnalysis(
-            @RequestParam(required = false, defaultValue = "1") Integer thresholdMonths) {
-        return ResponseEntity.ok(paymentService.getDangerClientsAnalysis(thresholdMonths));
+            @RequestParam(required = false, defaultValue = "1") Integer thresholdMonths,
+            @RequestParam(required = false, defaultValue = "1") Integer unstartedDaysThreshold) {
+        return ResponseEntity.ok(paymentService.getDangerClientsAnalysis(thresholdMonths, unstartedDaysThreshold));
     }
 
     @GetMapping("/debug/timezone-info")

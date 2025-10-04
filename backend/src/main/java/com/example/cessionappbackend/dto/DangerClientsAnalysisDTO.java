@@ -21,4 +21,8 @@ public class DangerClientsAnalysisDTO {
     private Integer warningCount;
     private Integer dangerCount;
     private Integer criticalCount;
+    
+    // Unstarted clients (60+ days with no payments)
+    private List<DangerClientDTO> unstartedClients;
+    private Integer unstartedClientsCount;
 }

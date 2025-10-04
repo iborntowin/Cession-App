@@ -1329,7 +1329,8 @@
       "severity": {
         "warning": "Warning",
         "danger": "Danger",
-        "critical": "Critical"
+        "critical": "Critical",
+        "unstarted": "Not Started"
       },
       "filters": {
         "severity": "Severity",

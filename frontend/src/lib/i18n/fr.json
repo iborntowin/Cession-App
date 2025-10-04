@@ -1385,7 +1385,8 @@
       "severity": {
         "warning": "Avertissement",
         "danger": "Dangereux",
-        "critical": "Critique"
+        "critical": "Critique",
+        "unstarted": "Non Commencé"
       },
       "filters": {
         "severity": "Gravité",
