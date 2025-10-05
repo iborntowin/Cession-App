@@ -1075,28 +1075,28 @@
                 {$t('payments.danger_clients.table.client')}
               </th>
               <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
-                Worker Number
+                {$t('payments.danger_clients.table.worker_number')}
               </th>
               <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
-                Workplace
+                {$t('payments.danger_clients.table.workplace')}
               </th>
               <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
                 {$t('payments.danger_clients.table.start_date')}
               </th>
               <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
-                Days Since Start
+                {$t('payments.danger_clients.table.days_since_start')}
               </th>
               <th class="py-3 px-4 text-left text-xs font-semibold text-orange-900 uppercase tracking-wider">
                 {$t('payments.danger_clients.table.monthly_amount')}
               </th>
               <th class="py-3 px-4 text-center text-xs font-semibold text-orange-900 uppercase tracking-wider">
-                Expected Payments
+                {$t('payments.danger_clients.table.expected_payments')}
               </th>
               <th class="py-3 px-4 text-center text-xs font-semibold text-orange-900 uppercase tracking-wider">
-                Total Due
+                {$t('payments.danger_clients.table.total_due')}
               </th>
               <th class="py-3 px-4 text-center text-xs font-semibold text-orange-900 uppercase tracking-wider">
-                Actions
+                {$t('payments.danger_clients.table.actions')}
               </th>
             </tr>
           </thead>
@@ -1118,7 +1118,7 @@
                 </td>
                 <td class="py-3 px-4">
                   <span class="font-bold text-orange-600">
-                    {Math.floor((new Date() - new Date(client.startDate)) / (1000 * 60 * 60 * 24))} days
+                    {Math.floor((new Date() - new Date(client.startDate)) / (1000 * 60 * 60 * 24))} {$t('common.days')}
                   </span>
                 </td>
                 <td class="py-3 px-4">
@@ -1135,17 +1135,17 @@
                     <button
                       on:click={() => viewClient(client.clientId)}
                       class="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                      title="View Client"
+                      title="{$t('payments.danger_clients.actions.view_client')}"
                     >
-                      Client
+                      {$t('payments.danger_clients.actions.view_client')}
                     </button>
                     <span class="text-gray-300">|</span>
                     <button
                       on:click={() => viewCession(client.cessionId)}
                       class="text-green-600 hover:text-green-700 text-sm font-medium"
-                      title="View Cession"
+                      title="{$t('payments.danger_clients.actions.view_cession')}"
                     >
-                      Cession
+                      {$t('payments.danger_clients.actions.view_cession')}
                     </button>
                   </div>
                 </td>

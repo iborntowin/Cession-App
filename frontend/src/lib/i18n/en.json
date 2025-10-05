@@ -39,7 +39,8 @@
       "export": "Export",
       "import": "Import",
       "saving": "Saving...",
-      "retry": "Retry"
+      "retry": "Retry",
+      "days": "days"
     },
     "navigation": {
       "dashboard": "Dashboard",
@@ -54,6 +55,7 @@
     },
     "view": "View",
     "view_all": "View All",
+    "days": "days",
     "client": {
       "new": "New Client",
       "edit": "Edit Client",
@@ -1317,14 +1319,20 @@
       },
       "table": {
         "client": "Client",
+        "worker_number": "Worker Number",
+        "workplace": "Workplace",
         "cession_id": "Cession ID",
         "start_date": "Start Date",
+        "days_since_start": "Days Since Start",
         "monthly_amount": "Monthly Amount",
         "due_months": "Due Months",
+        "expected_payments": "Expected Payments",
         "paid_months": "Paid Months",
         "missed_months": "Missed Months",
         "last_payment": "Last Payment",
-        "severity": "Severity"
+        "total_due": "Total Due",
+        "severity": "Severity",
+        "actions": "Actions"
       },
       "severity": {
         "warning": "Warning",

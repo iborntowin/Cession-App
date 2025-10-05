@@ -54,6 +54,7 @@
     },
     "view": "عرض",
     "view_all": "عرض الكل",
+    "days": "أيام",
     "client": {
       "new": "عميل جديد",
       "edit": "تعديل العميل",
@@ -1300,14 +1301,20 @@
     },
     "table": {
       "client": "العميل",
+      "worker_number": "رقم العامل",
+      "workplace": "مكان العمل",
       "cession_id": "معرف الإحالة",
       "start_date": "تاريخ البدء",
+      "days_since_start": "الأيام منذ البداية",
       "monthly_amount": "المبلغ الشهري",
       "due_months": "الأشهر المستحقة",
+      "expected_payments": "الدفعات المتوقعة",
       "paid_months": "الأشهر المدفوعة",
       "missed_months": "الأشهر المتأخرة",
       "last_payment": "آخر دفعة",
-      "severity": "الخطورة"
+      "total_due": "المبلغ الإجمالي المستحق",
+      "severity": "الخطورة",
+      "actions": "الإجراءات"
     },
     "severity": {
       "warning": "تحذير",

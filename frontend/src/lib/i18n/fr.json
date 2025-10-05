@@ -52,6 +52,7 @@
     },
     "view": "Voir",
     "view_all": "Voir Tout",
+    "days": "jours",
     "client": {
       "new": "Nouveau Client",
       "edit": "Modifier le Client",
@@ -1373,14 +1374,20 @@
       },
       "table": {
         "client": "Client",
+        "worker_number": "Numéro d'Employé",
+        "workplace": "Lieu de Travail",
         "cession_id": "ID Cession",
         "start_date": "Date de Début",
+        "days_since_start": "Jours Depuis Début",
         "monthly_amount": "Montant Mensuel",
         "due_months": "Mois Échus",
+        "expected_payments": "Paiements Attendus",
         "paid_months": "Mois Réglés",
         "missed_months": "Mois Manqués",
         "last_payment": "Dernier Paiement",
-        "severity": "Gravité"
+        "total_due": "Total Dû",
+        "severity": "Gravité",
+        "actions": "Actions"
       },
       "severity": {
         "warning": "Avertissement",
