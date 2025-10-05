@@ -687,7 +687,7 @@
           <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <!-- Left Column - Charts and Primary Data -->
             <div class="lg:col-span-3 space-y-8">
-              <MonthlyCessionsChart {monthlyTrends} {formatCurrency} />
+              <MonthlyCessionsChart {monthlyTrends} {formatCurrency} {payments} />
               <RecentCessions {recentCessions} {getStatusClass} {safeFormatDistanceToNow} {formatCurrency} />
             </div>
 

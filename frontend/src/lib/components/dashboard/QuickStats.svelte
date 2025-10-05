@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '$lib/i18n';
+  
   export let analytics;
   export let quickStats;
   export let totalClients;
@@ -44,7 +46,7 @@
         </svg>
       </div>
       <div class="text-right">
-        <p class="text-sm font-semibold text-gray-600 mb-1">Active Cessions</p>
+        <p class="text-sm font-semibold text-gray-600 mb-1">{$t('dashboard.stats.active_cessions')}</p>
         <p class="text-3xl font-bold text-gray-900">{analytics.activeCount}</p>
       </div>
     </div>
@@ -59,7 +61,7 @@
         </svg>
       </div>
       <div class="text-right">
-        <p class="text-sm font-semibold text-gray-600 mb-1">Monthly Revenue</p>
+        <p class="text-sm font-semibold text-gray-600 mb-1">{$t('dashboard.stats.monthly_revenue')}</p>
         <p class="text-2xl font-bold text-gray-900">{formatCurrency(quickStats.monthlyRevenue)}</p>
       </div>
     </div>
@@ -74,7 +76,7 @@
         </svg>
       </div>
       <div class="text-right">
-        <p class="text-sm font-semibold text-gray-600 mb-1">Avg Deal Size</p>
+        <p class="text-sm font-semibold text-gray-600 mb-1">{$t('dashboard.stats.avg_deal_size')}</p>
         <p class="text-2xl font-bold text-gray-900">{avgLoanFormatted}</p>
         <p class="text-xs text-purple-600 font-medium mt-1">
           TND per cession
@@ -92,7 +94,7 @@
         </svg>
       </div>
       <div class="text-right">
-        <p class="text-sm font-semibold text-gray-600 mb-1">Total Clients</p>
+        <p class="text-sm font-semibold text-gray-600 mb-1">{$t('dashboard.stats.total_clients')}</p>
         <p class="text-3xl font-bold text-gray-900">{totalClients}</p>
       </div>
     </div>
@@ -107,7 +109,7 @@
         </svg>
       </div>
       <div class="text-right">
-        <p class="text-sm font-semibold text-gray-600 mb-1">Completion Rate</p>
+        <p class="text-sm font-semibold text-gray-600 mb-1">{$t('dashboard.stats.completion_rate')}</p>
         <p class="text-3xl font-bold text-gray-900">{completionRateFormatted}%</p>
         <p class="text-xs font-medium mt-1 capitalize {systemHealth.status === 'healthy' ? 'text-emerald-600' : systemHealth.status === 'warning' ? 'text-yellow-600' : 'text-red-600'}">
           {systemHealth.status}
