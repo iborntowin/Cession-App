@@ -2,7 +2,7 @@
   import { onMount, tick } from 'svelte';
   import { paymentsApi } from '$lib/api';
   import { formatCurrency, formatDate } from '$lib/utils/formatters';
-  import { format, subMonths } from 'date-fns';
+  import { format, subMonths, addYears } from 'date-fns';
   import { t } from '$lib/i18n';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
@@ -23,8 +23,9 @@
   let paymentType = 'REGULAR';
   let notes = '';
 
-  // Date range filter
-  let startDate = format(subMonths(new Date(), 3), 'yyyy-MM-dd');
+  // Date range filter - FIXED: Expand to 2 years to show all payments
+  // Previous: 3 months caused missing payments (e.g., 6/30/2025 excluded when viewing on 10/5/2025)
+  let startDate = format(subMonths(new Date(), 24), 'yyyy-MM-dd'); // 2 years back
   let endDate = format(new Date(), 'yyyy-MM-dd');
 
   // Statistics
@@ -56,12 +57,22 @@
       const response = await paymentsApi.getPaymentsByDateRange(cessionId, startDate, endDate);
       if (response.success) {
         payments = response.data;
+        
+        // 🔍 DEBUG: Log payment filtering to help identify missing payments
+        console.log('💰 Payment Loading Debug:');
+        console.log('  Cession ID:', cessionId);
+        console.log('  Date Range:', startDate, '→', endDate);
+        console.log('  Payments Found:', payments.length);
+        console.log('  Payment Dates:', payments.map(p => p.paymentDate).join(', '));
+        console.log('  Total Amount:', payments.reduce((sum, p) => sum + p.amount, 0));
+        
         calculateStatistics();
       } else {
         error = response.error || $t('payments.errors.load_failed');
       }
     } catch (e) {
       error = $t('payments.errors.load_failed');
+      console.error('❌ Payment loading error:', e);
     } finally {
       loading = false;
     }
@@ -122,6 +133,13 @@
   }
 
   function handleDateRangeChange() {
+    loadPayments();
+  }
+
+  // 🔧 Show all payments from beginning to future
+  function showAllPayments() {
+    startDate = '2020-01-01'; // Far back enough to catch all payments
+    endDate = format(addYears(new Date(), 2), 'yyyy-MM-dd'); // 2 years into future
     loadPayments();
   }
 </script>
@@ -273,7 +291,7 @@
           {$t('payments.history.title')}
         </h3>
         
-        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 items-end">
           <div>
             <label for="startDate" class="block text-sm font-medium text-purple-600 mb-1">{$t('payments.history.start_date')}</label>
             <input
@@ -294,6 +312,18 @@
               class="w-full pl-4 pr-4 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
             />
           </div>
+          
+          <!-- 🔍 Show All Payments Button -->
+          <button
+            on:click={showAllPayments}
+            class="flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium text-sm whitespace-nowrap"
+            title="Show all payments without date filter"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+            Show All
+          </button>
         </div>
       </div>
     </div>

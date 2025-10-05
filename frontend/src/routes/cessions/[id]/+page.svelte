@@ -63,6 +63,27 @@
       isLoading = false;
     }
   }
+
+  // 🔄 REACTIVE CALCULATION: Recalculate progress from actual remaining balance
+  // This fixes the issue where backend currentProgress doesn't match actual payments
+  $: if (cession && cession.totalLoanAmount > 0) {
+    // Calculate actual amount paid from remaining balance
+    const paidAmount = cession.totalLoanAmount - cession.remainingBalance;
+    // Recalculate progress percentage
+    const calculatedProgress = (paidAmount / cession.totalLoanAmount * 100).toFixed(2);
+    
+    // Update the cession object with correct progress
+    // This ensures all UI elements show consistent percentages
+    if (Math.abs(cession.currentProgress - calculatedProgress) > 0.1) {
+      console.log('⚠️ Progress mismatch detected!');
+      console.log(`Backend says: ${cession.currentProgress}%`);
+      console.log(`Actual should be: ${calculatedProgress}%`);
+      console.log(`Paid: ${paidAmount} / Total: ${cession.totalLoanAmount}`);
+      
+      // Use the calculated value for display
+      cession.currentProgress = parseFloat(calculatedProgress);
+    }
+  }
   
   function formatDate(dateString) {
     if (!dateString) return 'N/A';
