@@ -534,7 +534,7 @@
   function applyFilters() {
     let list = [...payments];
 
-    // Enhanced search - search by client name, client ID, cession ID, amount, notes, payment method
+    // Enhanced search - search by client name, client ID, cession ID, amount, notes, payment method, worker number, CIN
     if (searchQuery) {
       const query = searchQuery.toLowerCase().trim();
       list = list.filter(p => {
@@ -566,8 +566,21 @@
                            year: 'numeric', month: 'long', day: 'numeric' 
                          }).toLowerCase().includes(query);
         
+        // Enhanced: Search by client worker number and CIN from cession data
+        let workerNumberMatch = false;
+        let cinMatch = false;
+        if (p.cessionId) {
+          const relatedCession = cessions.find(c => c.id === p.cessionId);
+          if (relatedCession) {
+            workerNumberMatch = relatedCession.client?.workerNumber?.toLowerCase().includes(query) ||
+                               relatedCession.clientWorkerNumber?.toLowerCase().includes(query);
+            cinMatch = relatedCession.client?.cin?.toLowerCase().includes(query) ||
+                      relatedCession.clientCin?.toLowerCase().includes(query);
+          }
+        }
+        
         return clientNameMatch || cessionIdMatch || paymentIdMatch || 
-               amountMatch || notesMatch || methodMatch || dateMatch;
+               amountMatch || notesMatch || methodMatch || dateMatch || workerNumberMatch || cinMatch;
       });
     }
 
@@ -590,22 +603,12 @@
     if (minAmount) list = list.filter(p => p.amount >= parseFloat(minAmount));
     if (maxAmount) list = list.filter(p => p.amount <= parseFloat(maxAmount));
 
-    // Apply client filter
-    if (selectedClient) {
-      list = list.filter(p => p.cessionClientName === selectedClient);
-    }
-
     // Apply month filter
     if (selectedMonth) {
       list = list.filter(p => {
         const paymentMonth = new Date(p.paymentDate).getMonth() + 1;
         return paymentMonth.toString().padStart(2, '0') === selectedMonth;
       });
-    }
-
-    // Apply status filter
-    if (selectedStatus) {
-      list = list.filter(p => (p.status || 'completed') === selectedStatus);
     }
 
     // Apply sorting
@@ -733,8 +736,6 @@
   function clearAllFilters() {
     searchQuery = '';
     selectedTimeRange = 'all';
-    selectedStatus = '';
-    selectedClient = '';
     selectedMonth = '';
     minAmount = '';
     maxAmount = '';
@@ -1585,324 +1586,215 @@
         </div>
       </div>
       {:else}
-        <!-- Enterprise-Grade Table View -->
-        <div class="space-y-6" transition:fade={{ duration: 300 }}>
-          <!-- Advanced Control Panel -->
-          <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <div class="flex flex-col space-y-6">
-              <!-- Top Controls Row -->
-              <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                <!-- Search with AI-like suggestions -->
-                <div class="flex-1 max-w-2xl">
-                  <div class="relative">
-                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        <!-- Luxury Apple-Style Compact Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4" transition:fade={{ duration: 300 }}>
+          <!-- Total Card -->
+          <div class="relative overflow-hidden bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <div class="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <input
-                      type="text"
-                      bind:value={searchQuery}
-                      on:input={handleSearch}
-                      placeholder="🔍 Search by client name, cession ID, payment ID, amount, date, method..."
-                      class="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
-                    />
-                    {#if searchQuery}
-                      <button
-                        on:click={() => { searchQuery = ''; handleSearch(); }}
-                        class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
-                      >
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                      </button>
-                    {/if}
                   </div>
+                  <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</span>
                 </div>
+                <p class="text-2xl font-bold text-gray-900 mb-0.5">{formatTND(filteredPayments.reduce((sum, p) => sum + p.amount, 0))}</p>
+                <p class="text-xs text-gray-500 font-medium">Total revenue collected</p>
+              </div>
+            </div>
+          </div>
 
-                <!-- View Controls -->
-                <div class="flex items-center space-x-3">
-                  <!-- Export Options -->
-                  <div class="relative">
-                    <button
-                      on:click={() => showExportOptions = !showExportOptions}
-                      class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                      </svg>
-                      <span>Export</span>
-                    </button>
-                    
-                    {#if showExportOptions}
-                      <div class="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2" transition:scale>
-                        <button
-                          on:click={() => exportData('csv')}
-                          class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
-                        >
-                          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                          </svg>
-                          <span>Export as CSV</span>
-                        </button>
-                        <button
-                          on:click={() => exportData('excel')}
-                          class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
-                        >
-                          <svg class="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                          </svg>
-                          <span>Export as Excel</span>
-                        </button>
-                        <button
-                          on:click={() => exportData('pdf')}
-                          class="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2"
-                        >
-                          <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                          </svg>
-                          <span>Export as PDF</span>
-                        </button>
-                      </div>
-                    {/if}
+          <!-- Average Card -->
+          <div class="relative overflow-hidden bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <div class="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
                   </div>
+                  <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Average</span>
+                </div>
+                <p class="text-2xl font-bold text-gray-900 mb-0.5">{formatTND(filteredPayments.length > 0 ? filteredPayments.reduce((sum, p) => sum + p.amount, 0) / filteredPayments.length : 0)}</p>
+                <p class="text-xs text-gray-500 font-medium">Average per payment</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Count Card -->
+          <div class="relative overflow-hidden bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <div class="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                  </div>
+                  <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Count</span>
+                </div>
+                <p class="text-2xl font-bold text-gray-900 mb-0.5">{filteredPayments.length.toLocaleString()}</p>
+                <p class="text-xs text-gray-500 font-medium">Payment transactions</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Luxury Compact Filter Bar -->
+        <div class="space-y-3" transition:fade={{ duration: 300 }}>
+          <!-- Month Selector (Prominent) -->
+          <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider shrink-0">Filter by Month:</label>
+              <div class="flex items-center gap-2 flex-wrap">
+                {#each [
+                  { value: '', name: 'All' },
+                  { value: '01', name: 'Jan' },
+                  { value: '02', name: 'Feb' },
+                  { value: '03', name: 'Mar' },
+                  { value: '04', name: 'Apr' },
+                  { value: '05', name: 'May' },
+                  { value: '06', name: 'Jun' },
+                  { value: '07', name: 'Jul' },
+                  { value: '08', name: 'Aug' },
+                  { value: '09', name: 'Sep' },
+                  { value: '10', name: 'Oct' },
+                  { value: '11', name: 'Nov' },
+                  { value: '12', name: 'Dec' }
+                ] as month}
+                  <button
+                    type="button"
+                    on:click={() => { selectedMonth = month.value; handleSearch(); }}
+                    class="px-3 py-1.5 text-xs font-medium rounded-lg transition-all {selectedMonth === month.value 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'}"
+                  >
+                    {month.name}
+                  </button>
+                {/each}
+              </div>
+            </div>
+          </div>
+
+          <!-- Search & Filters -->
+          <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-2">
+              <!-- Search -->
+              <div class="flex-1">
+                <div class="relative">
+                  <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                  <input
+                    type="text"
+                    bind:value={searchQuery}
+                    on:input={handleSearch}
+                    placeholder="Search by name, worker #, CIN..."
+                    class="w-full pl-10 pr-10 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                  />
+                  {#if searchQuery}
+                    <button
+                      on:click={() => { searchQuery = ''; handleSearch(); }}
+                      class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  {/if}
                 </div>
               </div>
 
-              <!-- Advanced Filters Row -->
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                <!-- Date Range Filter -->
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Date Range</label>
-                  <select 
-                    bind:value={selectedTimeRange} 
-                    on:change={handleTimeRangeChange}
-                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="today">Today</option>
-                    <option value="7d">Last 7 days</option>
-                    <option value="30d">Last 30 days</option>
-                    <option value="90d">Last 3 months</option>
-                    <option value="6m">Last 6 months</option>
-                    <option value="1y">Last year</option>
-                    <option value="all">All time</option>
-                  </select>
-                </div>
+              <!-- Filters -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- Date Range -->
+                <select 
+                  bind:value={selectedTimeRange} 
+                  on:change={handleTimeRangeChange}
+                  class="px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white font-medium"
+                >
+                  <option value="today">Today</option>
+                  <option value="7d">7 days</option>
+                  <option value="30d">30 days</option>
+                  <option value="90d">3 months</option>
+                  <option value="6m">6 months</option>
+                  <option value="1y">1 year</option>
+                  <option value="all">All time</option>
+                </select>
 
                 <!-- Amount Range -->
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Min Amount</label>
-                  <input
-                    type="number"
-                    bind:value={minAmount}
-                    on:input={handleSearch}
-                    placeholder="0"
-                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+                <input
+                  type="number"
+                  bind:value={minAmount}
+                  on:input={handleSearch}
+                  placeholder="Min"
+                  class="w-20 px-2 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
+                />
+                <input
+                  type="number"
+                  bind:value={maxAmount}
+                  on:input={handleSearch}
+                  placeholder="Max"
+                  class="w-20 px-2 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
+                />
 
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Max Amount</label>
-                  <input
-                    type="number"
-                    bind:value={maxAmount}
-                    on:input={handleSearch}
-                    placeholder="No limit"
-                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <!-- Client Filter -->
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Client</label>
-                  <select 
-                    bind:value={selectedClient}
-                    on:change={handleSearch}
-                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All clients</option>
-                    {#each [...new Set(payments.map(p => p.cessionClientName))].sort() as client}
-                      <option value={client}>{client}</option>
-                    {/each}
-                  </select>
-                </div>
-
-                <!-- Month Filter - Elegant Dropdown -->
-                <div class="relative month-picker-container">
-                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Month Filter</label>
+                <!-- Clear Filters -->
+                {#if searchQuery || selectedTimeRange !== 'all' || minAmount || maxAmount || selectedMonth}
                   <button
-                    type="button"
-                    on:click={() => showMonthPicker = !showMonthPicker}
-                    class="w-full px-4 py-3 text-left border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:bg-gray-50 transition-colors flex items-center justify-between"
+                    on:click={clearAllFilters}
+                    class="px-3 py-2 text-xs font-medium bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
                   >
-                    <div class="flex items-center space-x-2">
-                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                      </svg>
-                      <span class="text-sm font-medium">
-                        {#if selectedMonth}
-                          {new Date(2024, parseInt(selectedMonth) - 1).toLocaleString('default', { month: 'long' })}
-                        {:else}
-                          All Months
-                        {/if}
-                      </span>
-                    </div>
-                    <svg class="w-4 h-4 text-gray-400 transform transition-transform {showMonthPicker ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
+                    Clear
                   </button>
+                {/if}
 
-                  {#if showMonthPicker}
-                    <div 
-                      class="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-5 backdrop-blur-sm"
-                      transition:slide={{ duration: 300, easing: quintOut }}
-                      style="box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);"
-                    >
-                      <!-- Current Selection Display -->
-                      <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
-                        <div class="flex items-center space-x-2">
-                          <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <h3 class="text-sm font-semibold text-gray-800">Select Month to Filter</h3>
-                        </div>
-                        {#if selectedMonth}
-                          <button 
-                            on:click={() => { selectedMonth = ''; handleSearch(); showMonthPicker = false; }}
-                            class="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
-                          >
-                            ✕ Clear
-                          </button>
-                        {/if}
-                      </div>
-
-                      <!-- Month Grid -->
-                      <div class="grid grid-cols-4 gap-2 mb-4">
-                        {#each [
-                          { value: '01', name: 'January', short: 'Jan', color: 'from-blue-400 to-blue-600' },
-                          { value: '02', name: 'February', short: 'Feb', color: 'from-purple-400 to-purple-600' },
-                          { value: '03', name: 'March', short: 'Mar', color: 'from-green-400 to-green-600' },
-                          { value: '04', name: 'April', short: 'Apr', color: 'from-yellow-400 to-yellow-600' },
-                          { value: '05', name: 'May', short: 'May', color: 'from-pink-400 to-pink-600' },
-                          { value: '06', name: 'June', short: 'Jun', color: 'from-indigo-400 to-indigo-600' },
-                          { value: '07', name: 'July', short: 'Jul', color: 'from-red-400 to-red-600' },
-                          { value: '08', name: 'August', short: 'Aug', color: 'from-orange-400 to-orange-600' },
-                          { value: '09', name: 'September', short: 'Sep', color: 'from-teal-400 to-teal-600' },
-                          { value: '10', name: 'October', short: 'Oct', color: 'from-amber-400 to-amber-600' },
-                          { value: '11', name: 'November', short: 'Nov', color: 'from-cyan-400 to-cyan-600' },
-                          { value: '12', name: 'December', short: 'Dec', color: 'from-emerald-400 to-emerald-600' }
-                        ] as month}
-                          <button
-                            type="button"
-                            on:click={() => { 
-                              selectedMonth = month.value; 
-                              handleSearch(); 
-                              showMonthPicker = false;
-                            }}
-                            class="group relative px-3 py-4 text-center border-2 rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 {selectedMonth === month.value 
-                              ? `bg-gradient-to-br ${month.color} text-white border-transparent shadow-lg scale-105` 
-                              : 'bg-white text-gray-700 border-gray-200 hover:bg-gradient-to-br hover:' + month.color + ' hover:text-white hover:border-transparent hover:shadow-md'}"
-                          >
-                            <div class="text-xs font-bold uppercase tracking-wide">{month.short}</div>
-                            {#if selectedMonth === month.value}
-                              <div class="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
-                                <svg class="w-2 h-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                </svg>
-                              </div>
-                            {/if}
-                          </button>
-                        {/each}
-                      </div>
-
-                      <!-- Quick Actions -->
-                      <div class="flex gap-2">
-                        <button
-                          type="button"
-                          on:click={() => { 
-                            const currentMonth = new Date().getMonth() + 1;
-                            selectedMonth = currentMonth.toString().padStart(2, '0'); 
-                            handleSearch(); 
-                            showMonthPicker = false;
-                          }}
-                          class="flex-1 px-4 py-2 text-sm font-semibold bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
-                        >
-                          📅 Current Month
-                        </button>
-                        <button
-                          type="button"
-                          on:click={() => { showMonthPicker = false; }}
-                          class="px-4 py-2 text-sm font-medium bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                <!-- Export Options -->
+                <div class="relative">
+                  <button
+                    on:click={() => showExportOptions = !showExportOptions}
+                    class="px-4 py-2.5 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>Export</span>
+                  </button>
+                  
+                  {#if showExportOptions}
+                    <div class="absolute right-0 top-full mt-2 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1" transition:scale>
+                      <button
+                        on:click={() => exportData('csv')}
+                        class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50"
+                      >
+                        CSV
+                      </button>
+                      <button
+                        on:click={() => exportData('excel')}
+                        class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50"
+                      >
+                        Excel
+                      </button>
+                      <button
+                        on:click={() => exportData('pdf')}
+                        class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50"
+                      >
+                        PDF
+                      </button>
                     </div>
                   {/if}
                 </div>
-
-                <!-- Status Filter -->
-                <div>
-                  <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Status</label>
-                  <select 
-                    bind:value={selectedStatus}
-                    on:change={handleSearch}
-                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All status</option>
-                    <option value="completed">Completed</option>
-                    <option value="pending">Pending</option>
-                    <option value="failed">Failed</option>
-                    <option value="refunded">Refunded</option>
-                  </select>
-                </div>
               </div>
-
-              <!-- Filter Summary & Clear -->
-              {#if searchQuery || selectedTimeRange !== 'all' || minAmount || maxAmount || selectedClient || selectedMonth || selectedStatus}
-                <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div class="flex items-center space-x-2">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"/>
-                    </svg>
-                    <span class="text-sm font-medium text-blue-900">
-                      {filteredPayments.length} of {payments.length} payments shown
-                      {#if searchQuery}• Search: "{searchQuery}"{/if}
-                      {#if selectedTimeRange !== 'all'}• {selectedTimeRange}{/if}
-                      {#if minAmount || maxAmount}• Amount: {minAmount || '0'} - {maxAmount || '∞'}{/if}
-                      {#if selectedMonth}• Month: {new Date(2024, parseInt(selectedMonth) - 1).toLocaleString('default', { month: 'long' })}{/if}
-                    </span>
-                  </div>
-                  <button
-                    on:click={clearAllFilters}
-                    class="text-sm text-blue-700 hover:text-blue-900 font-medium"
-                  >
-                    Clear all filters
-                  </button>
-                </div>
-              {/if}
             </div>
           </div>
 
           <!-- Advanced Data Table with Real-time Analytics -->
           <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <!-- Table Header with Summary Stats -->
+            <!-- Table Header -->
             <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
               <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-6">
-                  <h3 class="text-lg font-semibold text-gray-900">Payment Transactions</h3>
-                  <div class="flex items-center space-x-4 text-sm text-gray-600">
-                    <div class="flex items-center space-x-2">
-                      <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span>Total: ${(filteredPayments.reduce((sum, p) => sum + p.amount, 0)).toLocaleString()}</span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span>Average: ${(filteredPayments.reduce((sum, p) => sum + p.amount, 0) / Math.max(filteredPayments.length, 1)).toLocaleString()}</span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
-                      <span>Count: {filteredPayments.length}</span>
-                    </div>
-                  </div>
-                </div>
-
                 <!-- Selection and Bulk Actions -->
                 <div class="flex items-center space-x-3">
                   {#if selectedPayments.size > 0}

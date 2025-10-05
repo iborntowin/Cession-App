@@ -2438,22 +2438,22 @@
                       <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
                       </svg>
-                      <span class="font-medium">ID:</span>
-                      <span class="ml-1">{client.cin || 'N/A'}</span>
+                      <span class="font-medium">{$t('common.id_label')}:</span>
+                      <span class="ml-1">{client.cin || $t('common.not_available')}</span>
                     </div>
                     <div class="flex items-center text-sm text-gray-600">
                       <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                       </svg>
-                      <span class="font-medium">Worker:</span>
-                      <span class="ml-1">{client.workerNumber || 'N/A'}</span>
+                      <span class="font-medium">{$t('common.worker_label')}:</span>
+                      <span class="ml-1">{client.workerNumber || $t('common.not_available')}</span>
                     </div>
                     <div class="flex items-center text-sm text-gray-600">
                       <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-9 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                       </svg>
-                      <span class="font-medium">Workplace:</span>
-                      <span class="ml-1 truncate">{client.workplaceName || 'N/A'}</span>
+                      <span class="font-medium">{$t('clients.details.workplace')}:</span>
+                      <span class="ml-1 truncate">{client.workplaceName || $t('common.not_available')}</span>
                     </div>
                   </div>
 
@@ -2507,9 +2507,9 @@
                           {client.fullName}
                         </h3>
                         <div class="flex items-center space-x-4 text-sm text-gray-600">
-                          <span>ID: {client.cin || 'N/A'}</span>
-                          <span>Worker: {client.workerNumber || 'N/A'}</span>
-                          <span>Client: {formatClientNumber(client.clientNumber)}</span>
+                          <span>{$t('common.id_label')}: {client.cin || $t('common.not_available')}</span>
+                          <span>{$t('common.worker_label')}: {client.workerNumber || $t('common.not_available')}</span>
+                          <span>{$t('common.client_label')}: {formatClientNumber(client.clientNumber)}</span>
                         </div>
                       </div>
                     </div>
@@ -2581,11 +2581,11 @@
                 </div>
                 <div class="flex justify-between items-center py-3 border-b border-blue-100">
                   <span class="text-gray-600 font-medium">{$t('clients.details.cin')}</span>
-                  <span class="text-gray-900 font-semibold">{selectedClient.cin || 'N/A'}</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.cin || $t('common.not_available')}</span>
                 </div>
                 <div class="flex justify-between items-center py-3 border-b border-blue-100">
                   <span class="text-gray-600 font-medium">{$t('clients.details.worker_number')}</span>
-                  <span class="text-gray-900 font-semibold">{selectedClient.workerNumber || 'N/A'}</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.workerNumber || $t('common.not_available')}</span>
                 </div>
                 <div class="flex justify-between items-center py-3 border-b border-blue-100">
                   <span class="text-gray-600 font-medium">{$t('client.client_number')}</span>
@@ -2593,7 +2593,7 @@
                 </div>
                 <div class="flex justify-between items-center py-3">
                   <span class="text-gray-600 font-medium">{$t('clients.details.personal_info.phone')}</span>
-                  <span class="text-gray-900 font-semibold">{selectedClient.phone || 'N/A'}</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.phone || $t('common.not_available')}</span>
                 </div>
               </div>
             </div>
@@ -2609,11 +2609,11 @@
               <div class="space-y-4">
                 <div class="flex justify-between items-center py-3 border-b border-purple-100">
                   <span class="text-gray-600 font-medium">{$t('clients.details.personal_info.address')}</span>
-                  <span class="text-gray-900 font-semibold">{selectedClient.address || 'N/A'}</span>
+                  <span class="text-gray-900 font-semibold">{selectedClient.address || $t('common.not_available')}</span>
                 </div>
                 <div class="flex justify-between items-center py-3 border-b border-purple-100">
                   <span class="text-gray-600 font-medium">{$t('clients.details.workplace')}</span>
-                  <span class="text-gray-900 font-semibold">{workplaceDetails?.name || selectedClient.workplaceName || 'N/A'}</span>
+                  <span class="text-gray-900 font-semibold">{workplaceDetails?.name || selectedClient.workplaceName || $t('common.not_available')}</span>
                 </div>
                 <div class="flex justify-between items-center py-3 border-b border-purple-100">
                   <span class="text-gray-600 font-medium">{$t('common.status')}</span>

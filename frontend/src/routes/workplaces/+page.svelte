@@ -4,6 +4,7 @@
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { workplacesApi, jobsApi } from '$lib/api';
+  import { t } from '$lib/i18n';
 
   let workplaces = [];
   let isAddingWorkplace = false;
@@ -31,7 +32,7 @@
         }));
       }
     } catch (error) {
-      showAlert(error.message || 'Failed to load workplaces', 'error');
+      showAlert(error.message || $t('workplaces.error_loading'), 'error');
     } finally {
       $loading = false;
     }
@@ -59,7 +60,7 @@
 
   async function handleAddWorkplace() {
     if (!newWorkplaceName.trim()) {
-      showAlert('Workplace name cannot be empty', 'error');
+      showAlert($t('common.required_field'), 'error');
       return;
     }
 
@@ -70,10 +71,10 @@
         workplaces = [...workplaces, result.data];
         newWorkplaceName = '';
         isAddingWorkplace = false;
-        showAlert('Workplace added successfully', 'success');
+        showAlert($t('workplaces.workplace_created'), 'success');
       }
     } catch (error) {
-      showAlert(error.message || 'Failed to add workplace', 'error');
+      showAlert(error.message || $t('workplaces.error_creating'), 'error');
     } finally {
       $loading = false;
     }
@@ -81,7 +82,7 @@
 
   async function handleUpdateWorkplace() {
     if (!selectedWorkplace || !newWorkplaceName.trim()) {
-      showAlert('Workplace name cannot be empty', 'error');
+      showAlert($t('common.required_field'), 'error');
       return;
     }
 
@@ -93,10 +94,10 @@
           w.id === selectedWorkplace.id ? { ...w, name: newWorkplaceName } : w
         );
         cancelEdit();
-        showAlert('Workplace updated successfully', 'success');
+        showAlert($t('workplaces.workplace_updated'), 'success');
       }
     } catch (error) {
-      showAlert(error.message || 'Failed to update workplace', 'error');
+      showAlert(error.message || $t('workplaces.error_updating'), 'error');
     } finally {
       $loading = false;
     }
@@ -104,7 +105,7 @@
 
   async function handleAddJob() {
     if (!selectedWorkplace || !newJobName.trim()) {
-      showAlert('Job name cannot be empty', 'error');
+      showAlert($t('common.required_field'), 'error');
       return;
     }
 
@@ -123,10 +124,10 @@
         );
         newJobName = '';
         isAddingJob = false;
-        showAlert('Job added successfully', 'success');
+        showAlert($t('workplaces.job_created'), 'success');
       }
     } catch (error) {
-      showAlert(error.message || 'Failed to add job', 'error');
+      showAlert(error.message || $t('workplaces.error_creating'), 'error');
     } finally {
       $loading = false;
     }
@@ -134,7 +135,7 @@
 
   async function handleUpdateJob() {
     if (!selectedWorkplace || !selectedJob || !newJobName.trim()) {
-      showAlert('Job name cannot be empty', 'error');
+      showAlert($t('common.required_field'), 'error');
       return;
     }
 
@@ -153,10 +154,10 @@
             : w
         );
         cancelEdit();
-        showAlert('Job updated successfully', 'success');
+        showAlert($t('workplaces.job_updated'), 'success');
       }
     } catch (error) {
-      showAlert(error.message || 'Failed to update job', 'error');
+      showAlert(error.message || $t('workplaces.error_updating'), 'error');
     } finally {
       $loading = false;
     }
@@ -170,10 +171,10 @@
       const result = await workplacesApi.delete(workplace.id);
       if (result.success) {
         workplaces = workplaces.filter(w => w.id !== workplace.id);
-        showAlert('Workplace deleted successfully', 'success');
+        showAlert($t('workplaces.workplace_deleted'), 'success');
       }
     } catch (error) {
-      showAlert(error.message || 'Failed to delete workplace', 'error');
+      showAlert(error.message || $t('workplaces.error_deleting'), 'error');
     } finally {
       $loading = false;
     }
@@ -191,10 +192,10 @@
             ? { ...w, jobs: w.jobs.filter(j => j.id !== job.id) }
             : w
         );
-        showAlert('Job deleted successfully', 'success');
+        showAlert($t('workplaces.job_deleted'), 'success');
       }
     } catch (error) {
-      showAlert(error.message || 'Failed to delete job', 'error');
+      showAlert(error.message || $t('workplaces.error_deleting'), 'error');
     } finally {
       $loading = false;
     }
@@ -230,9 +231,9 @@
             </div>
             <div>
               <h1 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                Workplaces & Jobs
+                {$t('workplaces.title')}
               </h1>
-              <p class="text-sm text-gray-500 font-medium">Manage workplaces and their associated jobs</p>
+              <p class="text-sm text-gray-500 font-medium">{$t('workplaces.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -245,7 +246,7 @@
     <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
       <div class="p-6 border-b border-gray-200/50 flex justify-between items-center">
         <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-          {isAddingWorkplace ? 'Add New Workplace' : isEditingWorkplace ? 'Edit Workplace' : 'Workplaces'}
+          {isAddingWorkplace ? $t('workplaces.add_workplace') : isEditingWorkplace ? $t('workplaces.edit_workplace') : $t('workplaces.title')}
         </h3>
         <button
           on:click={() => isAddingWorkplace ? cancelEdit() : (isAddingWorkplace = true)}
@@ -255,12 +256,12 @@
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
-            Cancel
+            {$t('common.cancel')}
           {:else}
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
             </svg>
-            Add Workplace
+            {$t('workplaces.add_workplace')}
           {/if}
         </button>
       </div>
@@ -269,13 +270,13 @@
         <div class="p-6">
           <form on:submit|preventDefault={isEditingWorkplace ? handleUpdateWorkplace : handleAddWorkplace} class="space-y-4">
             <div>
-              <label for="workplaceName" class="block text-sm font-medium text-purple-600 mb-2">Workplace Name</label>
+              <label for="workplaceName" class="block text-sm font-medium text-purple-600 mb-2">{$t('workplaces.workplace_name')}</label>
               <input
                 type="text"
                 id="workplaceName"
                 bind:value={newWorkplaceName}
                 class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                placeholder="Enter workplace name"
+                placeholder={$t('workplaces.enter_workplace_name')}
                 required
               />
             </div>
@@ -285,13 +286,13 @@
                 on:click={cancelEdit}
                 class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
               >
-                Cancel
+                {$t('common.cancel')}
               </button>
               <button
                 type="submit"
                 class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
               >
-                {isEditingWorkplace ? 'Update Workplace' : 'Add Workplace'}
+                {isEditingWorkplace ? $t('common.update') : $t('workplaces.add_workplace')}
               </button>
             </div>
           </form>
@@ -320,7 +321,7 @@
               <button
                 on:click|stopPropagation={() => startEditingWorkplace(workplace)}
                 class="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors"
-                title="Edit Workplace"
+                title={$t('workplaces.edit_workplace')}
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -329,7 +330,7 @@
               <button
                 on:click|stopPropagation={() => handleDeleteWorkplace(workplace)}
                 class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                title="Delete Workplace"
+                title={$t('workplaces.delete_workplace')}
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -342,7 +343,7 @@
             <div class="p-6 space-y-4">
               <!-- Add Job Section -->
               <div class="flex justify-between items-center">
-                <h4 class="text-md font-medium text-gray-700">Jobs</h4>
+                <h4 class="text-md font-medium text-gray-700">{$t('workplaces.jobs_list')}</h4>
                 <button
                   on:click={() => {
                     selectedWorkplace = workplace;
@@ -354,12 +355,12 @@
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
-                    Cancel
+                    {$t('common.cancel')}
                   {:else}
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
-                    Add Job
+                    {$t('workplaces.add_job')}
                   {/if}
                 </button>
               </div>
@@ -368,13 +369,13 @@
                 <div class="bg-gray-50 p-4 rounded-xl">
                   <form on:submit|preventDefault={handleAddJob} class="space-y-4">
                     <div>
-                      <label for="jobName" class="block text-sm font-medium text-purple-600 mb-2">Job Name</label>
+                      <label for="jobName" class="block text-sm font-medium text-purple-600 mb-2">{$t('workplaces.job_name')}</label>
                       <input
                         type="text"
                         id="jobName"
                         bind:value={newJobName}
                         class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                        placeholder="Enter job name"
+                        placeholder={$t('workplaces.enter_job_name')}
                         required
                       />
                     </div>
@@ -384,13 +385,13 @@
                         on:click={() => isAddingJob = false}
                         class="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm"
                       >
-                        Cancel
+                        {$t('common.cancel')}
                       </button>
                       <button
                         type="submit"
                         class="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
                       >
-                        Add Job
+                        {$t('workplaces.add_job')}
                       </button>
                     </div>
                   </form>
@@ -401,13 +402,13 @@
                 <div class="bg-gray-50 p-4 rounded-xl">
                   <form on:submit|preventDefault={handleUpdateJob} class="space-y-4">
                     <div>
-                      <label for="editJobName" class="block text-sm font-medium text-purple-600 mb-2">Job Name</label>
+                      <label for="editJobName" class="block text-sm font-medium text-purple-600 mb-2">{$t('workplaces.job_name')}</label>
                       <input
                         type="text"
                         id="editJobName"
                         bind:value={newJobName}
                         class="w-full pl-4 pr-4 py-3 border border-gray-200 bg-white text-gray-900 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                        placeholder="Enter job name"
+                        placeholder={$t('workplaces.enter_job_name')}
                         required
                       />
                     </div>
@@ -417,13 +418,13 @@
                         on:click={cancelEdit}
                         class="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm"
                       >
-                        Cancel
+                        {$t('common.cancel')}
                       </button>
                       <button
                         type="submit"
                         class="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
                       >
-                        Update Job
+                        {$t('common.update')}
                       </button>
                     </div>
                   </form>
@@ -440,7 +441,7 @@
                         <button
                           on:click={() => startEditingJob(workplace, job)}
                           class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit Job"
+                          title={$t('workplaces.edit_job')}
                         >
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -449,7 +450,7 @@
                         <button
                           on:click={() => handleDeleteJob(workplace, job)}
                           class="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete Job"
+                          title={$t('workplaces.delete_job')}
                         >
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -464,7 +465,7 @@
                   <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                   </svg>
-                  <p class="mt-2 text-sm text-gray-500">No jobs added yet</p>
+                  <p class="mt-2 text-sm text-gray-500">{$t('workplaces.no_jobs')}</p>
                   <button
                     on:click={() => {
                       selectedWorkplace = workplace;
@@ -472,7 +473,7 @@
                     }}
                     class="mt-3 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md text-sm"
                   >
-                    Add First Job
+                    {$t('workplaces.add_job')}
                   </button>
                 </div>
               {/if}
@@ -484,13 +485,13 @@
           <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
           </svg>
-          <h3 class="mt-4 text-lg font-medium text-gray-900">No workplaces yet</h3>
-          <p class="mt-2 text-gray-500">Get started by adding your first workplace</p>
+          <h3 class="mt-4 text-lg font-medium text-gray-900">{$t('workplaces.no_workplaces')}</h3>
+          <p class="mt-2 text-gray-500">{$t('workplaces.no_workplaces_desc')}</p>
           <button
             on:click={() => isAddingWorkplace = true}
             class="mt-4 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
-            Add Workplace
+            {$t('workplaces.add_workplace')}
           </button>
         </div>
       {/each}

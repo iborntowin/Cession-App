@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Chart from 'chart.js/auto';
   import { formatCurrency } from '$lib/utils/formatters';
+  import { t } from '$lib/i18n';
 
   export let payments = [];
   export let paymentTrends = {};
@@ -69,7 +70,7 @@
               beginAtZero: true,
               ticks: {
                 callback: function(value) {
-                  return '$' + value.toLocaleString();
+                  return value.toLocaleString() + ' TND';
                 }
               }
             }
@@ -82,17 +83,17 @@
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
   <div class="bg-white rounded-lg shadow p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">Total Amount</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('payments.stats.total_amount')}</h3>
     <p class="text-3xl font-bold text-primary-600">{formatCurrency(totalAmount)}</p>
   </div>
 
   <div class="bg-white rounded-lg shadow p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">Average Amount</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('payments.stats.average_amount')}</h3>
     <p class="text-3xl font-bold text-primary-600">{formatCurrency(averageAmount)}</p>
   </div>
 
   <div class="bg-white rounded-lg shadow p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">Total Transactions</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('payments.stats.total_transactions')}</h3>
     <p class="text-3xl font-bold text-primary-600">{Object.values(paymentsByMonth).reduce((a, b) => a + b, 0)}</p>
   </div>
 </div>

@@ -1,6 +1,7 @@
 <script>
   import { formatCurrency, formatDate } from '$lib/utils/formatters';
   import { createEventDispatcher } from 'svelte';
+  import { t } from '$lib/i18n';
   
   export let show = false;
   export let payment = null;
@@ -35,7 +36,7 @@
   }
 
   async function handleDelete() {
-    if (confirm('Are you sure you want to delete this payment?')) {
+    if (confirm($t('payments.modal.confirm_delete'))) {
       try {
         loading = true;
         error = '';
@@ -60,7 +61,7 @@
         <div class="sm:flex sm:items-start">
           <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
             <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">
-              {mode === 'view' ? 'Payment Details' : 'Edit Payment'}
+              {mode === 'view' ? $t('payments.modal.payment_details') : $t('payments.modal.edit_payment')}
             </h3>
 
             {#if error}
@@ -71,12 +72,12 @@
 
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700">Client</label>
+                <label class="block text-sm font-medium text-gray-700">{$t('payments.modal.client')}</label>
                 <p class="mt-1 text-sm text-gray-900">{payment?.cessionClientName}</p>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700">Amount</label>
+                <label class="block text-sm font-medium text-gray-700">{$t('payments.modal.amount')}</label>
                 {#if mode === 'edit'}
                   <input
                     type="number"
@@ -89,7 +90,7 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700">Payment Date</label>
+                <label class="block text-sm font-medium text-gray-700">{$t('payments.modal.payment_date')}</label>
                 {#if mode === 'edit'}
                   <input
                     type="date"
@@ -102,7 +103,7 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700">Notes</label>
+                <label class="block text-sm font-medium text-gray-700">{$t('payments.modal.notes')}</label>
                 {#if mode === 'edit'}
                   <textarea
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
@@ -110,7 +111,7 @@
                     bind:value={editedPayment.notes}
                   ></textarea>
                 {:else}
-                  <p class="mt-1 text-sm text-gray-900">{payment?.notes || 'No notes'}</p>
+                  <p class="mt-1 text-sm text-gray-900">{payment?.notes || $t('payments.modal.no_notes')}</p>
                 {/if}
               </div>
             </div>
@@ -125,7 +126,7 @@
             class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
             on:click={() => mode = 'edit'}
           >
-            Edit
+            {$t('payments.modal.edit')}
           </button>
           <button
             type="button"
@@ -133,7 +134,7 @@
             on:click={handleDelete}
             disabled={loading}
           >
-            {loading ? 'Deleting...' : 'Delete'}
+            {loading ? $t('payments.modal.deleting') : $t('payments.modal.delete')}
           </button>
         {:else}
           <button
@@ -142,7 +143,7 @@
             on:click={handleSave}
             disabled={loading}
           >
-            {loading ? 'Saving...' : 'Save Changes'}
+            {loading ? $t('payments.modal.saving') : $t('payments.modal.save_changes')}
           </button>
         {/if}
         <button
@@ -150,7 +151,7 @@
           class="mt-3 inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
           on:click={handleClose}
         >
-          {mode === 'edit' ? 'Cancel' : 'Close'}
+          {mode === 'edit' ? $t('payments.modal.cancel') : $t('payments.modal.close')}
         </button>
       </div>
     </div>
