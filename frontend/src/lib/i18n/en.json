@@ -16,6 +16,7 @@
       "save": "Save",
       "cancel": "Cancel",
       "back": "Back",
+      "back_to_dashboard": "Dashboard",
       "download": "Download",
       "logout": "Logout",
       "view": "View Details",
@@ -49,6 +50,7 @@
       "no_data": "No data available",
       "not_available": "N/A",
       "loading_data": "Loading data...",
+      "loading": "Loading...",
       "error_loading": "Error loading data",
       "total": "Total",
       "address": "Address",
@@ -202,6 +204,36 @@
     "months": "months",
     "clients_count": "{count} clients",
     "of_total_short": "of total"
+  },
+  "reports": {
+    "title": "Nominal List of Salary Cessions",
+    "subtitle": "Monthly summary of salary cession assignments",
+    "month": "Month",
+    "export_csv": "Export CSV",
+    "print": "Print Report",
+    "search_placeholder": "Search clients, banks...",
+    "all_clients": "All clients",
+    "group_by_client": "Group by Client",
+    "views": {
+      "list": "List",
+      "analytics": "Analytics"
+    },
+    "stats": {
+      "total_monthly": "Total Monthly Payments",
+      "total_loan": "Total Loan Amounts",
+      "clients": "Clients",
+      "cessions": "Cessions"
+    },
+    "table": {
+      "index": "Index",
+      "full_name": "Full Name",
+      "monthly": "Monthly Payment",
+      "loan_amount": "Loan Amount",
+      "bank": "Bank/Agency",
+      "totals": "TOTALS"
+    },
+    "analytics_coming_soon": "Analytics View Coming Soon",
+    "analytics_description": "Advanced analytics and charts will be available here"
   },
   "dashboard": {
     "title": "Dashboard",

@@ -10,6 +10,7 @@
   import { language } from '$lib/stores/language';
   import DangerClients from '$lib/components/DangerClients.svelte';
   import DateDebugPanel from '$lib/components/DateDebugPanel.svelte';
+  import BackButton from '$lib/components/BackButton.svelte';
 
   // RTL support
   $: isRTL = $language.code === 'ar';
@@ -812,6 +813,9 @@
     <div class="max-w-7xl mx-auto px-6 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
+          <!-- Back Button -->
+          <BackButton href="/" label={$t('common.actions.back_to_dashboard') || 'Dashboard'} variant="pill" />
+          
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

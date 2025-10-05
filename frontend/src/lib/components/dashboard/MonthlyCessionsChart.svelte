@@ -19,7 +19,7 @@
   };
   
   // Chart display mode
-  let chartMode = 'combined'; // 'combined', 'cessions', 'payments'
+  let chartMode = 'combined'; // 'combined', 'cessions', 'payments', 'active', 'comparison'
   
   // Only use real data, no fallbacks or samples
   $: realTrends = monthlyTrends && Array.isArray(monthlyTrends) ? monthlyTrends : [];
@@ -98,8 +98,14 @@
     
     const datasets = [];
     
-    // Cessions datasets (always show in combined or cessions mode)
-    if (chartMode === 'combined' || chartMode === 'cessions') {
+    // Define what to show based on mode
+    const showNewCessions = chartMode === 'combined' || chartMode === 'cessions' || chartMode === 'comparison';
+    const showActiveCessions = chartMode === 'combined' || chartMode === 'cessions' || chartMode === 'active';
+    const showPaymentCount = chartMode === 'combined' || chartMode === 'payments' || chartMode === 'comparison';
+    const showPaymentValue = chartMode === 'combined' || chartMode === 'payments';
+    
+    // Cessions datasets
+    if (showNewCessions) {
       datasets.push({
         label: $t('dashboard.new_cessions'),
         data: realTrends.map(t => t.count),
@@ -109,9 +115,11 @@
         borderRadius: 8,
         order: 3,
         yAxisID: 'y',
-        barThickness: 30
+        barThickness: chartMode === 'comparison' ? 25 : 30
       });
-      
+    }
+    
+    if (showActiveCessions) {
       datasets.push({
         label: $t('dashboard.stats.active_cessions'),
         data: realTrends.map(t => t.activeCessionsCount),
@@ -131,8 +139,8 @@
       });
     }
     
-    // Payments dataset (show in combined or payments mode)
-    if (chartMode === 'combined' || chartMode === 'payments') {
+    // Payments datasets
+    if (showPaymentCount) {
       datasets.push({
         label: $t('dashboard.payments_received') + ' (Count)',
         data: monthlyPayments.map(p => p.count),
@@ -143,9 +151,11 @@
         borderRadius: 8,
         order: 4,
         yAxisID: 'y',
-        barThickness: 30
+        barThickness: chartMode === 'comparison' ? 25 : 30
       });
-      
+    }
+    
+    if (showPaymentValue) {
       datasets.push({
         label: $t('dashboard.value') + ' (TND)',
         data: monthlyPayments.map(p => p.amount),
@@ -349,25 +359,54 @@
       <p class="text-sm text-gray-500">{$t('dashboard.last_6_months')}</p>
     </div>
     <div class="flex items-center space-x-2">
-      <!-- Chart Mode Toggle -->
-      <div class="flex bg-gray-100 rounded-lg p-1">
+      <!-- Chart Mode Toggle - Enhanced -->
+      <div class="flex bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-1 shadow-inner">
         <button 
-          class="px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 {chartMode === 'combined' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+          class="px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 {chartMode === 'combined' ? 'bg-white text-emerald-600 shadow-md scale-105' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'}"
           on:click={() => setChartMode('combined')}
         >
-          All
+          <div class="flex items-center space-x-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <span>All Data</span>
+          </div>
         </button>
+        
         <button 
-          class="px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 {chartMode === 'cessions' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
-          on:click={() => setChartMode('cessions')}
+          class="px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 {chartMode === 'comparison' ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'}"
+          on:click={() => setChartMode('comparison')}
         >
-          {$t('dashboard.stats.active_cessions')}
+          <div class="flex items-center space-x-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
+            <span>Cessions vs Payments</span>
+          </div>
         </button>
+        
         <button 
-          class="px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 {chartMode === 'payments' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+          class="px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 {chartMode === 'active' ? 'bg-white text-indigo-600 shadow-md scale-105' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'}"
+          on:click={() => setChartMode('active')}
+        >
+          <div class="flex items-center space-x-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+            <span>Active Only</span>
+          </div>
+        </button>
+        
+        <button 
+          class="px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 {chartMode === 'payments' ? 'bg-white text-amber-600 shadow-md scale-105' : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'}"
           on:click={() => setChartMode('payments')}
         >
-          {$t('dashboard.payments_received')}
+          <div class="flex items-center space-x-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <span>Payments Analysis</span>
+          </div>
         </button>
       </div>
       

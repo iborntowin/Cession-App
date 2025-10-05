@@ -8,6 +8,7 @@
   import { quintOut, cubicOut } from 'svelte/easing';
   import { t } from '$lib/i18n';
   import { language } from '$lib/stores/language';
+  import BackButton from '$lib/components/BackButton.svelte';
 
   // RTL support
   $: isRTL = $language.code === 'ar';
@@ -472,6 +473,12 @@
   <!-- Modern Header with Glassmorphism -->
   <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
     <div class="max-w-7xl mx-auto px-6 py-4">
+      <!-- Back Button Row -->
+      <div class="mb-3" class:text-right={isRTL}>
+        <BackButton href="/" label={$t('common.actions.back_to_dashboard') || 'Dashboard'} variant="minimal" />
+      </div>
+      
+      <!-- Main Header Content -->
       <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
         <div class="flex items-center space-x-4" class:space-x-reverse={isRTL}>
           <div class="flex items-center space-x-3" class:space-x-reverse={isRTL}>

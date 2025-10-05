@@ -32,6 +32,7 @@
       "export": "Exporter",
       "import": "Importer",
       "retry": "Réessayer",
+      "back_to_dashboard": "Tableau de bord",
       "back_to_salary_cessions": "Retour aux Cessions sur Salaire",
       "back_to_client_details": "Retour aux Détails du Client"
     },
@@ -208,6 +209,36 @@
     "months": "mois",
     "count_months": "{count} mois",
     "not_available": "Non disponible"
+  },
+  "reports": {
+    "title": "Liste Nominative des Cessions sur Salaire",
+    "subtitle": "Résumé mensuel des affectations de cessions sur salaire",
+    "month": "Mois",
+    "export_csv": "Exporter CSV",
+    "print": "Imprimer Rapport",
+    "search_placeholder": "Rechercher clients, agences bancaires...",
+    "all_clients": "Tous les clients",
+    "group_by_client": "Grouper par Client",
+    "views": {
+      "list": "Liste",
+      "analytics": "Analyses"
+    },
+    "stats": {
+      "total_monthly": "Total des Mensualités",
+      "total_loan": "Total des Montants Cédés",
+      "clients": "Clients",
+      "cessions": "Cessions"
+    },
+    "table": {
+      "index": "Index",
+      "full_name": "Nom Complet",
+      "monthly": "Mensualité",
+      "loan_amount": "Montant Cédé",
+      "bank": "Banque/Agence",
+      "totals": "TOTAUX"
+    },
+    "analytics_coming_soon": "Vue Analytique Bientôt Disponible",
+    "analytics_description": "Les analyses avancées et graphiques seront disponibles ici"
   },
   "dashboard": {
     "title": "Tableau de bord",

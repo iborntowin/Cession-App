@@ -16,6 +16,7 @@
       "save": "حفظ",
       "cancel": "إلغاء",
       "back": "رجوع",
+      "back_to_dashboard": "لوحة التحكم",
       "download": "تحميل",
       "logout": "تسجيل الخروج",
       "view": "عرض التفاصيل",
@@ -196,6 +197,36 @@
     "no_results": "لم يتم العثور على نتائج",
     "try_adjusting_filters": "حاول تعديل المرشحات",
     "months": "أشهر"
+  },
+  "reports": {
+    "title": "القائمة الاسمية للحوالات على الأجر",
+    "subtitle": "ملخص شهري لتخصيصات الحوالات على الأجر",
+    "month": "الشهر",
+    "export_csv": "تصدير CSV",
+    "print": "طباعة التقرير",
+    "search_placeholder": "البحث عن العملاء، البنوك...",
+    "all_clients": "جميع العملاء",
+    "group_by_client": "تجميع حسب العميل",
+    "views": {
+      "list": "القائمة",
+      "analytics": "التحليلات"
+    },
+    "stats": {
+      "total_monthly": "إجمالي الدفعات الشهرية",
+      "total_loan": "إجمالي المبالغ المحولة",
+      "clients": "العملاء",
+      "cessions": "الحوالات"
+    },
+    "table": {
+      "index": "الترتيب",
+      "full_name": "الاسم الكامل",
+      "monthly": "الدفعة الشهرية",
+      "loan_amount": "المبلغ المحول",
+      "bank": "البنك/الوكالة",
+      "totals": "المجموع"
+    },
+    "analytics_coming_soon": "عرض التحليلات قريباً",
+    "analytics_description": "ستكون التحليلات المتقدمة والرسوم البيانية متاحة هنا"
   },
   "dashboard": {
     "title": "لوحة التحكم",
