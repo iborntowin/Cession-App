@@ -633,13 +633,13 @@
 
         <!-- Workplace Filter -->
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">Workplace:</label>
+          <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.workplace_label')}</label>
           <select 
             bind:value={selectedWorkplace} 
             on:change={handleFilterChange}
             class="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value={null}>All workplaces</option>
+            <option value={null}>{$t('payments.danger_clients.filters.all_workplaces')}</option>
             {#each workplaces as workplace}
               <option value={workplace.name}>{workplace.name}</option>
             {/each}
@@ -648,7 +648,7 @@
 
         <!-- Items per page -->
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">Show:</label>
+          <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.show_label')}</label>
           <select 
             bind:value={itemsPerPage} 
             on:change={handleFilterChange}
@@ -691,7 +691,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           <span class="text-sm text-blue-800">
-            Showing <strong>{filteredCount}</strong> of <strong>{analysis.dangerClients.length}</strong> clients
+            {$t('payments.pagination.showing')} <strong>{filteredCount}</strong> {$t('payments.pagination.showing_of').split(' ')[1]} <strong>{analysis.dangerClients.length}</strong> {$t('payments.pagination.clients')}
             {#if selectedSeverity !== 'all'}
               with <strong>{$t(`payments.danger_clients.severity.${selectedSeverity}`)}</strong> severity
             {/if}
@@ -834,13 +834,13 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 space-y-4 sm:space-y-0">
         <!-- Results info -->
         <div class="text-sm text-gray-700">
-          Showing 
+          {$t('payments.pagination.showing')} 
           <span class="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span>
-          to 
+          {$t('payments.pagination.showing_of').split(' ')[1]} 
           <span class="font-medium">{Math.min(currentPage * itemsPerPage, filteredCount)}</span>
-          of 
+          {$t('payments.pagination.showing_of').split(' ')[1]} 
           <span class="font-medium">{filteredCount}</span>
-          {filteredCount === 1 ? 'client' : 'clients'}
+          {filteredCount === 1 ? $t('payments.pagination.clients').slice(0, -1) : $t('payments.pagination.clients')}
         </div>
         
         <!-- Pagination controls -->
@@ -923,8 +923,8 @@
     {:else if filteredCount > 0}
       <!-- Show results info even when there's only one page -->
       <div class="mt-6 text-sm text-gray-700">
-        Showing <span class="font-medium">{filteredCount}</span> 
-        {filteredCount === 1 ? 'client' : 'clients'}
+        {$t('payments.pagination.showing')} <span class="font-medium">{filteredCount}</span> 
+        {filteredCount === 1 ? $t('payments.pagination.clients').slice(0, -1) : $t('payments.pagination.clients')}
       </div>
     {/if}
   {/if}
@@ -995,13 +995,13 @@
           
           <!-- Workplace Filter -->
           <div class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-gray-700">Workplace:</label>
+            <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.workplace_label')}</label>
             <select 
               bind:value={selectedUnstartedWorkplace} 
               on:change={handleUnstartedFilterChange}
               class="px-3 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
-              <option value={null}>All Workplaces</option>
+              <option value={null}>{$t('payments.danger_clients.filters.all_workplaces')}</option>
               {#each workplaces as workplace}
                 <option value={workplace.name}>{workplace.name}</option>
               {/each}
@@ -1010,7 +1010,7 @@
           
           <!-- Items per page -->
           <div class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-gray-700">Show:</label>
+            <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.show_label')}</label>
             <select 
               bind:value={unstartedItemsPerPage} 
               on:change={handleUnstartedFilterChange}
@@ -1034,7 +1034,7 @@
               <span class="text-gray-600">Active filters:</span>
               {#if selectedUnstartedWorkplace}
                 <span class="bg-orange-100 text-orange-800 px-2 py-1 rounded">
-                  Workplace: {selectedUnstartedWorkplace}
+                  {$t('payments.danger_clients.filters.workplace_label')} {selectedUnstartedWorkplace}
                 </span>
               {/if}
               {#if unstartedSearchQuery}
@@ -1160,13 +1160,13 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 space-y-4 sm:space-y-0">
           <!-- Results info -->
           <div class="text-sm text-gray-700">
-            Showing 
+            {$t('payments.pagination.showing')} 
             <span class="font-medium">{(unstartedCurrentPage - 1) * unstartedItemsPerPage + 1}</span>
-            to 
+            {$t('payments.pagination.showing_of').split(' ')[1]} 
             <span class="font-medium">{Math.min(unstartedCurrentPage * unstartedItemsPerPage, unstartedFilteredCount)}</span>
-            of 
+            {$t('payments.pagination.showing_of').split(' ')[1]} 
             <span class="font-medium">{unstartedFilteredCount}</span>
-            {unstartedFilteredCount === 1 ? 'client' : 'clients'}
+            {unstartedFilteredCount === 1 ? $t('payments.pagination.clients').slice(0, -1) : $t('payments.pagination.clients')}
           </div>
           
           <!-- Pagination controls -->
@@ -1238,8 +1238,8 @@
         </div>
       {:else if unstartedFilteredCount > 0}
         <div class="mt-6 text-sm text-gray-700">
-          Showing <span class="font-medium">{unstartedFilteredCount}</span> 
-          {unstartedFilteredCount === 1 ? 'client' : 'clients'}
+          {$t('payments.pagination.showing')} <span class="font-medium">{unstartedFilteredCount}</span> 
+          {unstartedFilteredCount === 1 ? $t('payments.pagination.clients').slice(0, -1) : $t('payments.pagination.clients')}
         </div>
       {/if}
       {/if}

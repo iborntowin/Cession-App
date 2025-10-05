@@ -40,7 +40,22 @@
       "import": "Import",
       "saving": "Saving...",
       "retry": "Retry",
-      "days": "days"
+      "days": "days",
+      "update": "Update",
+      "select": "Select",
+      "select_category": "Select Category",
+      "select_all": "Select All",
+      "reset": "Reset",
+      "no_data": "No data available",
+      "loading_data": "Loading data...",
+      "error_loading": "Error loading data",
+      "total": "Total",
+      "address": "Address",
+      "placeholder_search": "Search...",
+      "all_statuses": "All Statuses",
+      "all_time": "All time",
+      "all_clients": "All clients",
+      "all_status": "All status"
     },
     "navigation": {
       "dashboard": "Dashboard",
@@ -1344,6 +1359,12 @@
         "severity": "Severity",
         "all_severities": "All severities",
         "threshold_months": "Threshold (months)",
+        "workplace_label": "Workplace:",
+        "all_workplaces": "All workplaces",
+        "show_label": "Show:",
+        "days_label": "Days:",
+        "found_label": "Found",
+        "showing_label": "Showing",
         "date_range": "Date Range",
         "coach": "Coach",
         "business_unit": "Business Unit"
@@ -1389,7 +1410,11 @@
       "show": "Show",
       "per_page": "per page",
       "page_of": "Page {current} of {total}",
-      "results": "({count} results)"
+      "results": "({count} results)",
+      "showing": "Showing",
+      "showing_count": "Showing {count}",
+      "showing_of": "Showing {filtered} of {total}",
+      "clients": "clients"
     },
     "export": {
       "title": "Export",
