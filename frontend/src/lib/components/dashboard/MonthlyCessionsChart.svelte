@@ -28,12 +28,26 @@
   $: activeCount = realTrends.length > 0 ? realTrends[realTrends.length - 1].activeCessionsCount : 0;
   $: activeValue = realTrends.length > 0 ? realTrends[realTrends.length - 1].activeValue : 0;
   
+  // Calculate average value per cession - fixed calculation
+  $: averageValuePerCession = (() => {
+    // Calculate total value and count across all months
+    const total = realTrends.reduce((sum, t) => sum + (t.value || 0), 0);
+    const count = realTrends.reduce((sum, t) => sum + (t.count || 0), 0);
+    
+    // Debug logging
+    console.log('Chart - Total Value:', total, 'Total Count:', count);
+    
+    // Return average if count > 0, otherwise 0
+    return count > 0 ? total / count : 0;
+  })();
+  
   // Calculate monthly payments
   $: monthlyPayments = calculateMonthlyPayments();
   
   function calculateMonthlyPayments() {
     // Ensure payments is an array
     if (!payments || !Array.isArray(payments)) {
+      console.warn('Chart - Payments is not an array:', payments);
       // Return empty array with 6 months structure
       const now = new Date();
       const emptyMonths = [];
@@ -49,6 +63,13 @@
       return emptyMonths;
     }
     
+    console.log('Chart - Total payments received:', payments.length);
+    
+    // Debug payment statuses
+    const statuses = new Set(payments.map(p => p.status || 'NO_STATUS'));
+    console.log('Chart - Unique payment statuses:', Array.from(statuses));
+    console.log('Chart - Sample payment:', payments.length > 0 ? payments[0] : 'None');
+    
     const now = new Date();
     const paymentsByMonth = [];
     
@@ -60,8 +81,19 @@
         try {
           const paymentDate = new Date(p.createdAt || p.paymentDate);
           const isInMonth = paymentDate >= monthStart && paymentDate <= monthEnd;
-          // Match the same status check as payments page: lowercase 'completed' or no status
-          const isCompleted = !p.status || p.status.toLowerCase() === 'completed' || p.status.toLowerCase() === 'paid';
+          // Match the status check: either no status (means completed), or explicitly COMPLETED/PAID
+          // Changed to uppercase to match backend and main dashboard logic
+          const isCompleted = !p.status || p.status === 'COMPLETED' || p.status === 'PAID' || 
+                             p.status?.toLowerCase() === 'completed' || p.status?.toLowerCase() === 'paid';
+          
+          if (isInMonth && isCompleted) {
+            console.log('Chart - Valid payment:', {
+              date: paymentDate.toISOString().split('T')[0],
+              amount: p.amount,
+              status: p.status
+            });
+          }
+          
           return isInMonth && isCompleted;
         } catch (e) {
           return false;
@@ -70,6 +102,9 @@
       
       const amount = monthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
       const count = monthPayments.length;
+      
+      console.log(`Chart - ${monthStart.toLocaleString('default', { month: 'short' })} ${monthStart.getFullYear()}:`, 
+        'Payments:', count, 'Amount:', amount);
       
       paymentsByMonth.push({
         month: monthStart.toLocaleString('default', { month: 'short' }),
@@ -469,7 +504,7 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-black text-pink-900">{totalCessions > 0 ? formatCurrency(totalValue / totalCessions) : '0'}</p>
+        <p class="text-2xl font-black text-pink-900">{averageValuePerCession > 0 ? formatCurrency(averageValuePerCession) : '0.000'} TND</p>
         <p class="text-xs text-pink-600 font-semibold mt-1">{$t('dashboard.per_cession')}</p>
       </div>
     </div>

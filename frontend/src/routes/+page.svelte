@@ -450,6 +450,11 @@
       
       // Force update the component by triggering reactivity
       monthlyTrends = [...monthlyTrends];
+      
+      console.log('Monthly Trends Data:', monthlyTrends);
+      console.log('Sample Trend:', monthlyTrends.length > 0 ? monthlyTrends[0] : 'No data');
+      console.log('Total Value Across All Months:', monthlyTrends.reduce((sum, t) => sum + (t.value || 0), 0));
+      console.log('Total Count Across All Months:', monthlyTrends.reduce((sum, t) => sum + (t.count || 0), 0));
 
       const completedCessions = recentCessions.filter(c => c.status === 'FINISHED').length;
       analytics.completionRate = recentCessions.length > 0 ? (completedCessions / recentCessions.length) * 100 : 0;
