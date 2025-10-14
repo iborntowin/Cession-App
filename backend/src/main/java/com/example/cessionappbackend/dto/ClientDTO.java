@@ -3,6 +3,7 @@ package com.example.cessionappbackend.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -45,12 +46,13 @@ public class ClientDTO {
     @Pattern(regexp = "\\d{10}", message = "Worker number must be exactly 10 digits")
     private String workerNumber;
 
+    // Timestamps - now included in responses
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
     public void setId(UUID id) {
         this.id = id;
     }
-    // Timestamps are usually handled by the system, not sent in create/update requests
-    // private OffsetDateTime createdAt;
-    // private OffsetDateTime updatedAt;
 
     // We might add lists of associated cession/document IDs if needed for responses
 

@@ -801,6 +801,14 @@
   function generateClientCreationTrends() {
     const now = new Date();
     const trends = [];
+    
+    console.log('📈 Generating Client Creation Trends');
+    console.log('Total clients:', clients.length);
+    console.log('Sample client createdAt values:', clients.slice(0, 5).map(c => ({ 
+      id: c.id?.substring(0, 8), 
+      createdAt: c.createdAt,
+      parsed: c.createdAt ? new Date(c.createdAt).toISOString() : 'N/A'
+    })));
 
     // Generate monthly data for the past 12 months
     for (let i = 11; i >= 0; i--) {
@@ -813,19 +821,24 @@
         const createdDate = new Date(client.createdAt);
         return createdDate >= monthDate && createdDate < nextMonthDate;
       });
+      
+      const cumulative = clients.filter(client => {
+        if (!client.createdAt) return false;
+        return new Date(client.createdAt) <= nextMonthDate;
+      }).length;
 
       trends.push({
         month: monthDate.toLocaleString('default', { month: 'short' }),
         year: monthDate.getFullYear(),
         count: monthClients.length,
-        cumulative: clients.filter(client => {
-          if (!client.createdAt) return false;
-          return new Date(client.createdAt) <= nextMonthDate;
-        }).length
+        cumulative: cumulative
       });
+      
+      console.log(`${monthDate.toLocaleString('default', { month: 'short' })} ${monthDate.getFullYear()}: ${monthClients.length} clients (cumulative: ${cumulative})`);
     }
 
     clientCreationTrends = trends;
+    console.log('Final trends:', clientCreationTrends);
   }
 
   // 👥 Job Distribution - Real data only

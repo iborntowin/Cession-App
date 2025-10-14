@@ -51,6 +51,10 @@ public class ClientService {
         dto.setPhoneNumber(client.getPhoneNumber());
         dto.setAddress(client.getAddress());
         dto.setWorkerNumber(client.getWorkerNumber());
+        
+        // Add timestamp fields
+        dto.setCreatedAt(client.getCreatedAt());
+        dto.setUpdatedAt(client.getUpdatedAt());
 
         if (client.getWorkplace() != null) {
             dto.setWorkplaceId(client.getWorkplace().getId());
