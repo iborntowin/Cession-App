@@ -7,6 +7,10 @@
   import { goto, afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import Toast from '$lib/components/Toast.svelte';
+  import EnhancedToast from '$lib/components/EnhancedToast.svelte';
+  import CommandPalette from '$lib/components/CommandPalette.svelte';
+  import KeyboardShortcutsHelp from '$lib/components/KeyboardShortcutsHelp.svelte';
+  import Breadcrumbs from '$lib/components/Breadcrumbs.svelte';
   import { language } from '$lib/stores/language';
   import { t } from '$lib/i18n';
   import { fly } from 'svelte/transition';
@@ -209,6 +213,9 @@
     
     <!-- Main Content -->
     <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-6" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
+      {#if isLoggedIn && currentRoute !== '/'}
+        <Breadcrumbs />
+      {/if}
       <slot />
     </main>
     
@@ -226,3 +233,6 @@
 {/if}
 
 <Toast />
+<EnhancedToast />
+<CommandPalette />
+<KeyboardShortcutsHelp />

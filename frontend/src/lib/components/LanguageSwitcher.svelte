@@ -1,6 +1,7 @@
-<script lang="ts">
+<script>
   import { language } from '$lib/stores/language';
   import { t } from '$lib/i18n';
+  import { browser } from '$app/environment';
 
   let isOpen = false;
   let languages = language.getLanguages();
@@ -9,23 +10,25 @@
     isOpen = !isOpen;
   }
 
-  function handleLanguageSelect(langCode: string) {
+  function handleLanguageSelect(langCode) {
     language.setLanguage(langCode);
     isOpen = false;
   }
 
   // Close dropdown when clicking outside
-  function handleClickOutside(event: MouseEvent) {
-    const target = event.target as HTMLElement;
+  function handleClickOutside(event) {
+    const target = event.target;
     if (!target.closest('.language-switcher')) {
       isOpen = false;
     }
   }
 
-  $: if (isOpen) {
-    document.addEventListener('click', handleClickOutside);
-  } else {
-    document.removeEventListener('click', handleClickOutside);
+  $: if (browser) {
+    if (isOpen) {
+      document.addEventListener('click', handleClickOutside);
+    } else {
+      document.removeEventListener('click', handleClickOutside);
+    }
   }
 </script>
 
