@@ -352,6 +352,64 @@
     };
   }
   
+  // ⌨️ Keyboard Shortcuts Handler
+  function handleKeydown(event) {
+    // Don't trigger if user is typing in an input field
+    if (event.target instanceof HTMLInputElement || 
+        event.target instanceof HTMLTextAreaElement ||
+        event.target.isContentEditable) {
+      return;
+    }
+    
+    // Check for Ctrl (or Cmd on Mac)
+    const modifier = event.ctrlKey || event.metaKey;
+    
+    if (modifier) {
+      switch(event.key) {
+        case 'n':
+        case 'N':
+          event.preventDefault();
+          goto('/cessions/new');
+          break;
+        case '1':
+          event.preventDefault();
+          viewMode = 'cards';
+          break;
+        case '2':
+          event.preventDefault();
+          viewMode = 'table';
+          break;
+        case '3':
+          event.preventDefault();
+          viewMode = 'analytics';
+          break;
+        case '4':
+          event.preventDefault();
+          viewMode = 'timeline';
+          break;
+        case 'p':
+        case 'P':
+          event.preventDefault();
+          window.print();
+          break;
+        case 'e':
+        case 'E':
+          event.preventDefault();
+          showAlert('Export functionality coming soon', 'info');
+          break;
+        case '/':
+          event.preventDefault();
+          document.querySelector('input[type="text"]')?.focus();
+          break;
+        case 'r':
+        case 'R':
+          event.preventDefault();
+          loadCessions(true);
+          break;
+      }
+    }
+  }
+  
   onMount(async () => {
     await loadCessions();
     // Auto-refresh disabled by default to prevent flickering
@@ -1841,6 +1899,8 @@
 <svelte:head>
   <title>🚀 {$t('cessions.title')} | Next-Gen Management</title>
 </svelte:head>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <!-- 🌟 Modern Glassmorphism Layout -->
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" style="direction: {textDirection}">

@@ -15,54 +15,67 @@
     { keys: ['Ctrl', 'K'], description: 'Open Command Palette', icon: '🎯' },
     { keys: ['?'], description: 'Show this help', icon: '❓' },
     { keys: ['Esc'], description: 'Close dialogs/modals', icon: '❌' },
-    { keys: ['Ctrl', 'Z'], description: 'Undo last action', icon: '↩️' },
-    { keys: ['Ctrl', 'Shift', 'Z'], description: 'Redo action', icon: '↪️' },
-    { keys: ['Ctrl', 'F'], description: 'Focus search', icon: '🔍' },
-    { keys: ['Ctrl', 'S'], description: 'Save current form', icon: '💾' },
+    { keys: ['Ctrl', '/'], description: 'Focus search', icon: '🔍' },
+    { keys: ['Ctrl', 'S'], description: 'Save current form', icon: '�' },
+    { keys: ['Ctrl', 'R'], description: 'Refresh data', icon: '�' },
   ];
   
   const pageShortcuts = {
     dashboard: [
-      { keys: ['1', '-', '9'], description: 'Jump to dashboard sections', icon: '📊' },
-      { keys: ['N'], description: 'New cession', icon: '➕' },
-      { keys: ['R'], description: 'Refresh data', icon: '🔄' },
-      { keys: ['E'], description: 'Export dashboard', icon: '📤' },
+      { keys: ['Ctrl', 'N'], description: 'New cession', icon: '➕' },
+      { keys: ['Ctrl', 'C'], description: 'New client', icon: '👤' },
+      { keys: ['Ctrl', 'E'], description: 'Export dashboard', icon: '�' },
+      { keys: ['Ctrl', '1'], description: 'Go to stats', icon: '�' },
+      { keys: ['Ctrl', '2'], description: 'Go to charts', icon: '📈' },
+      { keys: ['Ctrl', '3'], description: 'Go to actions', icon: '⚡' },
     ],
     clients: [
-      { keys: ['N'], description: 'New client', icon: '➕' },
-      { keys: ['F'], description: 'Focus search', icon: '🔍' },
-      { keys: ['G'], description: 'Grid view', icon: '▦' },
-      { keys: ['L'], description: 'List view', icon: '☰' },
-      { keys: ['A'], description: 'Analytics view', icon: '📈' },
-      { keys: ['Ctrl', 'A'], description: 'Select all', icon: '☑️' },
+      { keys: ['Ctrl', 'N'], description: 'New client', icon: '➕' },
+      { keys: ['Ctrl', 'G'], description: 'Grid view', icon: '▦' },
+      { keys: ['Ctrl', 'L'], description: 'List view', icon: '☰' },
+      { keys: ['Ctrl', 'D'], description: 'Analytics view', icon: '📈' },
+      { keys: ['Ctrl', 'E'], description: 'Export clients', icon: '📤' },
     ],
     cessions: [
-      { keys: ['N'], description: 'New cession', icon: '➕' },
-      { keys: ['C'], description: 'Cards view', icon: '🃏' },
-      { keys: ['T'], description: 'Table view', icon: '📋' },
-      { keys: ['A'], description: 'Analytics view', icon: '📊' },
-      { keys: ['M'], description: 'Timeline view', icon: '📅' },
-      { keys: ['P'], description: 'Print view', icon: '🖨️' },
+      { keys: ['Ctrl', 'N'], description: 'New cession', icon: '➕' },
+      { keys: ['Ctrl', '1'], description: 'Cards view', icon: '🃏' },
+      { keys: ['Ctrl', '2'], description: 'Table view', icon: '📋' },
+      { keys: ['Ctrl', '3'], description: 'Analytics view', icon: '📊' },
+      { keys: ['Ctrl', '4'], description: 'Timeline view', icon: '📅' },
+      { keys: ['Ctrl', 'P'], description: 'Print view', icon: '🖨️' },
+      { keys: ['Ctrl', 'E'], description: 'Export cessions', icon: '📤' },
     ],
     payments: [
-      { keys: ['N'], description: 'New payment', icon: '➕' },
-      { keys: ['Shift', '↑/↓'], description: 'Multi-select', icon: '☑️' },
-      { keys: ['Ctrl', 'A'], description: 'Select all', icon: '✅' },
-      { keys: ['Delete'], description: 'Delete selected', icon: '🗑️' },
-      { keys: ['E'], description: 'Export selected', icon: '📤' },
+      { keys: ['Ctrl', 'N'], description: 'New payment', icon: '➕' },
+      { keys: ['Ctrl', '1'], description: 'Table view', icon: '📋' },
+      { keys: ['Ctrl', '2'], description: 'Analytics view', icon: '📊' },
+      { keys: ['Ctrl', 'E'], description: 'Export payments', icon: '�' },
+      { keys: ['Delete'], description: 'Delete selected', icon: '�️' },
     ],
     inventory: [
-      { keys: ['N'], description: 'New product', icon: '➕' },
-      { keys: ['G'], description: 'Grid view', icon: '▦' },
-      { keys: ['L'], description: 'List view', icon: '☰' },
-      { keys: ['S'], description: 'Low stock filter', icon: '⚠️' },
-      { keys: ['E'], description: 'Export inventory', icon: '📤' },
+      { keys: ['Ctrl', 'N'], description: 'New product', icon: '➕' },
+      { keys: ['Ctrl', 'G'], description: 'Grid view', icon: '▦' },
+      { keys: ['Ctrl', 'L'], description: 'List view', icon: '☰' },
+      { keys: ['Ctrl', 'S'], description: 'Low stock filter', icon: '⚠️' },
+      { keys: ['Ctrl', 'E'], description: 'Export inventory', icon: '📤' },
     ],
     finance: [
-      { keys: ['N'], description: 'Add expense', icon: '💸' },
-      { keys: ['D'], description: 'Dashboard view', icon: '📊' },
-      { keys: ['A'], description: 'Analytics view', icon: '📈' },
-      { keys: ['M'], description: 'Change month', icon: '📅' },
+      { keys: ['Ctrl', 'N'], description: 'Add expense', icon: '💸' },
+      { keys: ['Ctrl', '1'], description: 'Dashboard view', icon: '📊' },
+      { keys: ['Ctrl', '2'], description: 'Analytics view', icon: '📈' },
+      { keys: ['Ctrl', 'M'], description: 'Change month', icon: '📅' },
+      { keys: ['Ctrl', 'E'], description: 'Export data', icon: '📤' },
+    ],
+    selling: [
+      { keys: ['Ctrl', 'N'], description: 'Quick sell', icon: '💰' },
+      { keys: ['Ctrl', '1'], description: 'Products view', icon: '📦' },
+      { keys: ['Ctrl', '2'], description: 'History view', icon: '📜' },
+      { keys: ['Ctrl', 'E'], description: 'Export sales', icon: '📤' },
+    ],
+    workplaces: [
+      { keys: ['Ctrl', 'N'], description: 'New workplace', icon: '➕' },
+      { keys: ['Ctrl', 'J'], description: 'New job', icon: '💼' },
+      { keys: ['Ctrl', 'E'], description: 'Export data', icon: '📤' },
     ],
   };
   
@@ -214,11 +227,15 @@
               </li>
               <li class="flex items-start space-x-2">
                 <span class="text-green-600 font-bold">✓</span>
-                <span>Most shortcuts work without holding modifier keys (except Ctrl/Shift combinations)</span>
+                <span>All shortcuts use <kbd class="px-2 py-1 bg-white border border-gray-300 rounded text-xs">Ctrl</kbd> modifier to prevent conflicts</span>
               </li>
               <li class="flex items-start space-x-2">
                 <span class="text-green-600 font-bold">✓</span>
-                <span>Shortcuts don't work when you're typing in text fields (to avoid conflicts)</span>
+                <span>Shortcuts don't work when you're typing in text fields (to keep you safe)</span>
+              </li>
+              <li class="flex items-start space-x-2">
+                <span class="text-green-600 font-bold">✓</span>
+                <span>On Mac, use <kbd class="px-2 py-1 bg-white border border-gray-300 rounded text-xs">Cmd</kbd> instead of <kbd class="px-2 py-1 bg-white border border-gray-300 rounded text-xs">Ctrl</kbd></span>
               </li>
             </ul>
           </section>

@@ -133,6 +133,56 @@
     dailyGoals = [processPaymentsGoal, followUpGoal, reviewInventoryGoal];
   }
 
+  // ⌨️ Keyboard Shortcuts Handler
+  function handleKeydown(event) {
+    // Don't trigger if user is typing in an input field
+    if (event.target instanceof HTMLInputElement || 
+        event.target instanceof HTMLTextAreaElement ||
+        event.target.isContentEditable) {
+      return;
+    }
+    
+    // Check for Ctrl (or Cmd on Mac)
+    const modifier = event.ctrlKey || event.metaKey;
+    
+    if (modifier) {
+      switch(event.key) {
+        case 'n':
+        case 'N':
+          event.preventDefault();
+          goto('/cessions/new');
+          break;
+        case 'c':
+        case 'C':
+          event.preventDefault();
+          goto('/clients/new');
+          break;
+        case 'e':
+        case 'E':
+          event.preventDefault();
+          showAlert('Export functionality coming soon', 'info');
+          break;
+        case '1':
+          event.preventDefault();
+          document.querySelector('.quick-stats')?.scrollIntoView({ behavior: 'smooth' });
+          break;
+        case '2':
+          event.preventDefault();
+          document.querySelector('.monthly-charts')?.scrollIntoView({ behavior: 'smooth' });
+          break;
+        case '3':
+          event.preventDefault();
+          document.querySelector('.quick-actions')?.scrollIntoView({ behavior: 'smooth' });
+          break;
+        case 'r':
+        case 'R':
+          event.preventDefault();
+          loadDashboardData();
+          break;
+      }
+    }
+  }
+
   onMount(async () => {
     // Trigger dashboard animation after mount (matching login page)
     setTimeout(() => {
@@ -599,6 +649,8 @@
 <svelte:head>
   <title>🚀 {$t('dashboard.title')} | Cession sur Salaire</title>
 </svelte:head>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <!-- 💎 Premium Dashboard with Login Page Visual Language -->
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden" style="direction: {textDirection}">

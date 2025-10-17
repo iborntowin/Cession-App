@@ -140,10 +140,62 @@
   });
 
   // Handle keyboard events for modal
+  // ⌨️ Keyboard Shortcuts Handler
   function handleKeydown(event) {
+    // Close details on Escape
     if (event.key === 'Escape' && isClientDetailsVisible) {
       event.preventDefault();
       closeClientDetails();
+      return;
+    }
+    
+    // Don't trigger if user is typing in an input field
+    if (event.target instanceof HTMLInputElement || 
+        event.target instanceof HTMLTextAreaElement ||
+        event.target.isContentEditable) {
+      return;
+    }
+    
+    // Check for Ctrl (or Cmd on Mac)
+    const modifier = event.ctrlKey || event.metaKey;
+    
+    if (modifier) {
+      switch(event.key) {
+        case 'n':
+        case 'N':
+          event.preventDefault();
+          goto('/clients/new');
+          break;
+        case 'g':
+        case 'G':
+          event.preventDefault();
+          viewMode = 'grid';
+          break;
+        case 'l':
+        case 'L':
+          event.preventDefault();
+          viewMode = 'list';
+          break;
+        case 'd':
+        case 'D':
+          event.preventDefault();
+          goto('/clients/analytics');
+          break;
+        case 'e':
+        case 'E':
+          event.preventDefault();
+          showAlert('Export functionality coming soon', 'info');
+          break;
+        case '/':
+          event.preventDefault();
+          document.querySelector('input[placeholder*="search" i]')?.focus();
+          break;
+        case 'r':
+        case 'R':
+          event.preventDefault();
+          loadClients(true);
+          break;
+      }
     }
   }
 
