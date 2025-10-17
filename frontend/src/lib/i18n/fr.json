@@ -866,13 +866,13 @@
       "search_clients_desc": "Commencez à taper pour rechercher par nom, CIN ou numéro d'employé",
       "review_submit_title": "Vérifier et Soumettre",
       "review_submit_desc": "Vérifier tous les détails avant de créer la cession",
-      "search_error": "Échec de la recherche de clients. Veuillez réessayer."
-    },
-    "validation": {
-      "select_client": "Veuillez sélectionner un client",
-      "required_fields": "Veuillez remplir tous les champs obligatoires",
-      "success": "Cession créée avec succès",
-      "error": "Échec de la création de la cession"
+      "search_error": "Échec de la recherche de clients. Veuillez réessayer.",
+      "validation": {
+        "select_client": "Veuillez sélectionner un client",
+        "required_fields": "Veuillez remplir tous les champs obligatoires",
+        "success": "Cession créée avec succès",
+        "error": "Échec de la création de la cession"
+      }
     }
   },
   "inventory": {

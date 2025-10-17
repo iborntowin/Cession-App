@@ -78,12 +78,23 @@ if (browser) {
   });
 }
 
-// Function to show alert
+// Function to show alert using modern toast system
 export const showAlert = (message, type = 'info') => {
-  alert.set({ show: true, message, type });
-  setTimeout(() => {
-    alert.set({ show: false, message: '', type: 'info' });
-  }, 5000);
+  // Use modern toast system if available
+  if (browser && typeof window !== 'undefined' && window.addToast) {
+    const duration = type === 'error' ? 7000 : type === 'success' ? 5000 : 5000;
+    window.addToast({
+      message,
+      type,
+      duration
+    });
+  } else {
+    // Fallback to old alert system
+    alert.set({ show: true, message, type });
+    setTimeout(() => {
+      alert.set({ show: false, message: '', type: 'info' });
+    }, 5000);
+  }
 };
 
 // Function to clear authentication state
