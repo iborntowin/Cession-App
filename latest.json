@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "notes": "New features and bug fixes included.",
+  "pub_date": "2025-10-18T10:24:43.798Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "",
+      "url": "https://github.com/iborntowin/Cession-App/releases/download/v1.0.0/Cession-Management-App_1.0.0_x64_en-US.msi.zip"
+    },
+    "linux-x86_64": {
+      "signature": "",
+      "url": "https://github.com/iborntowin/Cession-App/releases/download/v1.0.0/cession-management-app_1.0.0_amd64.AppImage.tar.gz"
+    },
+    "darwin-x86_64": {
+      "signature": "",
+      "url": "https://github.com/iborntowin/Cession-App/releases/download/v1.0.0/Cession-Management-App_1.0.0_x64.dmg.tar.gz"
+    }
+  }
+}

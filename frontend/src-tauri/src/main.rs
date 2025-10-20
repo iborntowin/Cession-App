@@ -1,8 +1,12 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// TEMPORARILY ENABLE CONSOLE FOR DEBUGGING
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(dead_code)]  // Suppress unused code warnings
 
-// Additional console hiding for Windows
+// Additional console hiding for Windows - DISABLED FOR DEBUGGING
 #[cfg(windows)]
 fn hide_console_window() {
+    // CONSOLE ENABLED - Comment out to see logs
+    /*
     unsafe {
         let console_window = winapi::um::wincon::GetConsoleWindow();
         if !console_window.is_null() {
@@ -12,6 +16,7 @@ fn hide_console_window() {
         // Also try to free the console
         winapi::um::wincon::FreeConsole();
     }
+    */
 }
 
 #[cfg(not(windows))]
@@ -1566,6 +1571,7 @@ fn launch_backend_process(config: &BackendConfig) -> Result<BackendProcess, Stri
         .arg(&normalized_jar_path);
 
     cmd.arg(format!("--server.port={}", config.port))
+        .arg("--server.address=127.0.0.1")
         .arg("--logging.level.root=WARN")
         .arg("--logging.level.com.example=INFO")
         .arg("--spring.profiles.active=desktop")
@@ -1959,6 +1965,8 @@ fn main() {
     let backend_status_clone = backend_status.clone();
 
     let _app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(move |app| {
             let logging_system = match LoggingSystem::new(&app.handle()) {
                 Ok(system) => system,

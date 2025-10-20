@@ -142,6 +142,14 @@
         "current_selection": "Currently selected",
         "rtl_support": "Right-to-Left Support"
       },
+      "updates": {
+        "title": "Software Updates",
+        "subtitle": "Keep your application up to date",
+        "currentVersion": "Current Version",
+        "checkButton": "Check for Updates",
+        "checking": "Checking for updates...",
+        "autoInfo": "The app automatically checks for updates on startup and every 24 hours. You will be notified when a new version is available."
+      },
       "additional_settings": {
         "title": "Additional Settings",
         "description": "More settings will be available here in future updates",

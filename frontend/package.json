@@ -1,6 +1,6 @@
 {
   "name": "cession-app-frontend",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "vite dev",
@@ -46,6 +46,8 @@
   "type": "module",
   "dependencies": {
     "@tauri-apps/api": "^2.6.0",
+    "@tauri-apps/plugin-process": "^2.3.0",
+    "@tauri-apps/plugin-updater": "^2.9.0",
     "@types/cookie": "^0.5.1",
     "chart.js": "^4.2.1",
     "date-fns": "^2.29.3",

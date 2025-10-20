@@ -3,6 +3,7 @@
  */
 
 import { paymentsApi } from '$lib/api';
+import { getBackendUrl } from '$lib/config';
 
 /**
  * Get comprehensive date/timezone information from both frontend and backend
@@ -32,7 +33,7 @@ export async function getDateDebugInfo() {
     let backendInfo = null;
     try {
         // Get backend timezone info (this endpoint was added for debugging)
-        const response = await fetch('http://localhost:8082/api/v1/payments/debug/timezone-info', {
+        const response = await fetch(`${getBackendUrl()}/api/v1/payments/debug/timezone-info`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json'

@@ -155,6 +155,14 @@
         "notifications": "Notifications",
         "current_selection": "Langue sélectionnée"
       },
+      "updates": {
+        "title": "Mises à Jour",
+        "subtitle": "Gardez votre application à jour",
+        "currentVersion": "Version Actuelle",
+        "checkButton": "Vérifier les Mises à Jour",
+        "checking": "Vérification des mises à jour...",
+        "autoInfo": "L'application vérifie automatiquement les mises à jour au démarrage et toutes les 24 heures. Vous serez averti lorsqu'une nouvelle version sera disponible."
+      },
       "preferences": "Préférences"
     },
     "app_name": "Gestion des Cessions",

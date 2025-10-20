@@ -11,6 +11,7 @@
   import DangerClients from '$lib/components/DangerClients.svelte';
   import DateDebugPanel from '$lib/components/DateDebugPanel.svelte';
   import BackButton from '$lib/components/BackButton.svelte';
+  import { getBackendUrl } from '$lib/config';
 
   // RTL support
   $: isRTL = $language.code === 'ar';
@@ -103,7 +104,7 @@
       const createdClients = [];
       for (const client of sampleClients) {
         try {
-          const response = await fetch('http://localhost:8082/api/v1/clients', {
+          const response = await fetch(`${getBackendUrl()}/api/v1/clients`, {
             method: 'POST',
             headers: authHeaders,
             body: JSON.stringify(client)
@@ -137,7 +138,7 @@
         };
 
         try {
-          const response = await fetch('http://localhost:8082/api/v1/cessions', {
+          const response = await fetch(`${getBackendUrl()}/api/v1/cessions`, {
             method: 'POST',
             headers: authHeaders,
             body: JSON.stringify(cession)
@@ -173,7 +174,7 @@
             };
 
             try {
-              const response = await fetch('http://localhost:8082/api/v1/payments', {
+              const response = await fetch(`${getBackendUrl()}/api/v1/payments`, {
                 method: 'POST',
                 headers: authHeaders,
                 body: JSON.stringify(payment)

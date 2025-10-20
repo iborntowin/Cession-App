@@ -15,6 +15,7 @@
   import { t } from '$lib/i18n';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { setupAutoUpdateCheck } from '$lib/updater';
   
   export let data;
   
@@ -50,6 +51,11 @@
       }
       if (tokenAfterMount && isPublicRoute) {
           goto('/');
+      }
+
+      // Enable auto-update checks (temporarily disabled for troubleshooting)
+      if (tokenAfterMount) {
+        // setupAutoUpdateCheck(); // Commented out temporarily
       }
 
       return () => {
