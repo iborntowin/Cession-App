@@ -3,16 +3,19 @@
   import { t } from '$lib/i18n';
   import { getAuthHeaders } from '$lib/api';
   import { config } from '$lib/config';
+  import ExportScheduleSettings from './ExportScheduleSettings.svelte';
 
   // Props
   export let refreshInterval = 30000; // 30 seconds default
 
   // State
   let exportStatus = null;
+  let scheduleConfig = null;
   let loading = false;
   let error = null;
   let manualExportLoading = false;
   let refreshTimer = null;
+  let showScheduleSettings = false;
 
   // Reactive statements
   $: statusColor = getStatusColor(exportStatus?.status);
@@ -21,6 +24,7 @@
 
   onMount(() => {
     fetchExportStatus();
+    fetchScheduleConfig();
     startAutoRefresh();
   });
 
@@ -34,7 +38,10 @@
     if (refreshTimer) {
       clearInterval(refreshTimer);
     }
-    refreshTimer = setInterval(fetchExportStatus, refreshInterval);
+    refreshTimer = setInterval(() => {
+      fetchExportStatus();
+      fetchScheduleConfig();
+    }, refreshInterval);
   }
 
   async function fetchExportStatus() {
@@ -66,6 +73,24 @@
       error = err.message;
     } finally {
       loading = false;
+    }
+  }
+
+  async function fetchScheduleConfig() {
+    try {
+      const headers = getAuthHeaders();
+      const response = await fetch(`${config.backendUrl}/api/v1/export/schedule/config`, {
+        method: 'GET',
+        headers: headers,
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        scheduleConfig = await response.json();
+      }
+    } catch (err) {
+      console.error('Failed to fetch schedule config:', err);
+      // Don't show error for schedule config - it's not critical
     }
   }
 
@@ -144,10 +169,36 @@
     return date.toLocaleDateString();
   }
 
+  function getNextRunRelativeTime(nextRunTime) {
+    if (!nextRunTime) return '';
+    
+    const next = new Date(nextRunTime);
+    const now = new Date();
+    const diffMs = next - now;
+    
+    if (diffMs < 0) return 'soon';
+    
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 1) return `in ${diffDays} days`;
+    if (diffHours > 1) return `in ${diffHours} hours`;
+    return 'soon';
+  }
+
   function openSupabaseUrl() {
     if (exportStatus?.supabaseUrl) {
       window.open(exportStatus.supabaseUrl, '_blank');
     }
+  }
+
+  function openScheduleSettings() {
+    showScheduleSettings = true;
+  }
+
+  function closeScheduleSettings() {
+    showScheduleSettings = false;
+    fetchScheduleConfig(); // Refresh config after closing
   }
         </script>
 
@@ -251,6 +302,81 @@
       <p class="font-medium text-gray-900">{lastSyncText}</p>
     </div>
   </div>
+
+  <!-- Scheduled Export Section -->
+  {#if scheduleConfig}
+    <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 mb-6 border border-purple-200/50">
+      <div class="flex items-start justify-between">
+        <div class="flex items-start space-x-3 flex-1">
+          <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center mt-0.5">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center space-x-2 mb-2">
+              <h3 class="font-semibold text-purple-900">Scheduled Auto-Export</h3>
+              {#if scheduleConfig.enabled}
+                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                  Enabled
+                </span>
+              {:else}
+                <span class="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs font-medium rounded-full">
+                  Disabled
+                </span>
+              {/if}
+            </div>
+            
+            {#if scheduleConfig.enabled}
+              <p class="text-sm text-purple-700 mb-2">
+                {scheduleConfig.scheduleDescription || 'Every Saturday at 10:00 AM'}
+              </p>
+              {#if scheduleConfig.nextRunTime}
+                <div class="flex items-center space-x-2 text-sm text-purple-600">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span>Next export: <strong>{getNextRunRelativeTime(scheduleConfig.nextRunTime)}</strong></span>
+                </div>
+              {/if}
+              
+              {#if scheduleConfig.totalScheduledRuns > 0}
+                <div class="mt-3 pt-3 border-t border-purple-200/50 flex items-center space-x-4 text-xs text-purple-600">
+                  <div class="flex items-center space-x-1">
+                    <span class="font-medium">{scheduleConfig.successfulRuns || 0}</span>
+                    <span>successful</span>
+                  </div>
+                  <div class="flex items-center space-x-1">
+                    <span class="font-medium">{scheduleConfig.failedRuns || 0}</span>
+                    <span>failed</span>
+                  </div>
+                  <div class="flex items-center space-x-1">
+                    <span class="font-medium">{scheduleConfig.totalScheduledRuns || 0}</span>
+                    <span>total</span>
+                  </div>
+                </div>
+              {/if}
+            {:else}
+              <p class="text-sm text-purple-600">
+                Scheduled exports are currently disabled. Enable to automatically sync data on a regular schedule.
+              </p>
+            {/if}
+          </div>
+        </div>
+        
+        <button
+          on:click={openScheduleSettings}
+          class="ml-4 px-4 py-2 bg-white/80 hover:bg-white text-purple-700 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md border border-purple-200 flex items-center space-x-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span>Configure</span>
+        </button>
+      </div>
+    </div>
+  {/if}
 
   <!-- Detailed Information -->
   {#if exportStatus}
@@ -374,26 +500,33 @@
         <h4 class="font-semibold text-blue-900 mb-2">How Mobile Sync Works</h4>
         <p class="text-sm text-blue-700 leading-relaxed">
           This feature exports your client and cession data to Supabase Storage, making it accessible to mobile applications. 
-          Data is automatically synchronized whenever changes occur in the database, or you can trigger a manual sync using the button above.
+          Data can be synchronized manually using the button above, or automatically on a schedule you configure.
         </p>
         <div class="mt-3 flex items-center space-x-4 text-xs text-blue-600">
           <div class="flex items-center space-x-1">
             <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
-            <span>Auto-sync enabled</span>
+            <span>Manual sync</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <span>Auto-scheduled</span>
           </div>
           <div class="flex items-center space-x-1">
             <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span>Cloud storage</span>
-          </div>
-          <div class="flex items-center space-x-1">
-            <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
-            <span>Mobile ready</span>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Schedule Settings Modal -->
+{#if showScheduleSettings}
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <ExportScheduleSettings onClose={closeScheduleSettings} />
+  </div>
+{/if}
 
 <style>
   /* Glass morphism enhancements */

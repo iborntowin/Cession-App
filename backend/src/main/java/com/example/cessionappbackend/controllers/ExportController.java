@@ -1,7 +1,9 @@
 package com.example.cessionappbackend.controllers;
 
+import com.example.cessionappbackend.dto.ExportScheduleConfigDTO;
 import com.example.cessionappbackend.dto.ExportStatusDTO;
 import com.example.cessionappbackend.entities.ExportStatus;
+import com.example.cessionappbackend.services.ExportSchedulerService;
 import com.example.cessionappbackend.services.ExportStatusService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +24,9 @@ public class ExportController {
 
     @Autowired
     private ExportStatusService exportStatusService;
+
+    @Autowired
+    private ExportSchedulerService exportSchedulerService;
 
     /**
      * Get the latest export status
@@ -213,6 +218,89 @@ public class ExportController {
             
         } catch (Exception e) {
             logger.error("Mobile export failed with exception", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get current schedule configuration
+     * GET /api/v1/export/schedule/config
+     */
+    @GetMapping("/schedule/config")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ExportScheduleConfigDTO> getScheduleConfig() {
+        logger.debug("Request received to get schedule configuration");
+        
+        try {
+            ExportScheduleConfigDTO config = exportSchedulerService.getScheduleConfig();
+            return ResponseEntity.ok(config);
+        } catch (Exception e) {
+            logger.error("Failed to get schedule configuration", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Update schedule configuration
+     * POST /api/v1/export/schedule/config
+     */
+    @PostMapping("/schedule/config")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ExportScheduleConfigDTO> updateScheduleConfig(
+            @RequestBody ExportScheduleConfigDTO configDTO) {
+        logger.info("Request received to update schedule configuration");
+        
+        try {
+            ExportScheduleConfigDTO updated = exportSchedulerService.updateScheduleConfig(configDTO);
+            logger.info("Schedule configuration updated successfully");
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            logger.error("Failed to update schedule configuration", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Toggle scheduled exports on/off
+     * POST /api/v1/export/schedule/toggle
+     */
+    @PostMapping("/schedule/toggle")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ExportScheduleConfigDTO> toggleScheduledExports(
+            @RequestParam boolean enabled) {
+        logger.info("Request received to toggle scheduled exports: {}", enabled);
+        
+        try {
+            ExportScheduleConfigDTO updated = exportSchedulerService.toggleScheduledExports(enabled);
+            logger.info("Scheduled exports toggled successfully: {}", enabled);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            logger.error("Failed to toggle scheduled exports", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Trigger a test export (does not count towards statistics)
+     * POST /api/v1/export/schedule/test
+     */
+    @PostMapping("/schedule/test")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ExportStatusDTO> triggerTestExport() {
+        logger.info("Request received to trigger test export");
+        
+        try {
+            ExportStatusDTO result = exportSchedulerService.triggerTestExport();
+            
+            if (result.getStatus() == ExportStatus.ExportStatusEnum.SUCCESS) {
+                logger.info("Test export completed successfully");
+                return ResponseEntity.ok(result);
+            } else {
+                logger.warn("Test export failed: {}", result.getErrorMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+            }
+        } catch (Exception e) {
+            logger.error("Test export failed with exception", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
