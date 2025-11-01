@@ -8,9 +8,7 @@ export default defineConfig(({ mode }) => {
 		plugins: [sveltekit()],
 		optimizeDeps: {
 			include: [
-				'chart.js/auto'
-			],
-			exclude: [
+				'chart.js/auto',
 				'@tauri-apps/api'
 			]
 		},
@@ -29,12 +27,6 @@ export default defineConfig(({ mode }) => {
 			target: 'esnext',
 			minify: isProduction ? 'esbuild' : false,
 			sourcemap: !isProduction,
-			rollupOptions: {
-				external: (id) => {
-					// Always externalize Tauri APIs to prevent bundling issues
-					return id.startsWith('@tauri-apps/api');
-				}
-			},
 			chunkSizeWarningLimit: 1000,
 			assetsInlineLimit: 4096
 		},

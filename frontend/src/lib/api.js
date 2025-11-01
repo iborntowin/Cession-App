@@ -1440,3 +1440,10 @@ export const api = {
   financial: financialApi,
   health: healthApi
 };
+
+
+// Export individual APIs for direct import
+export const clients = clientsApi;
+export const cessions = cessionsApi;
+export const documents = documentsApi;
+

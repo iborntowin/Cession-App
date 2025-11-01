@@ -14,8 +14,6 @@
     "core:resources:default",
     "core:menu:default",
     "core:tray:default",
-    "updater:default",
-    "updater:allow-check",
     "process:default",
     "process:allow-restart"
   ]

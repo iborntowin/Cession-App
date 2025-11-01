@@ -1,0 +1,435 @@
+/**
+ * Auto-Update Manager for Cession Management App
+ * Comprehensive error logging and progress tracking
+ * Version: 2.0 - Enhanced Diagnostics
+ */
+
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import { getVersion } from '@tauri-apps/api/app';
+import { showAlert } from './stores';
+
+// Detailed error logger
+function logError(context, error, additionalInfo = {}) {
+  const errorLog = {
+    timestamp: new Date().toISOString(),
+    context,
+    errorType: error?.constructor?.name || 'Unknown',
+    errorMessage: error?.message || String(error),
+    errorStack: error?.stack || 'No stack trace',
+    additionalInfo,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
+    platform: typeof window !== 'undefined' && window.__TAURI__ ? 'Tauri' : 'Browser'
+  };
+  
+  console.error('🔴 ERROR LOG:', JSON.stringify(errorLog, null, 2));
+  return errorLog;
+}
+
+// Detailed status logger
+function logStatus(status, message, data = {}) {
+  const statusLog = {
+    timestamp: new Date().toISOString(),
+    status,
+    message,
+    data
+  };
+  
+  console.log(`📊 STATUS [${status}]:`, message, data);
+  return statusLog;
+}
+
+/**
+ * Enhanced update checker with progress callback support
+ * @param {Function} onProgress - Callback function for progress updates
+ * @param {Function} onStatus - Callback function for status updates
+ * @returns {Promise<Object>} Update result with status
+ */
+export async function checkForUpdatesEnhanced(onProgress = null, onStatus = null) {
+  const updateStatus = (status, details = {}) => {
+    console.log(`📊 Update Status: ${status}`, details);
+    if (onStatus) onStatus(status, details);
+  };
+
+  const updateProgress = (downloaded, total, percent) => {
+    console.log(`📥 Download Progress: ${percent}% (${formatBytes(downloaded)} / ${formatBytes(total)})`);
+    if (onProgress) onProgress({ downloaded, total, percent });
+  };
+
+  try {
+    updateStatus('checking', { message: 'Connecting to update server...' });
+    console.log('🔍 ============================================');
+    console.log('🔍 CHECKING FOR UPDATES');
+    console.log('🔍 ============================================');
+    console.log('📡 Endpoint: https://github.com/iborntowin/Cession-App/releases/latest/download/latest.json');
+    
+    // Get current version first
+    const currentVersion = await getCurrentVersion();
+    console.log('📋 Current installed version:', currentVersion);
+    
+    // Check for updates with longer timeout
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Update check timed out after 30 seconds')), 30000)
+    );
+    
+    const update = await Promise.race([check(), timeoutPromise]);
+    
+    console.log('📦 ============================================');
+    console.log('📦 UPDATE CHECK RESPONSE');
+    console.log('📦 Raw response:', JSON.stringify(update, null, 2));
+    console.log('📦 Response type:', typeof update);
+    console.log('📦 Response is null:', update === null);
+    console.log('📦 Response is undefined:', update === undefined);
+    if (update) {
+      console.log('📦 update.available:', update.available);
+      console.log('📦 update.version:', update.version);
+      console.log('📦 update.currentVersion:', update.currentVersion);
+    }
+    console.log('📦 ============================================');
+    
+    // When update is null, it means we're already up to date
+    if (!update) {
+      console.log('✅ ============================================');
+      console.log('✅ NO UPDATE NEEDED (null response)');
+      console.log(`✅ Current version: ${currentVersion}`);
+      console.log('✅ You are already on the latest version');
+      console.log('✅ ============================================');
+      
+      updateStatus('up-to-date', { 
+        currentVersion,
+        message: `You're on the latest version (${currentVersion})` 
+      });
+      
+      return { 
+        success: true, 
+        available: false, 
+        currentVersion,
+        message: 'Already up to date' 
+      };
+    }
+    
+    if (update.available) {
+      const newVersion = update.version;
+      const releaseNotes = update.body || 'New features and improvements included.';
+      
+      console.log('✨ ============================================');
+      console.log('✨ UPDATE AVAILABLE!');
+      console.log(`✨ Current: ${currentVersion}`);
+      console.log(`✨ New: ${newVersion}`);
+      console.log(`✨ Notes: ${releaseNotes}`);
+      console.log('✨ Update object type:', typeof update);
+      console.log('✨ Update object keys:', Object.keys(update || {}));
+      console.log('✨ Update object:', JSON.stringify(update, null, 2));
+      console.log('✨ ============================================');
+      
+      updateStatus('available', {
+        currentVersion,
+        newVersion,
+        releaseNotes,
+        update: update, // Include the full update object
+        message: `Update ${newVersion} is available!`
+      });
+      
+      return {
+        success: true,
+        available: true,
+        currentVersion,
+        newVersion,
+        releaseNotes,
+        update: update // Make sure update object is returned
+      };
+    } else {
+      console.log('✅ ============================================');
+      console.log('✅ NO UPDATE NEEDED');
+      console.log(`✅ Current version: ${currentVersion}`);
+      console.log(`✅ Latest version: ${update.version || 'unknown'}`);
+      console.log('✅ You are already on the latest version');
+      console.log('✅ ============================================');
+      
+      updateStatus('up-to-date', { 
+        currentVersion,
+        latestVersion: update.version,
+        message: `You're on the latest version (${currentVersion})` 
+      });
+      
+      return { 
+        success: true, 
+        available: false, 
+        currentVersion,
+        latestVersion: update.version,
+        message: 'Already up to date' 
+      };
+    }
+  } catch (error) {
+    console.error('❌ Update check failed:', error);
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
+    updateStatus('error', { 
+      error: error.message,
+      errorType: error.constructor.name,
+      message: `Update check failed: ${error.message}`
+    });
+    
+    return { 
+      success: false, 
+      error: error.message,
+      errorType: error.constructor.name,
+      fullError: error
+    };
+  }
+}
+
+/**
+ * Download and install an update
+ * @param {Object} updateObject - The update object from check()
+ * @param {Function} onProgress - Progress callback
+ * @param {Function} onStatus - Status callback
+ * @returns {Promise<Object>} Installation result
+ */
+export async function downloadAndInstallUpdate(updateObject, onProgress = null, onStatus = null) {
+  const updateStatus = (status, details = {}) => {
+    console.log(`📊 Install Status: ${status}`, details);
+    if (onStatus) onStatus(status, details);
+  };
+
+  const updateProgress = (downloaded, total, percent) => {
+    console.log(`📥 Download: ${percent}% (${formatBytes(downloaded)} / ${formatBytes(total)})`);
+    if (onProgress) onProgress({ downloaded, total, percent });
+  };
+
+  try {
+    console.log('📥 ============================================');
+    console.log('📥 STARTING DOWNLOAD & INSTALL');
+    console.log('📥 ============================================');
+    updateStatus('downloading', { message: 'Starting download...' });
+    
+    let lastPercent = 0;
+    
+    // Download and install with progress tracking
+    await updateObject.downloadAndInstall((event) => {
+      // Log EVERY event with full details for debugging
+      console.log('� ============================================');
+      console.log('📦 RAW EVENT RECEIVED');
+      console.log('📦 Event object:', JSON.stringify(event, null, 2));
+      console.log('📦 Event type:', typeof event);
+      console.log('📦 Event keys:', Object.keys(event || {}));
+      if (event.data) {
+        console.log('📦 Event data keys:', Object.keys(event.data || {}));
+        console.log('📦 Event data:', JSON.stringify(event.data, null, 2));
+      }
+      console.log('📦 ============================================');
+      
+      try {
+        if (event.event === 'Started') {
+          const contentLength = event.data?.contentLength || 0;
+          updateStatus('downloading', { 
+            message: 'Download started',
+            contentLength,
+            contentLengthMB: (contentLength / (1024 * 1024)).toFixed(2)
+          });
+          console.log(`� DOWNLOAD STARTED`);
+          console.log(`🚀 Total size: ${formatBytes(contentLength)} (${contentLength} bytes)`);
+          updateProgress(0, contentLength, 0);
+        } 
+        else if (event.event === 'Progress') {
+          // Try multiple possible property names for Tauri v2 compatibility
+          // In Tauri v2, the event structure might be: { event: 'Progress', data: { chunkLength, contentLength } }
+          let downloaded = 0;
+          let total = 1;
+          
+          // Try different property paths
+          if (event.data) {
+            downloaded = event.data.chunkLength || event.data.downloaded || event.data.current || 0;
+            total = event.data.contentLength || event.data.total || event.data.size || 1;
+          } else if (event.chunkLength !== undefined) {
+            // Sometimes properties are at top level
+            downloaded = event.chunkLength || 0;
+            total = event.contentLength || 1;
+          }
+          
+          console.log(`📊 Progress event received:`, {
+            downloaded,
+            total,
+            eventData: event.data,
+            eventKeys: Object.keys(event)
+          });
+          
+          if (downloaded === 0 && total <= 1) {
+            console.warn('⚠️ WARNING: Invalid progress values detected!');
+            console.warn('⚠️ downloaded:', downloaded, 'total:', total);
+            console.warn('⚠️ Full event:', JSON.stringify(event, null, 2));
+            // Don't update progress with invalid values
+            return;
+          }
+          
+          const percent = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+          
+          // Log every 5% to avoid spam but track progress
+          if (percent >= lastPercent + 5 || percent === 100 || percent === 0) {
+            console.log(`📥 Download ${percent}% - ${formatBytes(downloaded)} / ${formatBytes(total)}`);
+            updateStatus('downloading', {
+              message: `Downloading: ${percent}%`,
+              downloaded,
+              total,
+              percent,
+              downloadedMB: (downloaded / (1024 * 1024)).toFixed(2),
+              totalMB: (total / (1024 * 1024)).toFixed(2)
+            });
+            lastPercent = percent;
+          }
+          
+          updateProgress(downloaded, total, percent);
+        }
+        else if (event.event === 'Finished') {
+          console.log('✅ DOWNLOAD COMPLETE');
+          updateStatus('installing', { message: 'Installing update...' });
+          console.log('🔧 Starting installation phase...');
+          updateProgress(1, 1, 100);
+        }
+        else {
+          console.log(`❓ UNKNOWN EVENT TYPE: "${event.event}"`);
+          console.log('❓ Full event:', event);
+        }
+      } catch (eventError) {
+        console.error('💥 Error in event handler:', eventError);
+        console.error('💥 Stack:', eventError.stack);
+      }
+    });
+    
+    console.log('🔧 ============================================');
+    console.log('🔧 INSTALLATION COMPLETE');
+    console.log('🔧 ============================================');
+    updateStatus('installed', { message: 'Update installed successfully!' });
+    console.log('✅ Update installed successfully!');
+    console.log('🔄 Preparing to restart application in 2 seconds...');
+    
+    // Wait a moment before relaunch
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    updateStatus('restarting', { message: 'Restarting application...' });
+    console.log('🔄 Executing relaunch...');
+    
+    try {
+      await relaunch();
+      return { success: true };
+    } catch (relaunchError) {
+      console.error('💥 Relaunch failed:', relaunchError);
+      updateStatus('relaunch-error', {
+        message: 'Failed to restart. Please restart manually.',
+        error: relaunchError.message
+      });
+      return { success: false, error: 'Relaunch failed: ' + relaunchError.message };
+    }
+    
+  } catch (error) {
+    console.error('💥 ============================================');
+    console.error('💥 INSTALLATION FAILED');
+    console.error('💥 ============================================');
+    console.error('💥 Error type:', error.constructor.name);
+    console.error('💥 Error message:', error.message);
+    console.error('💥 Error stack:', error.stack);
+    
+    updateStatus('install-error', { 
+      error: error.message,
+      errorType: error.constructor.name,
+      message: `Installation failed: ${error.message}`
+    });
+    
+    return { 
+      success: false, 
+      error: error.message,
+      errorType: error.constructor.name 
+    };
+  }
+}
+
+/**
+ * Legacy function for backward compatibility
+ * Check for available updates and prompt user to install
+ * @returns {Promise<boolean>} True if update was installed, false otherwise
+ */
+export async function checkForUpdates(silent = false) {
+  try {
+    console.log('🔍 Checking for updates (legacy mode)...');
+    
+    const update = await check();
+    
+    if (update?.available) {
+      console.log(`✨ Update available: ${update.version}`);
+      console.log(`📝 Current version: ${update.currentVersion}`);
+      console.log(`📋 Release notes: ${update.body}`);
+      
+      if (!silent) {
+        showAlert(`Update ${update.version} available!`, 'info');
+      }
+      
+      return true;
+    } else {
+      if (!silent) {
+        console.log('✅ No updates available');
+        showAlert('You are using the latest version! 🎉', 'success');
+      }
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Update check failed:', error);
+    if (!silent) {
+      showAlert(`Update check failed: ${error.message}`, 'error');
+    }
+    return false;
+  }
+}
+
+/**
+ * Format bytes to human-readable format
+ * @param {number} bytes - Number of bytes
+ * @returns {string} Formatted string (e.g., "1.5 MB")
+ */
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Get current app version
+ * @returns {Promise<string>} Current version
+ */
+export async function getCurrentVersion() {
+  try {
+    return await getVersion();
+  } catch (error) {
+    console.error('Failed to get app version:', error);
+    return 'Unknown';
+  }
+}
+
+/**
+ * Set up automatic update checking
+ * Checks on startup and every 24 hours
+ */
+export function setupAutoUpdateCheck() {
+  console.log('⚙️ Setting up automatic update checking...');
+  
+  // Check for updates 30 seconds after startup (silent)
+  setTimeout(() => {
+    console.log('🕐 Running scheduled update check (startup)...');
+    checkForUpdates(true).catch(err => 
+      console.error('Startup update check failed:', err)
+    );
+  }, 30000);
+  
+  // Check for updates every 24 hours (silent)
+  setInterval(() => {
+    console.log('🕐 Running scheduled update check (24h interval)...');
+    checkForUpdates(true).catch(err => 
+      console.error('Scheduled update check failed:', err)
+    );
+  }, 24 * 60 * 60 * 1000);
+  
+  console.log('✅ Automatic update checking enabled');
+}

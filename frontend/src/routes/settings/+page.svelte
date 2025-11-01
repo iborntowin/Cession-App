@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import ExportStatusCard from '$lib/components/ExportStatusCard.svelte';
+  import EnhancedUpdateChecker from '$lib/components/EnhancedUpdateChecker.svelte';
   import { fade, fly, scale, slide } from 'svelte/transition';
   import { checkForUpdates, getCurrentVersion } from '$lib/updater';
 
@@ -12,6 +13,14 @@
   let currentLanguage;
   let pageVisible = false;
   let checkingUpdates = false;
+  let appVersion = '...'; // Will be loaded asynchronously
+  
+  // Update progress tracking
+  let updateStatus = ''; // Status message
+  let updateProgress = 0; // 0-100
+  let updateError = null; // Error details
+  let updateAvailable = false; // Whether update is available
+  let updateInfo = null; // Update details (version, notes, etc.)
 
   // Subscribe to language changes
   const unsubscribe = language.subscribe(lang => {
@@ -25,11 +34,19 @@
     }
   });
 
-  onMount(() => {
+  onMount(async () => {
     // Set initial direction and language
     if (browser && currentLanguage) {
       document.documentElement.dir = currentLanguage.isRTL ? 'rtl' : 'ltr';
       document.documentElement.lang = currentLanguage.code;
+    }
+    
+    // Load current app version
+    try {
+      appVersion = await getCurrentVersion();
+    } catch (error) {
+      console.error('Failed to load app version:', error);
+      appVersion = '1.0.0';
     }
     
     // Trigger page animation
@@ -64,8 +81,152 @@
 
   async function handleCheckUpdates() {
     checkingUpdates = true;
-    await checkForUpdates();
-    checkingUpdates = false;
+    updateError = null;
+    updateStatus = 'Initializing update check...';
+    updateProgress = 5;
+    
+    try {
+      // Import check function from updater plugin
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const { relaunch } = await import('@tauri-apps/plugin-process');
+      
+      updateStatus = 'Connecting to update server...';
+      updateProgress = 15;
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Update check timed out after 30 seconds')), 30000)
+      );
+      
+      updateStatus = 'Checking for new versions...';
+      updateProgress = 30;
+      
+      const update = await Promise.race([check(), timeoutPromise]);
+      
+      updateProgress = 50;
+      
+      console.log('📦 Update check result:', update);
+      console.log('📦 Update is null:', update === null);
+      console.log('📦 Update available:', update?.available);
+      
+      // Handle null response (already up to date)
+      if (update === null) {
+        const currentVer = await getCurrentVersion();
+        updateStatus = 'You are on the latest version!';
+        updateProgress = 100;
+        console.log('✅ Already up to date - version:', currentVer);
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+          updateStatus = '';
+          updateProgress = 0;
+          checkingUpdates = false;
+        }, 3000);
+        return;
+      }
+      
+      if (update?.available) {
+        updateAvailable = true;
+        updateInfo = {
+          version: update.version,
+          currentVersion: update.currentVersion,
+          notes: update.body || 'New features and improvements'
+        };
+        
+        updateStatus = `Update available: v${update.version}`;
+        updateProgress = 100;
+        
+        console.log('✨ Update available:', update.version);
+        console.log('📝 Current version:', update.currentVersion);
+        console.log('📋 Release notes:', update.body);
+        
+        // Show update dialog
+        const shouldUpdate = confirm(
+          `🎉 A new version is available!\n\n` +
+          `Current version: ${update.currentVersion}\n` +
+          `New version: ${update.version}\n\n` +
+          `${update.body || 'New features and improvements included.'}\n\n` +
+          `Would you like to download and install it now?\n` +
+          `The app will restart after the update.`
+        );
+        
+        if (shouldUpdate) {
+          updateStatus = 'Downloading update...';
+          updateProgress = 0;
+          
+          // Download and install with progress
+          let downloadProgress = 0;
+          await update.downloadAndInstall((progress) => {
+            const percent = Math.round((progress.downloaded / progress.total) * 100);
+            downloadProgress = percent;
+            updateProgress = percent;
+            updateStatus = `Downloading update... ${percent}% (${formatBytes(progress.downloaded)} / ${formatBytes(progress.total)})`;
+            
+            if (percent % 10 === 0) {
+              console.log(`⬇️ Download progress: ${percent}%`);
+            }
+          });
+          
+          updateStatus = 'Update installed! Restarting...';
+          updateProgress = 100;
+          
+          // Wait for user to see message
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Relaunch the app
+          await relaunch();
+        } else {
+          updateStatus = 'Update cancelled by user';
+          updateProgress = 0;
+          checkingUpdates = false;
+        }
+      } else {
+        // update exists but available = false (also means up to date)
+        const currentVer = update.currentVersion || await getCurrentVersion();
+        updateStatus = 'You are on the latest version!';
+        updateProgress = 100;
+        console.log('✅ No updates available - current version:', currentVer);
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+          updateStatus = '';
+          updateProgress = 0;
+          checkingUpdates = false;
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('❌ Update check failed:', error);
+      
+      updateError = {
+        message: error.message || 'Unknown error',
+        details: error.stack || ''
+      };
+      
+      // Provide specific error messages
+      if (error.message?.includes('timed out')) {
+        updateStatus = 'Update check timed out';
+        updateError.message = 'Could not connect to update server within 30 seconds';
+      } else if (error.message?.includes('Could not fetch')) {
+        updateStatus = 'Could not connect to update server';
+        updateError.message = 'Network error - please check your internet connection';
+      } else if (error.message?.includes('signature')) {
+        updateStatus = 'Update signature verification failed';
+        updateError.message = 'Update package signature could not be verified';
+      } else {
+        updateStatus = 'Update check failed';
+      }
+      
+      updateProgress = 0;
+      checkingUpdates = false;
+    }
+  }
+  
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   }
 </script>
 
@@ -235,56 +396,7 @@
 
             <!-- Content -->
             <div class="p-8">
-              <div class="flex flex-col space-y-6">
-                <!-- Current Version -->
-                <div class="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100/50">
-                  <div class="flex items-center space-x-3" style="direction: {currentLanguage?.code === 'ar' ? 'rtl' : 'ltr'}">
-                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p class="text-sm text-gray-600">
-                        {$t('settings.updates.currentVersion', 'Current Version')}
-                      </p>
-                      <p class="text-lg font-bold text-gray-900">
-                        v{getCurrentVersion()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Update Button -->
-                <button
-                  on:click={handleCheckUpdates}
-                  disabled={checkingUpdates}
-                  class="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 group"
-                >
-                  {#if checkingUpdates}
-                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>{$t('settings.updates.checking', 'Checking for updates...')}</span>
-                  {:else}
-                    <svg class="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>{$t('settings.updates.checkButton', 'Check for Updates')}</span>
-                  {/if}
-                </button>
-
-                <!-- Auto-update Info -->
-                <div class="flex items-start space-x-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100/50" style="direction: {currentLanguage?.code === 'ar' ? 'rtl' : 'ltr'}">
-                  <svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                  </svg>
-                  <p class="text-sm text-gray-600">
-                    {$t('settings.updates.autoInfo', 'The app automatically checks for updates on startup and every 24 hours. You will be notified when a new version is available.')}
-                  </p>
-                </div>
-              </div>
+              <EnhancedUpdateChecker />
             </div>
           </div>
         </div>

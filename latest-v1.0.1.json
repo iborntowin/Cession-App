@@ -1,0 +1,11 @@
+{
+  "version": "1.0.1",
+  "notes": "Bug fixes:\n- Fixed white screen issue\n- Improved backend connection\n- Enhanced error handling",
+  "pub_date": "2025-10-20T09:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "",
+      "url": "https://github.com/iborntowin/Cession-App/releases/download/v1.0.1/Cession-Management-App_1.0.1_x64_en-US.msi.zip"
+    }
+  }
+}

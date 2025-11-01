@@ -2,6 +2,8 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(dead_code)]  // Suppress unused code warnings
 
+mod updater;
+
 // Additional console hiding for Windows - DISABLED FOR DEBUGGING
 #[cfg(windows)]
 fn hide_console_window() {
@@ -1596,12 +1598,8 @@ fn launch_backend_process(config: &BackendConfig) -> Result<BackendProcess, Stri
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    // Hide console window for Java process on Windows
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-    }
+    // Console window visible for Java process (for debugging)
+    // Removed: CREATE_NO_WINDOW flag to allow console output
 
     log::info!("Executing command: {:?}", cmd);
     log::info!("Working directory: {}", config.data_dir.display());
@@ -1965,7 +1963,6 @@ fn main() {
     let backend_status_clone = backend_status.clone();
 
     let _app = tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(move |app| {
             let logging_system = match LoggingSystem::new(&app.handle()) {
@@ -2164,7 +2161,9 @@ fn main() {
             get_error_history,
             export_logs,
             clear_logs,
-            log_structured_message
+            log_structured_message,
+            updater::check_for_updates,
+            updater::download_and_install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
