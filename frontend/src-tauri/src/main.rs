@@ -1,14 +1,12 @@
-// TEMPORARILY ENABLE CONSOLE FOR DEBUGGING
-// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Hide console window in release builds
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(dead_code)]  // Suppress unused code warnings
 
 mod updater;
 
-// Additional console hiding for Windows - DISABLED FOR DEBUGGING
+// Additional console hiding for Windows
 #[cfg(windows)]
 fn hide_console_window() {
-    // CONSOLE ENABLED - Comment out to see logs
-    /*
     unsafe {
         let console_window = winapi::um::wincon::GetConsoleWindow();
         if !console_window.is_null() {
@@ -18,7 +16,6 @@ fn hide_console_window() {
         // Also try to free the console
         winapi::um::wincon::FreeConsole();
     }
-    */
 }
 
 #[cfg(not(windows))]
@@ -1598,8 +1595,13 @@ fn launch_backend_process(config: &BackendConfig) -> Result<BackendProcess, Stri
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    // Console window visible for Java process (for debugging)
-    // Removed: CREATE_NO_WINDOW flag to allow console output
+    // Hide console window for Java process on Windows
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
 
     log::info!("Executing command: {:?}", cmd);
     log::info!("Working directory: {}", config.data_dir.display());

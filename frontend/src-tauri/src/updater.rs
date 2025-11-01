@@ -242,75 +242,70 @@ async fn install_nsis_exe(exe_path: &PathBuf, _app_handle: &AppHandle) -> Result
         return Err("Installer file not found".to_string());
     }
     
-    // Create a batch script to run the installer AFTER this app exits
-    // This completely avoids file locking issues
+    // Create a VBScript to run the installer completely hidden (no terminal window)
     let temp_dir = std::env::temp_dir();
+    let vbs_script = temp_dir.join(format!("cession_update_{}.vbs", uuid::Uuid::new_v4()));
     let batch_script = temp_dir.join(format!("cession_update_{}.bat", uuid::Uuid::new_v4()));
     
-    let installer_path_str = exe_path.to_string_lossy().to_string();
-    let app_name = "cession-app-frontend.exe";  // Actual executable name from Tauri build
+    let installer_path_str = exe_path.to_string_lossy().to_string().replace("\\", "\\\\");
+    let batch_path_str = batch_script.to_string_lossy().to_string().replace("\\", "\\\\");
+    let app_name = "cession-app-frontend.exe";
     let install_dir = std::env::var("PROGRAMFILES")
         .unwrap_or_else(|_| "C:\\Program Files".to_string());
-    let app_path = format!("{}\\Cession Management App\\{}", install_dir, app_name);
+    let app_path = format!("{}\\Cession Management App\\{}", install_dir, app_name).replace("\\", "\\\\");
     
-    // Batch script that:
-    // 1. Waits 2 seconds for app to fully close
-    // 2. Runs the installer silently
-    // 3. Waits for installer to finish
-    // 4. Launches the new version
-    // 5. Cleans up both installer and itself
+    // Batch script that runs the actual installation
     let batch_content = format!(
         r#"@echo off
-echo Waiting for Cession App to close...
 timeout /t 2 /nobreak >nul
-
-echo Running installer...
 "{}" /S
-if errorlevel 1 (
-    echo Installation failed!
-    pause
-    goto cleanup
-)
-
-echo Waiting for installation to complete...
 timeout /t 3 /nobreak >nul
-
-echo Launching new version...
 start "" "{}"
-
-:cleanup
-echo Cleaning up...
-del /f /q "{}"
-del /f /q "%~f0"
+del /f /q "{}" 2>nul
+del /f /q "%~f0" 2>nul
 "#,
-        installer_path_str,
-        app_path,
-        installer_path_str
+        installer_path_str.replace("\\\\", "\\"),
+        app_path.replace("\\\\", "\\"),
+        installer_path_str.replace("\\\\", "\\")
     );
     
-    log::info!("Creating launcher batch script: {}", batch_script.display());
+    // VBScript that runs the batch file completely hidden (no window at all)
+    let vbs_content = format!(
+        r#"Set objShell = CreateObject("WScript.Shell")
+objShell.Run "cmd /c ""{}"" ", 0, False
+Set objShell = Nothing
+"#,
+        batch_path_str.replace("\\\\", "\\")
+    );
+    
+    log::info!("Creating silent launcher scripts");
     tokio::fs::write(&batch_script, batch_content)
         .await
         .map_err(|e| format!("Failed to create batch script: {}", e))?;
     
-    log::info!("Starting installer via batch script...");
+    tokio::fs::write(&vbs_script, vbs_content)
+        .await
+        .map_err(|e| format!("Failed to create VBS script: {}", e))?;
     
-    // Run the batch script in a detached process
-    match std::process::Command::new("cmd")
-        .args(&["/c", "start", "/min", batch_script.to_str().unwrap()])
+    log::info!("Starting installer via hidden VBScript...");
+    
+    // Run the VBScript which will run everything completely hidden
+    match std::process::Command::new("wscript")
+        .args(&[vbs_script.to_str().unwrap()])
         .spawn()
     {
         Ok(_) => {
             log::info!("Update script launched successfully!");
             log::info!("Exiting current application to complete update...");
             
-            // Exit immediately - the batch script will handle everything
+            // Exit immediately - the script will handle everything
             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
             std::process::exit(0);
         }
         Err(e) => {
             // Clean up on error
             let _ = tokio::fs::remove_file(&batch_script).await;
+            let _ = tokio::fs::remove_file(&vbs_script).await;
             let _ = tokio::fs::remove_file(exe_path).await;
             
             Err(format!("Failed to launch update script: {}. Try running as administrator.", e))
