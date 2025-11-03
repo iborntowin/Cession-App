@@ -429,3 +429,89 @@ export function setupAutoUpdateCheck() {
   
   console.log('✅ Automatic update checking enabled');
 }
+
+/**
+ * Set up automatic update checking based on user preferences
+ * Checks update config from backend and conditionally performs update check on app launch
+ */
+export async function setupConditionalUpdateCheck() {
+  try {
+    console.log('⚙️ Setting up conditional update checking based on user preferences...');
+
+    // Import required functions
+    const { getAuthHeaders } = await import('./api');
+    const { config } = await import('./config');
+
+    // Fetch update configuration from backend
+    const headers = getAuthHeaders();
+    const response = await fetch(`${config.backendUrl}/api/v1/updates/config`, {
+      method: 'GET',
+      headers: headers,
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      console.warn('Failed to fetch update config, using defaults');
+      // Use default config if backend is unavailable
+      const defaultConfig = {
+        checkOnStartup: true,
+        autoUpdateEnabled: false,
+        checkOnSettingsOpen: true
+      };
+      await performConditionalCheck(defaultConfig);
+      return;
+    }
+
+    const updateConfig = await response.json();
+    console.log('📋 Update config loaded:', updateConfig);
+
+    // Perform conditional check based on config
+    await performConditionalCheck(updateConfig);
+
+  } catch (error) {
+    console.error('Failed to setup conditional update check:', error);
+    // Fallback to basic check
+    try {
+      await performConditionalCheck({
+        checkOnStartup: true,
+        autoUpdateEnabled: false,
+        checkOnSettingsOpen: true
+      });
+    } catch (fallbackError) {
+      console.error('Fallback update check also failed:', fallbackError);
+    }
+  }
+}
+
+/**
+ * Perform update check based on configuration
+ * @param {Object} config - Update configuration
+ */
+async function performConditionalCheck(config) {
+  const shouldCheck = config.checkOnStartup === true;
+
+  if (shouldCheck) {
+    console.log('🕐 Performing update check on app startup (user preference enabled)...');
+
+    try {
+      // Delay the check slightly to allow app to fully load
+      setTimeout(async () => {
+        const result = await checkForUpdatesEnhanced();
+
+        if (result.available && config.autoUpdateEnabled) {
+          console.log('🤖 Auto-update enabled, starting automatic download...');
+          // For auto-update, we would need the update object, but since this is a background check,
+          // we'll let the UpdateStatusCard handle the actual download when the user sees it
+        } else if (result.available) {
+          console.log('📢 Update available, will notify user when they access settings');
+        } else {
+          console.log('✅ App is up to date');
+        }
+      }, 10000); // 10 second delay to let app fully load
+    } catch (error) {
+      console.error('Startup update check failed:', error);
+    }
+  } else {
+    console.log('🔕 Startup update check disabled by user preference');
+  }
+}

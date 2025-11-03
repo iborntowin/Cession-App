@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import ExportStatusCard from '$lib/components/ExportStatusCard.svelte';
-  import EnhancedUpdateChecker from '$lib/components/EnhancedUpdateChecker.svelte';
+  import UpdateStatusCard from '$lib/components/UpdateStatusCard.svelte';
   import { fade, fly, scale, slide } from 'svelte/transition';
   import { checkForUpdates, getCurrentVersion } from '$lib/updater';
 
@@ -396,7 +396,7 @@
 
             <!-- Content -->
             <div class="p-8">
-              <EnhancedUpdateChecker />
+              <UpdateStatusCard />
             </div>
           </div>
         </div>

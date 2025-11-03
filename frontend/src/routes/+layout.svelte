@@ -15,7 +15,7 @@
   import { t } from '$lib/i18n';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { setupAutoUpdateCheck } from '$lib/updater';
+  import { setupConditionalUpdateCheck } from '$lib/updater';
   
   export let data;
   
@@ -53,9 +53,9 @@
           goto('/');
       }
 
-      // Enable auto-update checks (temporarily disabled for troubleshooting)
+      // Enable conditional update checks based on user preferences
       if (tokenAfterMount) {
-        // setupAutoUpdateCheck(); // Commented out temporarily
+        setupConditionalUpdateCheck();
       }
 
       return () => {
