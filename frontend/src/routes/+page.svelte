@@ -60,7 +60,8 @@
     riskScore: 0,
     profitMargin: 0,
     clientSatisfaction: 0,
-    processingTime: 0
+    processingTime: 0,
+    revenueGrowth: 0
   };
 
   // 🎨 UI State Management
@@ -78,7 +79,10 @@
     monthlyPaymentsTotal: 0,
     averagePaymentAmount: 0,
     paymentSuccessRate: 0,
-    monthlyRevenue: 0
+    monthlyRevenue: 0,
+    totalRevenue: 0,
+    payingUsersThisMonth: 0,
+    avgRevenuePerCustomer: 0
   };
 
   // Safe date formatting function
@@ -237,14 +241,8 @@
       await loadAdvancedAnalytics(); // This depends on recentCessions
       await loadSystemHealth();
       
-      // Calculate monthly revenue after payments are loaded
-      const safeAmount = (amount) => {
-        if (typeof amount === 'number') return amount;
-        if (typeof amount === 'string') return parseFloat(amount) || 0;
-        if (typeof amount === 'object' && amount !== null) return parseFloat(amount.toString()) || 0;
-        return 0;
-      };
-      quickStats.monthlyRevenue = payments.reduce((s, p) => s + safeAmount(p.amount), 0);
+      // ✅ FIXED: Calculate REAL monthly revenue (only completed payments from current month)
+      calculateRevenueMetrics();
       
       generateDailyGoals();
       
@@ -255,6 +253,90 @@
     } finally {
       $loading = false;
     }
+  }
+
+  // 💰 Calculate Revenue Metrics - ACCURATE BUSINESS INTELLIGENCE
+  function calculateRevenueMetrics() {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    
+    // Helper function to safely parse amounts
+    const safeAmount = (amount) => {
+      if (typeof amount === 'number') return amount;
+      if (typeof amount === 'string') return parseFloat(amount) || 0;
+      if (typeof amount === 'object' && amount !== null) return parseFloat(amount.toString()) || 0;
+      return 0;
+    };
+    
+    // ✅ FIXED: Monthly Revenue = Only COMPLETED/PAID payments from current month
+    const currentMonthPayments = payments.filter(p => {
+      const paymentDate = new Date(p.createdAt || p.paymentDate);
+      const isThisMonth = paymentDate >= monthStart && paymentDate <= monthEnd;
+      const isCompleted = !p.status || p.status === 'COMPLETED' || p.status === 'PAID' || 
+                         p.status?.toLowerCase() === 'completed' || p.status?.toLowerCase() === 'paid';
+      return isThisMonth && isCompleted;
+    });
+    
+    quickStats.monthlyRevenue = currentMonthPayments.reduce((sum, p) => sum + safeAmount(p.amount), 0);
+    
+    // ✅ NEW: Total Cumulative Revenue = All COMPLETED/PAID payments ever
+    const allCompletedPayments = payments.filter(p => {
+      const isCompleted = !p.status || p.status === 'COMPLETED' || p.status === 'PAID' || 
+                         p.status?.toLowerCase() === 'completed' || p.status?.toLowerCase() === 'paid';
+      return isCompleted;
+    });
+    
+    quickStats.totalRevenue = allCompletedPayments.reduce((sum, p) => sum + safeAmount(p.amount), 0);
+    
+    // ✅ NEW: Paying Users This Month = Unique clients who made payments this month
+    const payingClientIds = new Set(
+      currentMonthPayments
+        .filter(p => p.cessionId || p.clientId)
+        .map(p => p.cessionId || p.clientId)
+    );
+    quickStats.payingUsersThisMonth = payingClientIds.size;
+    
+    // ✅ NEW: Average Revenue Per Customer
+    const totalUniquePayingClients = new Set(
+      allCompletedPayments
+        .filter(p => p.cessionId || p.clientId)
+        .map(p => p.cessionId || p.clientId)
+    ).size;
+    
+    quickStats.avgRevenuePerCustomer = totalUniquePayingClients > 0 
+      ? quickStats.totalRevenue / totalUniquePayingClients 
+      : 0;
+    
+    // ✅ NEW: Revenue Growth % (Month-over-Month)
+    const previousMonthStart = startOfMonth(subMonths(now, 1));
+    const previousMonthEnd = endOfMonth(subMonths(now, 1));
+    
+    const previousMonthPayments = payments.filter(p => {
+      const paymentDate = new Date(p.createdAt || p.paymentDate);
+      const isPreviousMonth = paymentDate >= previousMonthStart && paymentDate <= previousMonthEnd;
+      const isCompleted = !p.status || p.status === 'COMPLETED' || p.status === 'PAID' || 
+                         p.status?.toLowerCase() === 'completed' || p.status?.toLowerCase() === 'paid';
+      return isPreviousMonth && isCompleted;
+    });
+    
+    const previousMonthRevenue = previousMonthPayments.reduce((sum, p) => sum + safeAmount(p.amount), 0);
+    
+    if (previousMonthRevenue > 0) {
+      analytics.revenueGrowth = ((quickStats.monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) * 100;
+    } else {
+      analytics.revenueGrowth = quickStats.monthlyRevenue > 0 ? 100 : 0;
+    }
+    
+    console.log('💰 Revenue Metrics Calculated:', {
+      monthlyRevenue: quickStats.monthlyRevenue,
+      totalRevenue: quickStats.totalRevenue,
+      payingUsersThisMonth: quickStats.payingUsersThisMonth,
+      avgRevenuePerCustomer: quickStats.avgRevenuePerCustomer,
+      revenueGrowth: analytics.revenueGrowth,
+      currentMonthPaymentsCount: currentMonthPayments.length,
+      totalPaymentsCount: allCompletedPayments.length
+    });
   }
 
   async function loadClients() {
@@ -584,7 +666,7 @@
       const clientsWithMultipleCessions = topPerformingClients.filter(c => c.cessionsCount > 1).length;
       quickStats.clientRetention = totalClients > 0 ? (clientsWithMultipleCessions / totalClients) * 100 : 0;
 
-      quickStats.monthlyRevenue = payments.reduce((s, p) => s + safeAmount(p.amount), 0);
+      // ✅ Monthly revenue is now calculated in calculateRevenueMetrics() - no need to recalculate here
     } catch (error) {
       console.error('Failed to load advanced analytics:', error);
     }
@@ -746,7 +828,7 @@
             <!-- Right Column - Insights and Actions -->
             <div class="lg:col-span-1 space-y-8">
               <QuickActions />
-              <BusinessInsights {recentCessions} {payments} {clients} {formatCurrency} {safeFormatDistanceToNow} />
+              <BusinessInsights {recentCessions} {payments} {clients} {formatCurrency} {safeFormatDistanceToNow} {analytics} />
             </div>
           </div>
         </div>

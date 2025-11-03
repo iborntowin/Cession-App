@@ -4,6 +4,7 @@
   export let clients = [];
   export let formatCurrency;
   export let safeFormatDistanceToNow;
+  export let analytics = { revenueGrowth: 0 }; // ✅ NEW: Accept revenue growth from parent
   
   import { slide, fly } from 'svelte/transition';
   import { addMonths, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
@@ -133,6 +134,29 @@
   </div>
 
   <div class="space-y-6">
+    <!-- ✅ NEW: Revenue Growth % (Most Important KPI) -->
+    <div class="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 p-4 border-2 border-emerald-200" 
+         in:fly={{ x: -20, duration: 400, delay: 50 }}>
+      <div class="flex items-center justify-between">
+        <div>
+          <h4 class="text-sm font-semibold text-emerald-900">Revenue Growth</h4>
+          <p class="text-3xl font-bold {analytics.revenueGrowth >= 0 ? 'text-emerald-700' : 'text-red-700'}">
+            {analytics.revenueGrowth >= 0 ? '+' : ''}{analytics.revenueGrowth.toFixed(1)}%
+          </p>
+          <p class="text-xs text-emerald-600 mt-1">
+            Month-over-month growth
+          </p>
+        </div>
+        <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center">
+          {#if analytics.revenueGrowth >= 0}
+            <span class="text-2xl">📈</span>
+          {:else}
+            <span class="text-2xl">📉</span>
+          {/if}
+        </div>
+      </div>
+    </div>
+
     <!-- Client Value Insights -->
     <div class="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 p-4 border border-purple-100" 
          in:fly={{ x: -20, duration: 400, delay: 100 }}>
