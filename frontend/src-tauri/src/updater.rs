@@ -36,9 +36,14 @@ pub enum UpdateEvent {
     #[serde(rename = "progress")]
     Progress {
         chunk_length: u64,
+        downloaded: u64,
+        total: u64,
+        percent: u8,
     },
     #[serde(rename = "finished")]
     Finished,
+    #[serde(rename = "installing")]
+    Installing,
     #[serde(rename = "error")]
     Error {
         message: String,
@@ -114,10 +119,16 @@ pub async fn download_and_install_update(
     let file_path = temp_dir.join(&file_name);
 
     log::info!("Downloading NSIS installer to: {}", file_path.display());
+    log::info!("Total download size: {} bytes ({:.2} MB)", 
+        content_length.unwrap_or(0), 
+        content_length.unwrap_or(0) as f64 / 1_048_576.0
+    );
 
     // Download file with progress
     let mut downloaded: u64 = 0;
     let mut hasher = Sha256::new();
+    let total_size = content_length.unwrap_or(0);
+    let mut last_progress_percent = 0u8;
     
     // Scope the file handle to ensure it's dropped before we try to execute
     {
@@ -126,7 +137,6 @@ pub async fn download_and_install_update(
             .map_err(|e| format!("Failed to create file: {}", e))?;
 
         let mut stream = response.bytes_stream();
-        let mut chunk_count = 0;
 
         use futures_util::StreamExt;
         while let Some(chunk) = stream.next().await {
@@ -141,13 +151,29 @@ pub async fn download_and_install_update(
                 .map_err(|e| format!("Failed to write chunk: {}", e))?;
 
             downloaded += chunk_len;
-            chunk_count += 1;
 
-            // Emit progress event every 10 chunks to reduce overhead
-            if chunk_count % 10 == 0 || (content_length.is_some() && downloaded >= content_length.unwrap()) {
+            // Calculate progress percentage
+            let progress_percent = if total_size > 0 {
+                ((downloaded as f64 / total_size as f64) * 100.0) as u8
+            } else {
+                0
+            };
+
+            // Emit progress event every 5% or at completion to avoid flooding
+            if progress_percent >= last_progress_percent + 5 || downloaded >= total_size {
+                log::info!("Download progress: {}% ({} / {} bytes)", 
+                    progress_percent, downloaded, total_size);
+                
                 app_handle
-                    .emit("update-download-progress", UpdateEvent::Progress { chunk_length: chunk_len })
+                    .emit("update-download-progress", UpdateEvent::Progress { 
+                        chunk_length: chunk_len,
+                        downloaded,
+                        total: total_size,
+                        percent: progress_percent,
+                    })
                     .ok();
+                
+                last_progress_percent = progress_percent;
             }
         }
 
@@ -173,21 +199,47 @@ pub async fn download_and_install_update(
     // Verify checksum if provided
     if let Some(expected) = expected_sha256 {
         let computed_hash = format!("{:x}", hasher.finalize());
-        log::info!("Verifying checksum...");
-        log::info!("Expected:  {}", expected);
-        log::info!("Computed:  {}", computed_hash);
+        log::info!("============================================");
+        log::info!("📋 CHECKSUM VERIFICATION");
+        log::info!("============================================");
+        log::info!("Download URL: {}", download_url);
+        log::info!("Downloaded file: {}", file_path.display());
+        log::info!("File size: {} bytes ({:.2} MB)", downloaded, downloaded as f64 / 1_048_576.0);
+        log::info!("Expected SHA256:  {}", expected);
+        log::info!("Computed SHA256:  {}", computed_hash);
+        log::info!("Hashes match: {}", computed_hash == expected.to_lowercase());
+        log::info!("============================================");
         
         if computed_hash != expected.to_lowercase() {
             // Clean up downloaded file
             let _ = tokio::fs::remove_file(&file_path).await;
-            return Err(format!(
-                "Checksum verification failed! Expected: {}, Got: {}. The download may be corrupted or tampered.",
-                expected, computed_hash
-            ));
+            
+            let error_msg = format!(
+                "Checksum verification failed!\n\
+                Expected: {}\n\
+                Got: {}\n\
+                Download URL: {}\n\
+                File size: {} bytes\n\
+                The download may be corrupted or the latest.json has an incorrect hash.",
+                expected, computed_hash, download_url, downloaded
+            );
+            
+            log::error!("❌ {}", error_msg);
+            
+            // Emit error event to frontend
+            app_handle.emit("update-download-progress", UpdateEvent::Error {
+                message: error_msg.clone()
+            }).ok();
+            
+            return Err(error_msg);
         }
-        log::info!("Checksum verification passed!");
+        log::info!("✅ Checksum verification passed!");
     } else {
-        log::warn!("No checksum provided - skipping verification (not recommended)");
+        log::warn!("⚠️ ============================================");
+        log::warn!("⚠️ NO CHECKSUM PROVIDED - SKIPPING VERIFICATION");
+        log::warn!("⚠️ This is not recommended for security!");
+        log::warn!("⚠️ Download URL: {}", download_url);
+        log::warn!("⚠️ ============================================");
     }
 
     // Create a copy of the installer to avoid file locking issues
@@ -224,6 +276,12 @@ pub async fn download_and_install_update(
     // Signal backend to prepare for shutdown
     let _ = app_handle.emit("prepare-for-update", ());
     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+    // Emit installing event
+    log::info!("Starting installation phase...");
+    app_handle
+        .emit("update-download-progress", UpdateEvent::Installing)
+        .ok();
 
     // Use NSIS .exe installer instead of MSI to bypass Smart App Control
     log::info!("Using NSIS .exe installer for better Windows compatibility...");

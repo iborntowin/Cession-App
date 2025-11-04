@@ -11,17 +11,42 @@
   import CommandPalette from '$lib/components/CommandPalette.svelte';
   import KeyboardShortcutsHelp from '$lib/components/KeyboardShortcutsHelp.svelte';
   import Breadcrumbs from '$lib/components/Breadcrumbs.svelte';
+  import UpdateNotification from '$lib/components/UpdateNotification.svelte';
+  import DebugErrorBox from '$lib/components/DebugErrorBox.svelte';
   import { language } from '$lib/stores/language';
   import { t } from '$lib/i18n';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { setupConditionalUpdateCheck } from '$lib/updater';
+  import { checkForUpdatesEnhanced } from '$lib/custom-updater';
   
   export let data;
   
   let isLoggedIn = !!data.token;
   let isMobileMenuOpen = false;
   let isPublicRoute = data.isPublicRoute;
+  
+  // Update notification state
+  let showUpdateNotification = false;
+  let updateVersion = '';
+  let updateReleaseNotes = '';
+  let updateDownloadProgress = 0;
+  let updateInstalling = false;
+  let updateObject = null;
+  
+  // Debug error box
+  let debugErrors = [];
+  let debugBoxComponent;
+  
+  // Make debug logging function global
+  if (browser) {
+    window.debugLog = (message) => {
+      console.log('[DEBUG]', message);
+      if (debugBoxComponent) {
+        debugBoxComponent.addError(message);
+      }
+      debugErrors = [...debugErrors, { timestamp: new Date().toLocaleTimeString(), message, id: Date.now() }];
+    };
+  }
   
   // Reactive current route tracking
   import { derived } from 'svelte/store';
@@ -53,15 +78,84 @@
           goto('/');
       }
 
-      // Enable conditional update checks based on user preferences
+      // Check for updates on startup
       if (tokenAfterMount) {
-        setupConditionalUpdateCheck();
+        setTimeout(() => {
+          checkForUpdates();
+        }, 10000); // Check 10 seconds after app loads
       }
 
       return () => {
         unsubscribe();
       };
     });
+  }
+  
+  async function checkForUpdates() {
+    try {
+      console.log('🔍 Checking for updates...');
+      const result = await checkForUpdatesEnhanced();
+      
+      if (result.available) {
+        console.log('✨ Update available:', result.version);
+        updateVersion = result.version;
+        updateReleaseNotes = result.notes || 'New features and improvements';
+        updateObject = result;
+        showUpdateNotification = true;
+      } else {
+        console.log('✅ App is up to date');
+      }
+    } catch (error) {
+      console.error('❌ Failed to check for updates:', error);
+    }
+  }
+  
+  async function handleInstallUpdate() {
+    if (!updateObject || !updateObject.downloadAndInstall) {
+      console.error('No update object available');
+      return;
+    }
+    
+    try {
+      updateDownloadProgress = 0;
+      updateInstalling = false;
+      
+      await updateObject.downloadAndInstall(
+        (progress) => {
+          // Progress callback
+          updateDownloadProgress = progress.percent || 0;
+          console.log(`📥 Download progress: ${updateDownloadProgress}%`);
+        },
+        (status, details) => {
+          // Status callback
+          console.log(`📊 Update status: ${status}`, details);
+          
+          if (status === 'download-complete') {
+            updateDownloadProgress = 100;
+          } else if (status === 'installing') {
+            updateInstalling = true;
+          } else if (status === 'completed') {
+            console.log('✅ Update completed, app will restart');
+          }
+        }
+      );
+    } catch (error) {
+      console.error('❌ Update installation failed:', error);
+      showUpdateNotification = false;
+      updateDownloadProgress = 0;
+      updateInstalling = false;
+      
+      // Show error to user
+      $alert = {
+        show: true,
+        type: 'error',
+        message: 'Update installation failed: ' + (error.message || error)
+      };
+    }
+  }
+  
+  function handleDismissUpdate() {
+    showUpdateNotification = false;
   }
   
   function logout() {
@@ -242,3 +336,21 @@
 <EnhancedToast />
 <CommandPalette />
 <KeyboardShortcutsHelp />
+
+<!-- Update Notification -->
+<UpdateNotification 
+  bind:show={showUpdateNotification}
+  version={updateVersion}
+  releaseNotes={updateReleaseNotes}
+  downloadProgress={updateDownloadProgress}
+  installing={updateInstalling}
+  on:install={handleInstallUpdate}
+  on:dismiss={handleDismissUpdate}
+/>
+
+<!-- Debug Error Box -->
+<DebugErrorBox 
+  bind:this={debugBoxComponent}
+  bind:errors={debugErrors}
+  title="Update Debug Log"
+/>

@@ -1966,6 +1966,7 @@ fn main() {
 
     let _app = tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::default().build())
         .setup(move |app| {
             let logging_system = match LoggingSystem::new(&app.handle()) {
                 Ok(system) => system,

@@ -1,21 +1,21 @@
-# 📋 Upload Checklist for v1.0.44
+# 📋 Upload Checklist for v1.1.14
 
 ## Required Files (Must upload both!)
-- [ ] Cession-Management-App_1.0.44_x64_en-US.msi.zip
+- [ ] Cession-Management-App_1.1.14_x64_en-US.msi.zip
 - [ ] latest.json
 
 ## Upload Steps
 1. [ ] Go to: https://github.com/iborntowin/Cession-App/releases/new
-2. [ ] Tag version: v1.0.44
-3. [ ] Release title: Version 1.0.44
+2. [ ] Tag version: v1.1.14
+3. [ ] Release title: Version 1.1.14
 4. [ ] Add description: Bug fixes and improvements
 5. [ ] Upload both files (drag & drop)
 6. [ ] Click "Publish release"
 
 ## Verification (After publishing)
-- [ ] Test ZIP download: https://github.com/iborntowin/Cession-App/releases/download/v1.0.44/Cession-Management-App_1.0.44_x64_en-US.msi.zip
+- [ ] Test ZIP download: https://github.com/iborntowin/Cession-App/releases/download/v1.1.14/Cession-Management-App_1.1.14_x64_en-US.msi.zip
 - [ ] Test JSON download: https://github.com/iborntowin/Cession-App/releases/latest/download/latest.json
-- [ ] Install previous version and test update to v1.0.44
+- [ ] Install previous version and test update to v1.1.14
 - [ ] Verify update notification appears
 - [ ] Verify auto-update downloads and installs
 

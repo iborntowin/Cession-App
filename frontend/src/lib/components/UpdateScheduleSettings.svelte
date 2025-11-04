@@ -78,6 +78,9 @@
       error = null;
       successMessage = null;
 
+      console.log('💾 Saving update config...');
+      console.log('Current config:', { autoUpdateEnabled, checkOnStartup, checkOnSettingsOpen });
+
       const newConfig = {
         ...updateConfig,
         autoUpdateEnabled,
@@ -85,11 +88,17 @@
         checkOnSettingsOpen
       };
 
+      console.log('New config to save:', newConfig);
+
       if (updateConfigOnServer) {
+        console.log('Using updateConfigOnServer function from props');
         await updateConfigOnServer(newConfig);
       } else {
         // Fallback: save directly
+        console.log('Using direct API call to save config');
         const headers = getAuthHeaders();
+        console.log('Auth headers:', headers);
+        
         const response = await fetch(`${config.backendUrl}/api/v1/updates/config`, {
           method: 'POST',
           headers: {
@@ -100,22 +109,30 @@
           body: JSON.stringify(newConfig)
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
         if (response.ok) {
           updateConfig = await response.json();
+          console.log('✅ Config saved successfully:', updateConfig);
         } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('❌ Failed to save config:', errorText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
         }
       }
 
       successMessage = 'Update preferences saved successfully!';
+      console.log('✅ Save completed successfully');
 
       // Clear success message after 3 seconds
       setTimeout(() => {
         successMessage = null;
       }, 3000);
     } catch (err) {
-      console.error('Failed to save update config:', err);
-      error = err.message;
+      console.error('❌ Failed to save update config:', err);
+      console.error('Error details:', err.stack);
+      error = err.message || 'Failed to save preferences';
     } finally {
       saving = false;
     }

@@ -503,13 +503,43 @@
                 ❌ Update check failed: {updateStatus.error}
               </p>
             {:else if updateStatus.status === 'AUTO_UPDATE_FAILED' || updateStatus.status === 'MANUAL_UPDATE_FAILED'}
-              <p class="text-sm text-red-700">
+              <p class="text-sm text-red-700 mb-2">
                 ❌ Update failed: {updateStatus.error}
               </p>
+              {#if updateStatus.error && updateStatus.error.includes('Checksum')}
+                <details class="mt-2 bg-red-50 rounded-lg p-3">
+                  <summary class="text-xs font-medium text-red-800 cursor-pointer">🔍 Technical Details</summary>
+                  <div class="mt-2 text-xs text-red-700 space-y-1 font-mono">
+                    <p class="whitespace-pre-wrap">{updateStatus.error}</p>
+                    <div class="mt-2 pt-2 border-t border-red-200">
+                      <p class="font-semibold">Common causes:</p>
+                      <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li>The latest.json file has the wrong SHA256 hash</li>
+                        <li>Wrong file is being downloaded (exe vs msi)</li>
+                        <li>File was modified after release</li>
+                      </ul>
+                      <p class="mt-2 font-semibold">To fix:</p>
+                      <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li>Check browser console (F12) for detailed logs</li>
+                        <li>Verify latest.json SHA256 matches the actual file</li>
+                        <li>Re-generate the release with correct checksums</li>
+                      </ul>
+                    </div>
+                  </div>
+                </details>
+              {/if}
             {:else if updateStatus.status === 'INSTALL_FAILED'}
-              <p class="text-sm text-red-700">
+              <p class="text-sm text-red-700 mb-2">
                 ❌ Installation failed: {updateStatus.error}
               </p>
+              {#if updateStatus.error}
+                <details class="mt-2 bg-red-50 rounded-lg p-3">
+                  <summary class="text-xs font-medium text-red-800 cursor-pointer">🔍 Technical Details</summary>
+                  <div class="mt-2 text-xs text-red-700 font-mono whitespace-pre-wrap">
+                    {updateStatus.error}
+                  </div>
+                </details>
+              {/if}
             {/if}
 
             {#if updateConfig && (updateConfig.successfulUpdates > 0 || updateConfig.failedUpdates > 0)}

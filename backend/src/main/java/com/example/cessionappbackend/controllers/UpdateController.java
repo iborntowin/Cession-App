@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/v1/updates")
-@PreAuthorize("hasRole('ADMIN')")
 public class UpdateController {
 
     private static final Logger logger = LoggerFactory.getLogger(UpdateController.class);

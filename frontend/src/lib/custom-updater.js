@@ -10,6 +10,17 @@ import { relaunch } from '@tauri-apps/plugin-process';
 import { getVersion } from '@tauri-apps/api/app';
 import { showAlert } from './stores';
 
+// Debug logging function
+function debugLog(message, data = null) {
+  const fullMessage = data ? `${message}\n${JSON.stringify(data, null, 2)}` : message;
+  console.log(`[UPDATER] ${message}`, data || '');
+  
+  // Call global debug function if available
+  if (typeof window !== 'undefined' && window.debugLog) {
+    window.debugLog(fullMessage);
+  }
+}
+
 /**
  * Format bytes into human-readable string
  */
@@ -26,8 +37,11 @@ function formatBytes(bytes) {
  */
 async function getCurrentVersion() {
   try {
-    return await getVersion();
+    const version = await getVersion();
+    debugLog(`Current app version: ${version}`);
+    return version;
   } catch (error) {
+    debugLog(`ERROR getting version: ${error.message}`, error);
     console.error('Failed to get current version:', error);
     return '0.0.0';
   }
@@ -41,36 +55,36 @@ async function getCurrentVersion() {
  */
 export async function checkForUpdatesEnhanced(onProgress = null, onStatus = null) {
   const updateStatus = (status, details = {}) => {
-    console.log(`📊 Update Status: ${status}`, details);
+    debugLog(`Status: ${status}`, details);
     if (onStatus) onStatus(status, details);
   };
 
   const updateProgress = (progress) => {
     // ✅ FIX: Accept progress as object, not separate parameters
-    console.log(`📥 Download Progress: ${progress.percent}% (${formatBytes(progress.downloaded)} / ${formatBytes(progress.total)})`);
+    debugLog(`Progress: ${progress.percent}% (${formatBytes(progress.downloaded)} / ${formatBytes(progress.total)})`);
     if (onProgress) onProgress(progress);
   };
 
   try {
     updateStatus('checking', { message: 'Connecting to update server...' });
-    console.log('🔍 ============================================');
-    console.log('🔍 CHECKING FOR UPDATES (Custom Implementation)');
-    console.log('🔍 ============================================');
+    debugLog('============================================');
+    debugLog('CHECKING FOR UPDATES (Custom Implementation)');
+    debugLog('============================================');
     
     // Get current version
     const currentVersion = await getCurrentVersion();
-    console.log('📋 Current installed version:', currentVersion);
+    debugLog(`Current installed version: ${currentVersion}`);
     
     // Check for updates using custom Rust command
+    debugLog('Invoking check_for_updates Rust command...');
     const manifest = await invoke('check_for_updates');
     
-    console.log('📦 ============================================');
-    console.log('📦 UPDATE CHECK RESPONSE');
-    console.log('📦 Manifest:', JSON.stringify(manifest, null, 2));
-    console.log('📦 ============================================');
+    debugLog('============================================');
+    debugLog('UPDATE CHECK RESPONSE', manifest);
+    debugLog('============================================');
     
     if (!manifest) {
-      console.log('✅ No updates available - you are on the latest version');
+      debugLog('✅ No updates available - you are on the latest version');
       updateStatus('no_update', { 
         message: 'You are running the latest version',
         currentVersion
@@ -83,13 +97,17 @@ export async function checkForUpdatesEnhanced(onProgress = null, onStatus = null
       };
     }
     
-    console.log('🎉 ============================================');
-    console.log('🎉 UPDATE AVAILABLE!');
-    console.log('🎉 Current version:', currentVersion);
-    console.log('🎉 New version:', manifest.version);
-    console.log('🎉 Release notes:', manifest.notes);
-    console.log('🎉 Download URL:', manifest.platforms?.['windows-x86_64']?.url);
-    console.log('🎉 ============================================');
+    debugLog('🎉 ============================================');
+    debugLog('🎉 UPDATE AVAILABLE!');
+    debugLog(`🎉 Current version: ${currentVersion}`);
+    debugLog(`🎉 New version: ${manifest.version}`);
+    debugLog(`🎉 Release notes: ${manifest.notes}`);
+    debugLog('🎉 Platform data:', manifest.platforms?.['windows-x86_64']);
+    debugLog(`🎉 Download URL: ${manifest.platforms?.['windows-x86_64']?.url}`);
+    debugLog(`🎉 Expected SHA256: ${manifest.platforms?.['windows-x86_64']?.sha256}`);
+    debugLog(`🎉 MSI URL: ${manifest.platforms?.['windows-x86_64']?.msi_url}`);
+    debugLog(`🎉 MSI SHA256: ${manifest.platforms?.['windows-x86_64']?.msi_sha256}`);
+    debugLog('🎉 ============================================');
     
     updateStatus('update_available', {
       currentVersion,
@@ -106,6 +124,12 @@ export async function checkForUpdatesEnhanced(onProgress = null, onStatus = null
       downloadUrl: manifest.platforms?.['windows-x86_64']?.url,
       sha256: manifest.platforms?.['windows-x86_64']?.sha256,
       downloadAndInstall: async (progressCallback, statusCallback) => {
+        debugLog('🚀 ============================================');
+        debugLog('🚀 DOWNLOAD AND INSTALL INVOKED');
+        debugLog(`🚀 Using URL: ${manifest.platforms?.['windows-x86_64']?.url}`);
+        debugLog(`🚀 Expected SHA256: ${manifest.platforms?.['windows-x86_64']?.sha256}`);
+        debugLog('🚀 ============================================');
+        
         return await downloadAndInstallUpdate(
           manifest.platforms?.['windows-x86_64']?.url,
           manifest.platforms?.['windows-x86_64']?.sha256,
@@ -117,8 +141,10 @@ export async function checkForUpdatesEnhanced(onProgress = null, onStatus = null
     
   } catch (error) {
     const errorMessage = error?.message || error?.toString() || 'Unknown error checking for updates';
-    console.error('❌ Update check failed:', errorMessage);
-    console.error('❌ Error details:', error);
+    debugLog('❌ ============================================');
+    debugLog('❌ UPDATE CHECK FAILED');
+    debugLog(`❌ Error: ${errorMessage}`, error);
+    debugLog('❌ ============================================');
     
     updateStatus('error', { message: errorMessage });
     showAlert('Update check failed: ' + errorMessage, 'error');
@@ -139,60 +165,93 @@ export async function checkForUpdatesEnhanced(onProgress = null, onStatus = null
  * @param {Function} onStatus - Status callback
  */
 async function downloadAndInstallUpdate(downloadUrl, sha256, onProgress, onStatus) {
+  let unlistenProgress = null;
+  
   try {
-    console.log('📥 ============================================');
-    console.log('📥 STARTING UPDATE DOWNLOAD');
-    console.log('📥 URL:', downloadUrl);
-    console.log('📥 SHA256:', sha256 || 'Not provided');
-    console.log('📥 ============================================');
+    debugLog('📥 ============================================');
+    debugLog('📥 STARTING UPDATE DOWNLOAD');
+    debugLog(`📥 URL: ${downloadUrl}`);
+    debugLog(`📥 SHA256: ${sha256 || 'Not provided'}`);
+    debugLog('📥 ============================================');
     
-    onStatus?.('downloading', { message: 'Downloading update...' });
+    if (!downloadUrl) {
+      const error = 'No download URL provided';
+      debugLog(`❌ ERROR: ${error}`);
+      throw new Error(error);
+    }
+    
+    onStatus?.('downloading', { message: 'Preparing download...' });
     
     let totalSize = 0;
     let downloadedSize = 0;
     
-    // Listen for download progress events
-    const unlistenProgress = await listen('update-download-progress', (event) => {
-      const payload = event.payload;
-      
-      if (payload.event === 'started') {
-        totalSize = payload.data.content_length || 0;
-        downloadedSize = 0;
-        console.log('📦 Download started, total size:', formatBytes(totalSize));
-        // ✅ FIX: Pass progress as object with named properties
-        onProgress?.({ downloaded: 0, total: totalSize, percent: 0 });
-      } else if (payload.event === 'progress') {
-        downloadedSize += payload.data.chunk_length;
-        // Cap downloaded at total to prevent >100%
-        downloadedSize = Math.min(downloadedSize, totalSize);
-        const percentage = totalSize > 0 ? Math.floor((downloadedSize / totalSize) * 100) : 0;
-        console.log(`📥 Downloaded: ${formatBytes(downloadedSize)} / ${formatBytes(totalSize)} (${percentage}%)`);
-        // ✅ FIX: Pass progress as object with named properties
-        onProgress?.({ downloaded: downloadedSize, total: totalSize, percent: percentage });
-      } else if (payload.event === 'finished') {
-        console.log('✅ Download completed!');
-        // ✅ FIX: Pass progress as object with named properties
-        onProgress?.({ downloaded: totalSize, total: totalSize, percent: 100 });
-        onStatus?.('installing', { message: 'Installing update...' });
-      } else if (payload.event === 'error') {
-        console.error('❌ Download error:', payload.data.message);
-        throw new Error(payload.data.message);
+    // Set up listener BEFORE invoking the command
+    debugLog('🎧 Setting up progress listener...');
+    unlistenProgress = await listen('update-download-progress', (event) => {
+      try {
+        const payload = event.payload;
+        debugLog('📡 ============================================');
+        debugLog('📡 RAW EVENT RECEIVED', event);
+        debugLog('📡 Payload', payload);
+        debugLog('📡 ============================================');
+        
+        if (payload.event === 'started') {
+          totalSize = payload.data.content_length || 0;
+          downloadedSize = 0;
+          debugLog(`📦 Download started, total size: ${formatBytes(totalSize)}`);
+          onProgress?.({ downloaded: 0, total: totalSize, percent: 0 });
+          onStatus?.('downloading', { message: 'Downloading update...' });
+        } else if (payload.event === 'progress') {
+          // ✅ NEW: Rust now sends complete progress information
+          downloadedSize = payload.data.downloaded;
+          totalSize = payload.data.total;
+          const percentage = payload.data.percent;
+          
+          debugLog(`📥 Downloaded: ${formatBytes(downloadedSize)} / ${formatBytes(totalSize)} (${percentage}%)`);
+          onProgress?.({ downloaded: downloadedSize, total: totalSize, percent: percentage });
+        } else if (payload.event === 'finished') {
+          debugLog('✅ Download completed!');
+          onProgress?.({ downloaded: totalSize, total: totalSize, percent: 100 });
+          onStatus?.('download-complete', { message: 'Download complete, preparing installation...' });
+        } else if (payload.event === 'installing') {
+          debugLog('🔧 Installing update...');
+          onStatus?.('installing', { message: 'Installing update...' });
+        } else if (payload.event === 'error') {
+          debugLog('❌ Download error:', payload.data.message);
+          throw new Error(payload.data.message);
+        }
+      } catch (eventError) {
+        debugLog('❌ Error in event handler:', eventError);
       }
     });
     
+    debugLog('✅ Listener set up successfully');
+    debugLog('🚀 ============================================');
+    debugLog('🚀 INVOKING RUST COMMAND');
+    debugLog('🚀 Command: download_and_install_update');
+    debugLog(`🚀 downloadUrl: ${downloadUrl}`);
+    debugLog(`🚀 expectedSha256: ${sha256}`);
+    debugLog('🚀 ============================================');
+    
     // Start download and installation with checksum
-    await invoke('download_and_install_update', { 
+    const invokeResult = await invoke('download_and_install_update', { 
       downloadUrl,
       expectedSha256: sha256 
     });
     
+    debugLog('✅ ============================================');
+    debugLog('✅ INVOKE RESULT', invokeResult);
+    debugLog('✅ ============================================');
     // Cleanup listener
-    unlistenProgress();
+    if (unlistenProgress) {
+      unlistenProgress();
+      debugLog('🧹 Cleaned up listener');
+    }
     
-    console.log('✅ ============================================');
-    console.log('✅ UPDATE INSTALLED SUCCESSFULLY!');
-    console.log('✅ Application will restart...');
-    console.log('✅ ============================================');
+    debugLog('✅ ============================================');
+    debugLog('✅ UPDATE INSTALLED SUCCESSFULLY!');
+    debugLog('✅ Application will restart...');
+    debugLog('✅ ============================================');
     
     onStatus?.('completed', { message: 'Update installed, restarting...' });
     
@@ -208,9 +267,21 @@ async function downloadAndInstallUpdate(downloadUrl, sha256, onProgress, onStatu
     };
     
   } catch (error) {
+    // Cleanup listener on error
+    if (unlistenProgress) {
+      try {
+        unlistenProgress();
+      } catch (cleanupError) {
+        debugLog('Failed to cleanup listener:', cleanupError);
+      }
+    }
+    
     const errorMessage = error?.message || error?.toString() || 'Installation failed';
-    console.error('❌ Update installation failed:', errorMessage);
-    console.error('❌ Error details:', error);
+    debugLog('❌ ============================================');
+    debugLog('❌ UPDATE INSTALLATION FAILED');
+    debugLog(`❌ Error: ${errorMessage}`, error);
+    debugLog(`❌ Stack: ${error?.stack}`);
+    debugLog('❌ ============================================');
     
     onStatus?.('error', { message: errorMessage });
     showAlert('Installation failed: ' + errorMessage, 'error');

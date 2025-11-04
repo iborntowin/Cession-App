@@ -1,6 +1,6 @@
 {
   "name": "cession-app-frontend",
-  "version": "1.0.45",
+  "version": "1.1.14",
   "private": true,
   "scripts": {
     "dev": "vite dev",
