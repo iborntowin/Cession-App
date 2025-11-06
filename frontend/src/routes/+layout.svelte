@@ -12,7 +12,6 @@
   import KeyboardShortcutsHelp from '$lib/components/KeyboardShortcutsHelp.svelte';
   import Breadcrumbs from '$lib/components/Breadcrumbs.svelte';
   import UpdateNotification from '$lib/components/UpdateNotification.svelte';
-  import DebugErrorBox from '$lib/components/DebugErrorBox.svelte';
   import { language } from '$lib/stores/language';
   import { t } from '$lib/i18n';
   import { fly } from 'svelte/transition';
@@ -32,21 +31,6 @@
   let updateDownloadProgress = 0;
   let updateInstalling = false;
   let updateObject = null;
-  
-  // Debug error box
-  let debugErrors = [];
-  let debugBoxComponent;
-  
-  // Make debug logging function global
-  if (browser) {
-    window.debugLog = (message) => {
-      console.log('[DEBUG]', message);
-      if (debugBoxComponent) {
-        debugBoxComponent.addError(message);
-      }
-      debugErrors = [...debugErrors, { timestamp: new Date().toLocaleTimeString(), message, id: Date.now() }];
-    };
-  }
   
   // Reactive current route tracking
   import { derived } from 'svelte/store';
@@ -346,11 +330,4 @@
   installing={updateInstalling}
   on:install={handleInstallUpdate}
   on:dismiss={handleDismissUpdate}
-/>
-
-<!-- Debug Error Box -->
-<DebugErrorBox 
-  bind:this={debugBoxComponent}
-  bind:errors={debugErrors}
-  title="Update Debug Log"
 />

@@ -495,8 +495,8 @@
     lowStockProducts.forEach(item => {
       const severity = item.stock_quantity === 0 ? 'critical' : 'warning';
       const message = item.stock_quantity === 0 
-        ? 'Rupture de stock' 
-        : `Stock faible : ${item.stock_quantity} restant (seuil: ${item.reorder_point})`;
+        ? $t('inventory.alerts.out_of_stock') 
+        : $t('inventory.alerts.low_stock', { quantity: item.stock_quantity, reorder_point: item.reorder_point });
       
       stockAlerts.push({
         type: 'low_stock',
@@ -800,20 +800,20 @@
               <div class="flex items-center space-x-1">
                 <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span class="text-xs font-bold text-green-800">{inventoryAnalytics.totalProducts || 0}</span>
-                <span class="text-xs font-medium text-green-700">Produits</span>
+                <span class="text-xs font-medium text-green-700">{$t('inventory.header.products')}</span>
               </div>
               <div class="mx-2 w-px h-4 bg-gray-300"></div>
               <div class="flex items-center space-x-1">
                 <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span class="text-xs font-bold text-blue-800">{formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)}</span>
-                <span class="text-xs font-medium text-blue-700">Valeur</span>
+                <span class="text-xs font-medium text-blue-700">{$t('inventory.header.value')}</span>
               </div>
               {#if stockAlerts.length > 0}
                 <div class="mx-2 w-px h-4 bg-gray-300"></div>
                 <div class="flex items-center space-x-1">
                   <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                   <span class="text-xs font-bold text-red-800">{stockAlerts.length}</span>
-                  <span class="text-xs font-medium text-red-700">Alertes</span>
+                  <span class="text-xs font-medium text-red-700">{$t('inventory.header.alerts')}</span>
                 </div>
               {/if}
             </div>
@@ -908,7 +908,7 @@
     <!-- 🚨 Collapsible Alerts Banner -->
     <CollapsibleAlert 
       alerts={stockAlerts} 
-      title="Alertes d'Inventaire" 
+      title="{$t('inventory.alerts.inventory_alerts')}" 
       type="warning" 
       isMinimized={true}
     />
@@ -921,8 +921,8 @@
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Main KPI -->
             <div class="lg:col-span-2">
-              <h2 class="text-3xl font-bold mb-2">Inventory Intelligence</h2>
-              <p class="text-indigo-200 mb-8">Real-time insights into your inventory performance</p>
+              <h2 class="text-3xl font-bold mb-2">{$t('inventory.analytics.intelligence_title')}</h2>
+              <p class="text-indigo-200 mb-8">{$t('inventory.analytics.revenue_potential')}</p>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Total Selling Value (NEW) -->
@@ -934,20 +934,20 @@
                       </svg>
                     </div>
                     <div class="text-right">
-                      <div class="text-xs text-emerald-300 font-medium">REVENUE POTENTIAL</div>
+                      <div class="text-xs text-emerald-300 font-medium">{$t('inventory.analytics.revenue_potential')}</div>
                     </div>
                   </div>
                   <div class="text-3xl font-bold text-white mb-1">
                     {formatCurrency(inventoryAnalytics.totalValue || 0)}
                   </div>
                   <div class="text-sm text-emerald-300">
-                    Total Selling Value
+                    {$t('inventory.analytics.stock_investment')}
                   </div>
                   <div class="mt-3 flex items-center text-xs text-white/70">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    Potential profit: {formatCurrency((inventoryAnalytics.totalValue || 0) - (inventoryAnalytics.totalPurchaseValue || 0))}
+                    {$t('inventory.analytics.potential_profit')} {formatCurrency((inventoryAnalytics.totalValue || 0) - (inventoryAnalytics.totalPurchaseValue || 0))}
                   </div>
                 </div>
 
@@ -960,20 +960,20 @@
                       </svg>
                     </div>
                     <div class="text-right">
-                      <div class="text-xs text-blue-300 font-medium">INVESTMENT</div>
+                      <div class="text-xs text-blue-300 font-medium">{$t('inventory.analytics.stock_investment')}</div>
                     </div>
                   </div>
                   <div class="text-3xl font-bold text-white mb-1">
                     {formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)}
                   </div>
                   <div class="text-sm text-blue-300">
-                    Stock Investment
+                    {$t('inventory.analytics.stock_investment')}
                   </div>
                   <div class="mt-3 flex items-center text-xs text-white/70">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4"/>
                     </svg>
-                    {inventoryAnalytics.totalItems || 0} total items
+                    {inventoryAnalytics.totalItems || 0} {$t('inventory.analytics.total_items')}
                   </div>
                 </div>
               </div>
@@ -985,7 +985,7 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <div class="text-2xl font-bold text-white">{inventoryAnalytics.totalProducts || 0}</div>
-                    <div class="text-sm text-white/70">Products</div>
+                    <div class="text-sm text-white/70">{$t('inventory.analytics.product_count')}</div>
                   </div>
                   <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -999,7 +999,7 @@
                 <div class="flex items-center justify-between">
                   <div>
                     <div class="text-2xl font-bold text-white">{categories.length}</div>
-                    <div class="text-sm text-white/70">Categories</div>
+                    <div class="text-sm text-white/70">{$t('inventory.analytics.category_count')}</div>
                   </div>
                   <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1014,7 +1014,7 @@
                   <div class="flex items-center justify-between">
                     <div>
                       <div class="text-2xl font-bold text-white">{inventoryAnalytics.avgMargin.toFixed(1)}%</div>
-                      <div class="text-sm text-white/70">Avg. Margin</div>
+                      <div class="text-sm text-white/70">{$t('inventory.analytics.avg_margin')}</div>
                     </div>
                     <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1030,7 +1030,7 @@
                   <div class="flex items-center justify-between">
                     <div>
                       <div class="text-2xl font-bold text-red-300">{inventoryAnalytics.lowStockCount}</div>
-                      <div class="text-sm text-red-200">Low Stock</div>
+                      <div class="text-sm text-red-200">{$t('inventory.analytics.low_stock_count')}</div>
                     </div>
                     <div class="w-10 h-10 bg-red-400/30 rounded-lg flex items-center justify-center">
                       <svg class="w-5 h-5 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1053,8 +1053,8 @@
           <div class="lg:col-span-2 bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-300">
             <div class="flex items-center justify-between mb-6">
               <div>
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">Category Overview</h3>
-                <p class="text-sm text-gray-600">Distribution of your inventory across categories</p>
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">{$t('inventory.analytics.category_overview')}</h3>
+                <p class="text-sm text-gray-600">{$t('inventory.analytics.category_distribution')}</p>
               </div>
               <div class="w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse"></div>
             </div>
@@ -1095,7 +1095,7 @@
                   <!-- Center Stats -->
                   <div class="absolute inset-0 flex flex-col items-center justify-center">
                     <div class="text-4xl font-bold text-gray-900">{products.length}</div>
-                    <div class="text-sm text-gray-500 font-medium">Total Products</div>
+                    <div class="text-sm text-gray-500 font-medium">{$t('inventory.analytics.total_products')}</div>
                   </div>
                 </div>
                 
@@ -1111,12 +1111,12 @@
                         <div class="w-5 h-5 rounded-full transition-transform group-hover:scale-110" style="background-color: {colors[i % colors.length]}"></div>
                         <div>
                           <div class="text-base font-semibold text-gray-900 group-hover:text-gray-700">{category.name}</div>
-                          <div class="text-sm text-gray-500">{percentage.toFixed(1)}% of inventory</div>
+                          <div class="text-sm text-gray-500">{percentage.toFixed(1)}% {$t('inventory.analytics.percent_of_inventory')}</div>
                         </div>
                       </div>
                       <div class="text-right">
                         <div class="text-xl font-bold text-gray-900">{categoryProducts.length}</div>
-                        <div class="text-xs text-gray-500">products</div>
+                        <div class="text-xs text-gray-500">{$t('inventory.analytics.products_label')}</div>
                       </div>
                     </div>
                   {/each}
@@ -1129,8 +1129,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                   </svg>
                 </div>
-                <h4 class="text-lg font-semibold text-gray-900 mb-2">No Categories Yet</h4>
-                <p class="text-gray-500">Create categories to organize your inventory</p>
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">{$t('inventory.analytics.no_categories_yet')}</h4>
+                <p class="text-gray-500">{$t('inventory.analytics.create_categories_message')}</p>
               </div>
             {/if}
           </div>
@@ -1139,8 +1139,8 @@
           <div class="bg-gradient-to-br from-rose-50 to-pink-50 rounded-3xl p-6 shadow-xl border border-rose-100 hover:shadow-2xl transition-all duration-300">
             <div class="flex items-center justify-between mb-6">
               <div>
-                <h3 class="text-xl font-bold text-gray-900 mb-1">Smart Alerts</h3>
-                <p class="text-sm text-gray-600">Important notifications</p>
+                <h3 class="text-xl font-bold text-gray-900 mb-1">{$t('inventory.analytics.smart_alerts')}</h3>
+                <p class="text-sm text-gray-600">{$t('inventory.analytics.important_notifications')}</p>
               </div>
               <div class="w-8 h-8 bg-gradient-to-r from-rose-400 to-pink-500 rounded-full flex items-center justify-center animate-pulse">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1160,9 +1160,9 @@
                       </svg>
                     </div>
                     <div>
-                      <div class="text-sm font-semibold text-yellow-800">Low Stock</div>
+                      <div class="text-sm font-semibold text-yellow-800">{$t('inventory.analytics.low_stock_warning')}</div>
                       <div class="text-xs text-yellow-700">
-                        {products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length} items need restocking
+                        {products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length} {$t('inventory.analytics.items_need_restocking')}
                       </div>
                     </div>
                   </div>
@@ -1179,9 +1179,9 @@
                       </svg>
                     </div>
                     <div>
-                      <div class="text-sm font-semibold text-red-800">Out of Stock</div>
+                      <div class="text-sm font-semibold text-red-800">{$t('inventory.analytics.out_of_stock_alert')}</div>
                       <div class="text-xs text-red-700">
-                        {products.filter(p => p.stock_quantity === 0).length} items unavailable
+                        {products.filter(p => p.stock_quantity === 0).length} {$t('inventory.analytics.items_unavailable')}
                       </div>
                     </div>
                   </div>
@@ -1198,9 +1198,9 @@
                       </svg>
                     </div>
                     <div>
-                      <div class="text-sm font-semibold text-green-800">High Performers</div>
+                      <div class="text-sm font-semibold text-green-800">{$t('inventory.analytics.high_profit_products')}</div>
                       <div class="text-xs text-green-700">
-                        {products.filter(p => calculateProfitPercentage(p) > 40).length} items with 40%+ margins
+                        {products.filter(p => calculateProfitPercentage(p) > 40).length} {$t('inventory.analytics.profit_margin_analysis')}
                       </div>
                     </div>
                   </div>
@@ -1215,8 +1215,8 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                   </div>
-                  <div class="text-sm font-semibold text-blue-800">All Good!</div>
-                  <div class="text-xs text-blue-700">No urgent alerts at the moment</div>
+                  <div class="text-sm font-semibold text-blue-800">{$t('inventory.analytics.excellent_margins')}</div>
+                  <div class="text-xs text-blue-700">{$t('inventory.analytics.no_urgent_alerts')}</div>
                 </div>
               {/if}
             </div>
@@ -1229,7 +1229,7 @@
           <!-- 🎨 Profit Margin Heatmap -->
           <div class="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-300">
             <div class="flex items-center justify-between mb-8">
-              <h3 class="text-xl font-bold text-gray-900">Profit Margin Analysis</h3>
+              <h3 class="text-xl font-bold text-gray-900">{$t('inventory.analytics.profit_margin_analysis')}</h3>
               <div class="flex items-center space-x-2">
                 <div class="w-3 h-3 bg-red-400 rounded-sm"></div>
                 <div class="w-3 h-3 bg-yellow-400 rounded-sm"></div>
@@ -1272,34 +1272,34 @@
                 <div class="flex items-center justify-between text-sm">
                   <div class="flex items-center space-x-2">
                     <div class="w-3 h-3 bg-green-500 rounded-sm"></div>
-                    <span class="text-gray-700">High Margin (30%+)</span>
+                    <span class="text-gray-700">{$t('inventory.analytics.high_margin_30_plus')}</span>
                   </div>
-                  <span class="font-bold text-green-600">{highMargin} products</span>
+                  <span class="font-bold text-green-600">{highMargin} {$t('inventory.analytics.products_label')}</span>
                 </div>
                 
                 <div class="flex items-center justify-between text-sm">
                   <div class="flex items-center space-x-2">
                     <div class="w-3 h-3 bg-yellow-500 rounded-sm"></div>
-                    <span class="text-gray-700">Medium Margin (15-30%)</span>
+                    <span class="text-gray-700">{$t('inventory.analytics.medium_margin_15_30')}</span>
                   </div>
-                  <span class="font-bold text-yellow-600">{mediumMargin} products</span>
+                  <span class="font-bold text-yellow-600">{mediumMargin} {$t('inventory.analytics.products_label')}</span>
                 </div>
                 
                 <div class="flex items-center justify-between text-sm">
                   <div class="flex items-center space-x-2">
                     <div class="w-3 h-3 bg-orange-500 rounded-sm"></div>
-                    <span class="text-gray-700">Low Margin (0-15%)</span>
+                    <span class="text-gray-700">{$t('inventory.analytics.low_margin_0_15')}</span>
                   </div>
-                  <span class="font-bold text-orange-600">{lowMargin} products</span>
+                  <span class="font-bold text-orange-600">{lowMargin} {$t('inventory.analytics.products_label')}</span>
                 </div>
                 
                 {#if noMargin > 0}
                   <div class="flex items-center justify-between text-sm">
                     <div class="flex items-center space-x-2">
                       <div class="w-3 h-3 bg-red-500 rounded-sm"></div>
-                      <span class="text-gray-700">No Profit/Loss</span>
+                      <span class="text-gray-700">{$t('inventory.analytics.no_profit_loss')}</span>
                     </div>
-                    <span class="font-bold text-red-600">{noMargin} products</span>
+                    <span class="font-bold text-red-600">{noMargin} {$t('inventory.analytics.products_label')}</span>
                   </div>
                 {/if}
               </div>
@@ -1310,7 +1310,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                   </svg>
                 </div>
-                <p class="text-gray-500 font-medium">No margin data available</p>
+                <p class="text-gray-500 font-medium">{$t('inventory.analytics.no_margin_data_available')}</p>
               </div>
             {/if}
           </div>
@@ -1318,7 +1318,7 @@
           <!-- 🚨 Smart Alerts & Recommendations -->
           <div class="bg-gradient-to-br from-rose-50 to-pink-50 rounded-3xl p-8 shadow-xl border border-rose-100 hover:shadow-2xl transition-all duration-300">
             <div class="flex items-center justify-between mb-8">
-              <h3 class="text-xl font-bold text-gray-900">Smart Insights</h3>
+              <h3 class="text-xl font-bold text-gray-900">{$t('inventory.analytics.smart_insights')}</h3>
               <div class="w-8 h-8 bg-gradient-to-r from-rose-400 to-pink-500 rounded-full flex items-center justify-center animate-pulse">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -1337,9 +1337,9 @@
                       </svg>
                     </div>
                     <div>
-                      <div class="font-semibold text-yellow-800">Low Stock Warning</div>
+                      <div class="font-semibold text-yellow-800">{$t('inventory.analytics.low_stock_warning')}</div>
                       <div class="text-sm text-yellow-700">
-                        {products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length} products need restocking
+                        {products.filter(p => p.stock_quantity <= (p.reorder_point || 0) && p.stock_quantity > 0).length} {$t('inventory.analytics.products_need_restocking')}
                       </div>
                     </div>
                   </div>
@@ -1356,9 +1356,9 @@
                       </svg>
                     </div>
                     <div>
-                      <div class="font-semibold text-red-800">Out of Stock</div>
+                      <div class="font-semibold text-red-800">{$t('inventory.analytics.out_of_stock_alert')}</div>
                       <div class="text-sm text-red-700">
-                        {products.filter(p => p.stock_quantity === 0).length} products are completely out of stock
+                        {products.filter(p => p.stock_quantity === 0).length} {$t('inventory.analytics.products_out_of_stock')}
                       </div>
                     </div>
                   </div>
@@ -1375,9 +1375,9 @@
                       </svg>
                     </div>
                     <div>
-                      <div class="font-semibold text-green-800">High Profit Products</div>
+                      <div class="font-semibold text-green-800">{$t('inventory.analytics.high_profit_products')}</div>
                       <div class="text-sm text-green-700">
-                        {products.filter(p => calculateProfitPercentage(p) > 40).length} products have excellent margins (40%+)
+                        {products.filter(p => calculateProfitPercentage(p) > 40).length} {$t('inventory.analytics.products_high_margins')}
                       </div>
                     </div>
                   </div>
@@ -1400,9 +1400,9 @@
                       </svg>
                     </div>
                     <div>
-                      <div class="font-semibold text-blue-800">Top Category</div>
+                      <div class="font-semibold text-blue-800">{$t('inventory.analytics.top_category')}</div>
                       <div class="text-sm text-blue-700">
-                        "{topCategory.name}" dominates with {products.filter(p => p.category_id === topCategory.id).length} products
+                        "{topCategory.name}" {$t('inventory.analytics.dominates_with_products', { count: products.filter(p => p.category_id === topCategory.id).length })}
                       </div>
                     </div>
                   </div>
@@ -1418,9 +1418,9 @@
                     </svg>
                   </div>
                   <div>
-                    <div class="font-semibold text-purple-800">Portfolio Health</div>
+                    <div class="font-semibold text-purple-800">{$t('inventory.analytics.portfolio_health')}</div>
                     <div class="text-sm text-purple-700">
-                      {formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)} invested across {products.length} products
+                      {formatCurrency(inventoryAnalytics.totalPurchaseValue || 0)} {$t('inventory.analytics.invested_across_products', { count: products.length })}
                     </div>
                   </div>
                 </div>
@@ -1440,7 +1440,7 @@
               type="text"
               value={searchQuery}
               on:input={handleSearchInput}
-              placeholder="🔍 Search products, SKUs, categories..."
+              placeholder={$t('inventory.search.placeholder_advanced')}
               class="w-full pl-12 pr-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
             />
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -1505,7 +1505,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
           </svg>
           <div>
-            <h3 class="text-lg font-semibold text-red-800">Error Loading Inventory</h3>
+            <h3 class="text-lg font-semibold text-red-800">{$t('inventory.ui.error_loading_inventory_title')}</h3>
             <p class="text-red-600">{error}</p>
           </div>
         </div>
@@ -1517,8 +1517,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
           </svg>
         </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">No Products Found</h3>
-        <p class="text-gray-500 mb-8">Start building your inventory by adding your first product</p>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">{$t('inventory.empty.no_products_found')}</h3>
+        <p class="text-gray-500 mb-8">{$t('inventory.empty.start_building_inventory')}</p>
         <button
           on:click={() => showAddModal = true}
           class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
@@ -1526,7 +1526,7 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
           </svg>
-          Add Your First Product
+{$t('inventory.empty.add_first_product')}
         </button>
       </div>
     {:else}
@@ -1576,7 +1576,7 @@
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
-            Clear Filters
+            {$t('inventory.filters.clear_filters')}
           </button>
         {/if}
       </div>
@@ -1588,7 +1588,7 @@
           <div class="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
             <div class="flex items-center space-x-3">
               <div class="w-6 h-6 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
-              <span class="text-sm font-medium text-gray-600">Updating...</span>
+              <span class="text-sm font-medium text-gray-600">{$t('common.loading.updating')}</span>
             </div>
           </div>
         {/if}
@@ -1614,20 +1614,20 @@
                     <p class="text-sm text-gray-500 truncate">{product.sku}</p>
                   </div>
                   <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {product.stock_quantity <= (product.reorder_point || 0) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
-                    {product.stock_quantity <= (product.reorder_point || 0) ? 'Low' : 'OK'}
+                    {product.stock_quantity <= (product.reorder_point || 0) ? $t('inventory.stock_status.low') : $t('inventory.stock_status.in_stock')}
                   </span>
                 </div>
 
                 <!-- Key Info Grid -->
                 <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
                   <div>
-                    <span class="text-gray-500">Stock:</span>
+                    <span class="text-gray-500">{$t('inventory.ui.stock_label')}</span>
                     <span class="font-semibold ml-1 {product.stock_quantity <= (product.reorder_point || 0) ? 'text-red-600' : 'text-green-600'}">
                       {product.stock_quantity}
                     </span>
                   </div>
                   <div>
-                    <span class="text-gray-500">Category:</span>
+                    <span class="text-gray-500">{$t('inventory.ui.category_label')}</span>
                     <span class="font-medium ml-1 text-gray-700 truncate block">
                       {categories.find(c => c.id === product.category_id)?.name || 'N/A'}
                     </span>
@@ -1638,7 +1638,7 @@
                 <div class="flex items-center justify-between mb-4 pt-3 border-t border-gray-100">
                   <div>
                     <p class="text-xl font-bold text-gray-900">{formatCurrency(product.selling_price || 0)}</p>
-                    <p class="text-xs text-gray-500">Selling Price</p>
+                    <p class="text-xs text-gray-500">{$t('inventory.ui.selling_price_label')}</p>
                   </div>
                   <div class="text-right">
                     <p class="text-sm font-semibold text-green-600">
@@ -1660,7 +1660,7 @@
                       <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                       </svg>
-                      Restock
+                      {$t('inventory.ui.restock_button')}
                     </button>
                   {:else}
                     <button
@@ -1670,7 +1670,7 @@
                       <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                       </svg>
-                      Add
+                      {$t('inventory.ui.add_button')}
                     </button>
                   {/if}
                   
@@ -1702,13 +1702,13 @@
             <!-- Table Header -->
             <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <div class="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700">
-                <div class="col-span-3">Product</div>
-                <div class="col-span-2">Category</div>
-                <div class="col-span-1">Stock</div>
-                <div class="col-span-2">Purchase Price</div>
-                <div class="col-span-2">Selling Price</div>
-                <div class="col-span-1">Margin</div>
-                <div class="col-span-1">Actions</div>
+                <div class="col-span-3">{$t('inventory.table.product')}</div>
+                <div class="col-span-2">{$t('inventory.table.category')}</div>
+                <div class="col-span-1">{$t('inventory.table.stock')}</div>
+                <div class="col-span-2">{$t('inventory.table.purchase_price')}</div>
+                <div class="col-span-2">{$t('inventory.ui.selling_price_label')}</div>
+                <div class="col-span-1">{$t('inventory.table.margin')}</div>
+                <div class="col-span-1">{$t('inventory.table.actions')}</div>
               </div>
             </div>
             
@@ -1835,8 +1835,8 @@
       <div class="sticky top-0 bg-white/95 backdrop-blur-sm p-6 border-b border-gray-200 rounded-t-2xl">
         <div class="flex justify-between items-center">
           <div>
-            <h3 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Add New Product</h3>
-            <p class="text-gray-500 mt-1">Create a new product in your inventory</p>
+            <h3 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{$t('inventory.header.add_product')}</h3>
+            <p class="text-gray-500 mt-1">{$t('inventory.ui.create_new_product')}</p>
           </div>
           <button 
             on:click={() => showAddModal = false} 
@@ -1853,7 +1853,7 @@
         <!-- Progress Steps -->
         <div class="mb-8">
           <div class="flex items-center justify-between">
-            {#each ['Basic Info', 'Pricing', 'Inventory', 'Details'] as step, i}
+            {#each [$t('inventory.ui.basic_info'), $t('inventory.ui.pricing_info'), $t('inventory.ui.inventory_details'), $t('inventory.ui.additional_details')] as step, i}
               <div class="flex items-center">
                 <div class="flex items-center relative">
                   <div class="rounded-full h-10 w-10 flex items-center justify-center {currentStep >= (i + 1) ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white' : 'bg-gray-200 text-gray-500'} font-semibold transition-all duration-300">
@@ -1874,10 +1874,10 @@
           {#if currentStep === 1}
             <div class="space-y-6" transition:fade={{ duration: 200 }}>
               <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h4>
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">{$t('inventory.ui.basic_info')}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.name')} *</label>
                     <input 
                       type="text" 
                       bind:value={newProduct.name} 
@@ -1887,7 +1887,7 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">SKU *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.sku')} *</label>
                     <input 
                       type="text" 
                       bind:value={newProduct.sku} 
@@ -1897,7 +1897,7 @@
                     />
                   </div>
                   <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.description')}</label>
                     <textarea 
                       bind:value={newProduct.description} 
                       rows="3" 
@@ -1906,13 +1906,13 @@
                     ></textarea>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.category')} *</label>
                     <select 
                       bind:value={newProduct.category_id} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
                       required
                     >
-                      <option value="">Select Category</option>
+                      <option value="">{$t('inventory.ui.select_category')}</option>
                       {#each categories as category}
                         <option value={category.id}>{category.name}</option>
                       {/each}
@@ -1926,13 +1926,13 @@
           {#if currentStep === 2}
             <div class="space-y-6" transition:fade={{ duration: 200 }}>
               <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Pricing Information</h4>
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">{$t('inventory.ui.pricing_info')}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Purchase Price *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.purchase_price')} *</label>
                     <div class="relative">
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 sm:text-sm">TND</span>
+                        <span class="text-gray-500 sm:text-sm">{$t('inventory.ui.currency_symbol')}</span>
                       </div>
                       <input 
                         type="number" 
@@ -1944,10 +1944,10 @@
                     </div>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Selling Price *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.selling_price')} *</label>
                     <div class="relative">
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-500 sm:text-sm">TND</span>
+                        <span class="text-gray-500 sm:text-sm">{$t('inventory.ui.currency_symbol')}</span>
                       </div>
                       <input 
                         type="number" 
@@ -1966,10 +1966,10 @@
           {#if currentStep === 3}
             <div class="space-y-6" transition:fade={{ duration: 200 }}>
               <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Inventory Details</h4>
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">{$t('inventory.ui.inventory_details')}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Stock Quantity *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.stock_quantity')} *</label>
                     <input 
                       type="number" 
                       bind:value={newProduct.stock_quantity} 
@@ -1978,7 +1978,7 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Reorder Point *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.reorder_point')} *</label>
                     <input 
                       type="number" 
                       bind:value={newProduct.reorder_point} 
@@ -1994,33 +1994,33 @@
           {#if currentStep === 4}
             <div class="space-y-6" transition:fade={{ duration: 200 }}>
               <div class="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-6 border border-orange-100">
-                <h4 class="text-lg font-semibold text-gray-900 mb-4">Additional Details</h4>
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">{$t('inventory.ui.additional_details')}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Supplier</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.supplier')}</label>
                     <input 
                       type="text" 
                       bind:value={newProduct.supplier} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
-                      placeholder="Supplier name" 
+                      placeholder={$t('inventory.create.fields.supplier_placeholder')} 
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.location')}</label>
                     <input 
                       type="text" 
                       bind:value={newProduct.location} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
-                      placeholder="Storage location" 
+                      placeholder={$t('inventory.create.fields.location_placeholder')} 
                     />
                   </div>
                   <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Specifications</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.specs')}</label>
                     <textarea 
                       bind:value={newProduct.specs} 
                       rows="3" 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
-                      placeholder="Product specifications"
+                      placeholder={$t('inventory.create.fields.specs_placeholder')}
                     ></textarea>
                   </div>
                 </div>
@@ -2038,7 +2038,7 @@
                 on:click={prevStep} 
                 class="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium"
               >
-                ← Previous
+                {$t('inventory.ui.previous_button')}
               </button>
             {/if}
           </div>
@@ -2049,7 +2049,7 @@
               on:click={() => showAddModal = false} 
               class="px-6 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-medium"
             >
-              Cancel
+              {$t('inventory.ui.cancel_button')}
             </button>
             
             {#if currentStep < 4}
@@ -2058,7 +2058,7 @@
                 on:click={nextStep} 
                 class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium"
               >
-                Next →
+                {$t('inventory.ui.next_button')}
               </button>
             {:else}
               <button 
@@ -2071,9 +2071,9 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Creating...
+                  {$t('inventory.ui.creating_button')}
                 {:else}
-                  ✨ Create Product
+                  {$t('inventory.ui.create_product_button')}
                 {/if}
               </button>
             {/if}

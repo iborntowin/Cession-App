@@ -2401,7 +2401,7 @@
                         <div class="space-y-2">
                           {#each dataQualityMetrics.duplicateWorkerNumbers.slice(0, 5) as duplicate}
                             <div class="flex items-center justify-between text-sm">
-                              <span class="font-medium text-orange-800">Worker: {duplicate.workerNumber}</span>
+                              <span class="font-medium text-orange-800">{$t('common.worker_label')}: {duplicate.workerNumber}</span>
                               <span class="text-orange-600">{duplicate.count} clients</span>
                             </div>
                           {/each}
@@ -2653,7 +2653,7 @@
                   <span class="text-gray-900 font-semibold">{selectedClient.workerNumber || $t('common.not_available')}</span>
                 </div>
                 <div class="flex justify-between items-center py-3 border-b border-blue-100">
-                  <span class="text-gray-600 font-medium">{$t('client.client_number')}</span>
+                  <span class="text-gray-600 font-medium">{$t('common.client_number')}</span>
                   <span class="text-gray-900 font-semibold">{formatClientNumber(selectedClient.clientNumber)}</span>
                 </div>
                 <div class="flex justify-between items-center py-3">
