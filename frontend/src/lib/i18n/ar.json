@@ -1114,6 +1114,21 @@
     "new": "بيع جديد",
     "all_categories": "جميع الفئات",
     "count": "{count} {count, plural, one=بيع other=مبيعات}",
+    "results": {
+      "products_found": "تم العثور على {count} منتج",
+      "no_products_found": "لم يتم العثور على منتجات",
+      "try_adjust_filters": "حاول تعديل معايير البحث أو المرشحات"
+    },
+    "product_card": {
+      "stock_label": "المخزون:",
+      "category_label": "الفئة:",
+      "id_label": "المعرف:",
+      "selling_price_label": "سعر البيع",
+      "low_stock": "منخفض",
+      "in_stock": "متوفر",
+      "restock_button": "إعادة تخزين",
+      "add_button": "إضافة"
+    },
     "details": {
       "title": "تفاصيل البيع",
       "subtitle": "عرض وإدارة معلومات البيع",
@@ -1175,16 +1190,8 @@
         "reorder_point_invalid": "يجب أن تكون نقطة إعادة الطلب 0 أو أكثر"
       }
     },
-    "search_placeholder": "البحث في المبيعات، المنتجات، الفئات...",
-    "results": {
-      "products_found": "المنتجات الموجودة",
-      "stock": "المخزون",
-      "category": "الفئة",
-      "id": "المعرف",
-      "low": "منخفض",
-      "ok": "موافق",
-      "restock": "إعادة تخزين",
-      "add": "إضافة"
+    "search": {
+      "placeholder": "البحث في المنتجات..."
     },
     "no_products": {
       "title": "لم يتم العثور على منتجات",

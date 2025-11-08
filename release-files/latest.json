@@ -1,14 +1,14 @@
 {
-  "version": "1.1.14",
+  "version": "1.1.15",
   "notes": "Bug fixes and improvements",
-  "pub_date": "2025-11-04T13:55:53.483Z",
+  "pub_date": "2025-11-08T08:32:20.264Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/iborntowin/Cession-App/releases/download/v1.1.14/Cession.Management.App_1.1.14_x64-setup.exe",
+      "url": "https://github.com/iborntowin/Cession-App/releases/download/v1.1.15/Cession.Management.App_1.1.15_x64-setup.exe",
       "signature": "",
-      "msi_url": "https://github.com/iborntowin/Cession-App/releases/download/v1.1.14/Cession-Management-App_1.1.14_x64_en-US.msi.zip",
-      "sha256": "65bc111445a42a399a5042fd207f6710cc53eb8c1073cede0ad6f7e6a1de69fa",
-      "msi_sha256": "204af95a66dbc205e668acd568549ec0ac2741fd3c09c3f9e1a6dc309f3105d8"
+      "msi_url": "https://github.com/iborntowin/Cession-App/releases/download/v1.1.15/Cession-Management-App_1.1.15_x64_en-US.msi.zip",
+      "sha256": "f7f59caa0e448b6e536ad594aced6fe7ad0b0d6627809348efd71a74eac1bbbf",
+      "msi_sha256": "1c33a794bcfa232552176035e5f8755329fc52e969dfafb08f2a7b6118f390b0"
     }
   }
 }
