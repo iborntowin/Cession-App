@@ -981,54 +981,71 @@
       });
     }
 
-    // Missing Months Timeline Chart - New Creative Chart
+    // Missing Months Timeline Chart - Big Tech Inspired Design
     const missingCtx = document.getElementById('missing-months-chart');
     if (missingCtx && analytics.missingMonthsTimeline.length > 0) {
       if (missingMonthsChart) missingMonthsChart.destroy();
 
-      missingCtx.height = 200;
+      missingCtx.height = 400;
+
+      // Create gradient for expected payments
+      const expectedGradient = missingCtx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+      expectedGradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)'); // Indigo
+      expectedGradient.addColorStop(1, 'rgba(99, 102, 241, 0.05)');
+
+      // Create gradient for actual payments
+      const actualGradient = missingCtx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+      actualGradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); // Emerald
+      actualGradient.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
 
       missingMonthsChart = new Chart(missingCtx, {
         type: 'line',
         data: {
           labels: analytics.missingMonthsTimeline.map(m => m.displayMonth),
           datasets: [{
-            label: 'Expected vs Actual Payments',
+            label: 'Expected Payments',
             data: analytics.missingMonthsTimeline.map(m => m.expectedPayments),
-            borderColor: colors.primary,
-            backgroundColor: colors.primary + '20',
-            borderWidth: 3,
-            fill: false,
-            tension: 0.1,
+            borderColor: '#6366f1', // Indigo
+            backgroundColor: expectedGradient,
+            borderWidth: 6, // Much thicker line
+            fill: true,
+            tension: 0.4, // Smoother curves
             pointBackgroundColor: function(context) {
               const status = analytics.missingMonthsTimeline[context.dataIndex].status;
               switch (status) {
-                case 'paid': return colors.success;
-                case 'missing': return colors.danger;
-                default: return colors.info;
+                case 'paid': return '#10b981'; // Emerald
+                case 'missing': return '#ef4444'; // Red
+                default: return '#6b7280'; // Gray
               }
             },
             pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
+            pointBorderWidth: 4,
             pointRadius: function(context) {
               const status = analytics.missingMonthsTimeline[context.dataIndex].status;
-              return status === 'missing' ? 8 : 6;
+              return status === 'missing' ? 12 : 10; // Bigger points
             },
-            pointHoverRadius: 10,
-            pointHoverBorderWidth: 3
+            pointHoverRadius: 16,
+            pointHoverBorderWidth: 6,
+            pointHoverBorderColor: '#ffffff',
+            shadowColor: 'rgba(99, 102, 241, 0.3)',
+            shadowBlur: 10
           }, {
             label: 'Actual Payments',
             data: analytics.missingMonthsTimeline.map(m => m.actualPayments),
-            borderColor: colors.success,
-            backgroundColor: colors.success + '20',
-            borderWidth: 2,
-            fill: false,
-            tension: 0.1,
-            pointBackgroundColor: colors.success,
+            borderColor: '#10b981', // Emerald
+            backgroundColor: actualGradient,
+            borderWidth: 5, // Thick line
+            fill: true,
+            tension: 0.4, // Smoother curves
+            pointBackgroundColor: '#10b981',
             pointBorderColor: '#ffffff',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6
+            pointBorderWidth: 4,
+            pointRadius: 8, // Bigger points
+            pointHoverRadius: 14,
+            pointHoverBorderWidth: 6,
+            pointHoverBorderColor: '#ffffff',
+            shadowColor: 'rgba(16, 185, 129, 0.3)',
+            shadowBlur: 10
           }]
         },
         options: {
@@ -1038,30 +1055,53 @@
             intersect: false,
             mode: 'index'
           },
+          layout: {
+            padding: {
+              top: 20,
+              bottom: 20,
+              left: 20,
+              right: 20
+            }
+          },
           plugins: {
             legend: {
               display: true,
               position: 'top',
+              align: 'center',
               labels: {
-                padding: 20,
-                font: { size: 12, weight: '500' },
-                usePointStyle: true
+                padding: 30,
+                font: {
+                  size: 14,
+                  weight: '600',
+                  family: 'Inter, system-ui, sans-serif'
+                },
+                usePointStyle: true,
+                pointStyle: 'rectRounded',
+                pointStyleWidth: 20,
+                pointStyleHeight: 8
               }
             },
             title: {
-              display: true,
-              text: 'Payment Coverage Timeline (18-Month View)',
-              font: { size: 16, weight: 'bold', family: 'Inter' },
-              padding: { bottom: 20 }
+              display: false // Remove title, we have it in header
             },
             tooltip: {
               backgroundColor: 'rgba(255, 255, 255, 0.98)',
-              titleColor: colors.dark,
-              bodyColor: colors.dark,
-              borderColor: colors.primary,
+              titleColor: '#1f2937',
+              bodyColor: '#374151',
+              borderColor: '#e5e7eb',
               borderWidth: 2,
-              cornerRadius: 12,
+              cornerRadius: 16,
               displayColors: true,
+              padding: 16,
+              titleFont: {
+                size: 16,
+                weight: 'bold',
+                family: 'Inter, system-ui, sans-serif'
+              },
+              bodyFont: {
+                size: 14,
+                family: 'Inter, system-ui, sans-serif'
+              },
               callbacks: {
                 title: function(context) {
                   return analytics.missingMonthsTimeline[context[0].dataIndex].displayMonth;
@@ -1069,10 +1109,11 @@
                 label: function(context) {
                   const data = analytics.missingMonthsTimeline[context.dataIndex];
                   const datasetLabel = context.dataset.label;
-                  if (datasetLabel === 'Expected vs Actual Payments') {
+                  if (datasetLabel === 'Expected Payments') {
+                    const status = data.status === 'missing' ? '❌ Missing' : data.status === 'paid' ? '✅ Paid' : '➖ No expectation';
                     return [
                       `Expected: ${data.expectedPayments} payment${data.expectedPayments !== 1 ? 's' : ''}`,
-                      `Status: ${data.status === 'missing' ? '❌ Missing' : data.status === 'paid' ? '✅ Paid' : '➖ No expectation'}`
+                      `Status: ${status}`
                     ];
                   } else {
                     return `Actual: ${data.actualPayments} payment${data.actualPayments !== 1 ? 's' : ''}`;
@@ -1083,32 +1124,85 @@
           },
           scales: {
             x: {
-              grid: { display: false },
+              grid: {
+                display: false,
+                drawBorder: false
+              },
               ticks: {
-                font: { size: 11 },
+                font: {
+                  size: 13,
+                  weight: '500',
+                  family: 'Inter, system-ui, sans-serif'
+                },
+                color: '#6b7280',
+                padding: 10,
                 maxTicksLimit: 12,
-                maxRotation: 45
+                maxRotation: 0
+              },
+              border: {
+                display: false
               }
             },
             y: {
               beginAtZero: true,
-              grid: { color: 'rgba(0,0,0,0.05)' },
+              grid: {
+                color: 'rgba(0,0,0,0.06)',
+                drawBorder: false,
+                lineWidth: 1
+              },
               ticks: {
                 stepSize: 1,
-                font: { size: 11 }
+                font: {
+                  size: 13,
+                  weight: '500',
+                  family: 'Inter, system-ui, sans-serif'
+                },
+                color: '#6b7280',
+                padding: 15,
+                callback: function(value) {
+                  return value + (value === 1 ? ' payment' : ' payments');
+                }
+              },
+              border: {
+                display: false
               },
               title: {
                 display: true,
-                text: 'Number of Payments',
-                font: { size: 12, weight: '500' }
+                text: 'Payment Count',
+                font: {
+                  size: 14,
+                  weight: '600',
+                  family: 'Inter, system-ui, sans-serif'
+                },
+                color: '#374151',
+                padding: { bottom: 10 }
               }
             }
           },
           animation: {
-            duration: 2000,
-            easing: 'easeInOutQuart'
+            duration: 2500,
+            easing: 'easeInOutQuart',
+            delay: function(context) {
+              return context.dataIndex * 100; // Staggered animation
+            }
+          },
+          elements: {
+            point: {
+              hoverBorderWidth: 6
+            }
           }
-        }
+        },
+        plugins: [{
+          id: 'customCanvasBackgroundColor',
+          beforeDraw: (chart, args, options) => {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fillStyle = 'rgba(248, 250, 252, 0.8)'; // Very light background
+            ctx.fillRect(0, 0, chart.width, chart.height);
+            ctx.restore();
+          }
+        }]
       });
     }
   }
@@ -1667,51 +1761,88 @@
 
           <!-- Chart Container with Modern Design -->
           <div class="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border-2 border-white/50">
-            <!-- Header Bar -->
-            <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b-2 border-gray-100">
-              <div class="flex items-center space-x-4 mb-4 md:mb-0">
-                <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
-                  <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Header Bar - Big Tech Inspired -->
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 pb-8 border-b-2 border-gradient-to-r from-indigo-200 to-purple-200 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 rounded-2xl p-6 -mx-6 -mt-6 mb-6">
+              <div class="flex items-center space-x-5 mb-6 md:mb-0">
+                <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-2xl relative">
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                   </svg>
+                  <div class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white animate-pulse"></div>
                 </div>
                 <div>
-                  <h3 class="text-2xl font-bold text-gray-900">18-Month Timeline</h3>
-                  <p class="text-sm text-gray-600 mt-1">Comprehensive payment analysis</p>
+                  <h3 class="text-3xl font-black bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-1">
+                    18-Month Timeline
+                  </h3>
+                  <p class="text-sm text-gray-600 font-medium">Comprehensive payment analysis & forecasting</p>
+                  <div class="flex items-center space-x-2 mt-2">
+                    <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <span class="text-xs text-gray-500 font-medium">Live data • Updated daily</span>
+                  </div>
                 </div>
               </div>
-              <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl px-6 py-4 border-2 border-indigo-100">
+              <div class="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 border-2 border-indigo-100 shadow-xl">
                 <div class="text-center">
-                  <div class="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  <div class="text-4xl font-black bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-1">
                     {analytics.missingMonthsTimeline.filter(m => m.actualPayments >= m.expectedPayments && m.expectedPayments > 0).length}/{analytics.missingMonthsTimeline.filter(m => m.expectedPayments > 0).length}
                   </div>
-                  <div class="text-xs font-semibold text-gray-600 mt-1 uppercase tracking-wide">Months On Track</div>
+                  <div class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2">Months On Track</div>
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      class="bg-gradient-to-r from-emerald-400 to-green-500 h-2 rounded-full transition-all duration-1000"
+                      style="width: {analytics.missingMonthsTimeline.filter(m => m.expectedPayments > 0).length > 0 ? (analytics.missingMonthsTimeline.filter(m => m.actualPayments >= m.expectedPayments && m.expectedPayments > 0).length / analytics.missingMonthsTimeline.filter(m => m.expectedPayments > 0).length) * 100 : 0}%;"
+                    ></div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Chart Canvas -->
-            <div class="h-96 w-full relative mb-8">
-              <canvas id="missing-months-chart" class="w-full h-full"></canvas>
+            <!-- Chart Canvas - Enhanced Size -->
+            <div class="h-[500px] w-full relative mb-8 bg-gradient-to-br from-slate-50 to-gray-100 rounded-2xl p-6 shadow-inner overflow-hidden">
+              <!-- Subtle background pattern -->
+              <div class="absolute inset-0 opacity-5">
+                <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, rgba(99,102,241,0.3) 1px, transparent 0); background-size: 20px 20px;"></div>
+              </div>
+              <canvas id="missing-months-chart" class="w-full h-full relative z-10"></canvas>
             </div>
 
-            <!-- Enhanced Legend -->
-            <div class="flex flex-wrap justify-center gap-8 pt-6 border-t-2 border-gray-100">
-              <div class="flex items-center space-x-3 group cursor-pointer">
-                <div class="w-5 h-5 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-lg shadow-lg group-hover:scale-110 transition-transform"></div>
-                <span class="text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">Expected Payments</span>
+            <!-- Enhanced Legend - Big Tech Style -->
+            <div class="flex flex-wrap justify-center gap-6 pt-8 border-t-2 border-gray-100 bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-6 -mx-6 -mb-6">
+              <div class="flex items-center space-x-4 group cursor-pointer transform hover:scale-105 transition-all duration-300">
+                <div class="w-6 h-6 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-xl shadow-lg group-hover:shadow-xl flex items-center justify-center">
+                  <div class="w-3 h-3 bg-white rounded-full"></div>
+                </div>
+                <div class="text-center">
+                  <span class="text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors block">Expected Payments</span>
+                  <span class="text-xs text-gray-500">Target amounts</span>
+                </div>
               </div>
-              <div class="flex items-center space-x-3 group cursor-pointer">
-                <div class="w-5 h-5 bg-gradient-to-br from-emerald-400 to-green-500 rounded-lg shadow-lg group-hover:scale-110 transition-transform"></div>
-                <span class="text-sm font-bold text-gray-700 group-hover:text-emerald-600 transition-colors">Actual Payments</span>
+              <div class="flex items-center space-x-4 group cursor-pointer transform hover:scale-105 transition-all duration-300">
+                <div class="w-6 h-6 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl shadow-lg group-hover:shadow-xl flex items-center justify-center">
+                  <div class="w-3 h-3 bg-white rounded-full"></div>
+                </div>
+                <div class="text-center">
+                  <span class="text-sm font-bold text-gray-700 group-hover:text-emerald-600 transition-colors block">Actual Payments</span>
+                  <span class="text-xs text-gray-500">Received amounts</span>
+                </div>
               </div>
-              <div class="flex items-center space-x-3 group cursor-pointer">
-                <div class="w-4 h-4 bg-emerald-500 rounded-full border-3 border-white shadow-lg group-hover:scale-110 transition-transform"></div>
-                <span class="text-sm font-bold text-gray-700 group-hover:text-emerald-600 transition-colors">On Track ✓</span>
+              <div class="flex items-center space-x-4 group cursor-pointer transform hover:scale-105 transition-all duration-300">
+                <div class="w-5 h-5 bg-emerald-500 rounded-full border-4 border-white shadow-lg group-hover:shadow-xl flex items-center justify-center">
+                  <span class="text-xs">✓</span>
+                </div>
+                <div class="text-center">
+                  <span class="text-sm font-bold text-gray-700 group-hover:text-emerald-600 transition-colors block">On Track</span>
+                  <span class="text-xs text-gray-500">Meeting expectations</span>
+                </div>
               </div>
-              <div class="flex items-center space-x-3 group cursor-pointer">
-                <div class="w-4 h-4 bg-red-500 rounded-full border-3 border-white shadow-lg group-hover:scale-110 transition-transform"></div>
-                <span class="text-sm font-bold text-gray-700 group-hover:text-red-600 transition-colors">Missing ✗</span>
+              <div class="flex items-center space-x-4 group cursor-pointer transform hover:scale-105 transition-all duration-300">
+                <div class="w-5 h-5 bg-red-500 rounded-full border-4 border-white shadow-lg group-hover:shadow-xl flex items-center justify-center">
+                  <span class="text-xs">✗</span>
+                </div>
+                <div class="text-center">
+                  <span class="text-sm font-bold text-gray-700 group-hover:text-red-600 transition-colors block">Missing</span>
+                  <span class="text-xs text-gray-500">Below expectations</span>
+                </div>
               </div>
             </div>
           </div>
