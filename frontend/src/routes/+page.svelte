@@ -71,19 +71,22 @@
   let selectedTimeframe = 'month';
   let autoRefresh = true;
   let refreshInterval = null;
+  let dataLoaded = false;
   
-  // 🌟 Creative Features
-  let dailyGoals = [];
-  let quickStats = {
-    salaryCessionsActive: 0,
-    monthlyPaymentsTotal: 0,
-    averagePaymentAmount: 0,
-    paymentSuccessRate: 0,
-    monthlyRevenue: 0,
-    totalRevenue: 0,
-    payingUsersThisMonth: 0,
-    avgRevenuePerCustomer: 0
+  // Quick stats for chart
+  let chartStats = {
+    newThisMonth: { count: 0, value: 0 },
+    currentlyActive: { count: 0, value: 0 },
+    paymentsReceived: { count: 0, amount: 0 },
+    averageValue: 0
   };
+  let monthlyPayments = [];
+
+  // Quick stats object
+  let quickStats = {};
+
+  // Daily goals
+  let dailyGoals = [];
 
   // Safe date formatting function
   function safeFormatDistanceToNow(dateValue) {
@@ -181,7 +184,9 @@
         case 'r':
         case 'R':
           event.preventDefault();
-          loadDashboardData();
+          if (browser) {
+            window.location.reload();
+          }
           break;
       }
     }
@@ -230,12 +235,14 @@
   }
 
   async function loadDashboardData() {
+    dataLoaded = false;
     $loading = true;
     try {
       // Load data in the correct order - cessions first, then analytics
       await loadClients();
       await loadCessionsData(); // This populates recentCessions
       await loadPaymentsData();
+      calculateMonthlyPayments();
       await loadInventoryData();
       await loadSalesData();
       await loadAdvancedAnalytics(); // This depends on recentCessions
@@ -243,6 +250,9 @@
       
       // ✅ FIXED: Calculate REAL monthly revenue (only completed payments from current month)
       calculateRevenueMetrics();
+      
+      // Calculate chart stats
+      calculateChartStats();
       
       generateDailyGoals();
       
@@ -252,6 +262,7 @@
       showAlert(error.message || 'Failed to load dashboard data', 'error');
     } finally {
       $loading = false;
+      dataLoaded = true;
     }
   }
 
@@ -338,6 +349,80 @@
       totalPaymentsCount: allCompletedPayments.length
     });
   }
+
+  // 📊 Calculate Monthly Payments - SYNCHRONOUS
+  function calculateMonthlyPayments() {
+    if (!payments || !Array.isArray(payments)) {
+      monthlyPayments = [];
+      return;
+    }
+    
+    const now = new Date();
+    const paymentsByMonth = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = startOfMonth(subMonths(now, i));
+      const monthEnd = endOfMonth(subMonths(now, i));
+      
+      const monthPayments = payments.filter(p => {
+        try {
+          const paymentDate = new Date(p.createdAt || p.paymentDate);
+          const isInMonth = paymentDate >= monthStart && paymentDate <= monthEnd;
+          const isCompleted = !p.status || p.status === 'COMPLETED' || p.status === 'PAID' || 
+                             p.status?.toLowerCase() === 'completed' || p.status?.toLowerCase() === 'paid';
+          
+          return isInMonth && isCompleted;
+        } catch (e) {
+          return false;
+        }
+      });
+      
+      const amount = monthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const count = monthPayments.length;
+      
+      paymentsByMonth.push({
+        month: monthStart.toLocaleString('default', { month: 'short' }),
+        year: monthStart.getFullYear(),
+        amount: amount,
+        count: count
+      });
+    }
+    
+    monthlyPayments = paymentsByMonth;
+  }
+
+  // 📊 Calculate Chart Stats - SYNCHRONOUS CALCULATION
+  function calculateChartStats() {
+    // New this month
+    if (monthlyTrends.length > 0) {
+      const latest = monthlyTrends[monthlyTrends.length - 1];
+      chartStats.newThisMonth = {
+        count: latest.count || 0,
+        value: latest.value || 0
+      };
+    }
+
+    // Currently active
+    chartStats.currentlyActive = {
+      count: analytics.activeCount || 0,
+      value: monthlyTrends.length > 0 ? monthlyTrends[monthlyTrends.length - 1].activeValue || 0 : 0
+    };
+
+    // Payments received
+    const totalPayments = monthlyPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalPaymentsCount = monthlyPayments.reduce((sum, p) => sum + (p.count || 0), 0);
+    chartStats.paymentsReceived = {
+      count: totalPaymentsCount,
+      amount: totalPayments
+    };
+
+    // Average value per cession
+    const totalValue = monthlyTrends.reduce((sum, t) => sum + (t.value || 0), 0);
+    const totalCount = monthlyTrends.reduce((sum, t) => sum + (t.count || 0), 0);
+    chartStats.averageValue = totalCount > 0 ? totalValue / totalCount : 0;
+
+    console.log('📊 Chart Stats Calculated:', chartStats);
+  };
 
   async function loadClients() {
     try {
@@ -821,7 +906,7 @@
           <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <!-- Left Column - Charts and Primary Data -->
             <div class="lg:col-span-3 space-y-8">
-              <MonthlyCessionsChart {monthlyTrends} {formatCurrency} {payments} />
+              <MonthlyCessionsChart {monthlyTrends} {formatCurrency} {monthlyPayments} {dataLoaded} {chartStats} onRefresh={loadDashboardData} />
               <RecentCessions {recentCessions} {getStatusClass} {safeFormatDistanceToNow} {formatCurrency} />
             </div>
 

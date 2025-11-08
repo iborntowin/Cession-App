@@ -7,7 +7,10 @@
   import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
   
   export let monthlyTrends = [];
-  export let payments = [];
+  export let monthlyPayments = [];
+  export let dataLoaded = false;
+  export let chartStats = {};
+  export let onRefresh = () => {};
   export let formatCurrency = (amount) => {
     if (amount === null || amount === undefined) return 'N/A';
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -27,75 +30,6 @@
   $: totalValue = realTrends.reduce((sum, t) => sum + (t.value || 0), 0);
   $: activeCount = realTrends.length > 0 ? realTrends[realTrends.length - 1].activeCessionsCount : 0;
   $: activeValue = realTrends.length > 0 ? realTrends[realTrends.length - 1].activeValue : 0;
-  
-  // Calculate average value per cession - fixed calculation
-  $: averageValuePerCession = (() => {
-    // Calculate total value and count across all months
-    const total = realTrends.reduce((sum, t) => sum + (t.value || 0), 0);
-    const count = realTrends.reduce((sum, t) => sum + (t.count || 0), 0);
-    
-    // Return average if count > 0, otherwise 0
-    return count > 0 ? total / count : 0;
-  })();
-  
-  // Calculate monthly payments
-  $: monthlyPayments = calculateMonthlyPayments();
-  
-  function calculateMonthlyPayments() {
-    // Ensure payments is an array
-    if (!payments || !Array.isArray(payments)) {
-      // Return empty array with 6 months structure
-      const now = new Date();
-      const emptyMonths = [];
-      for (let i = 5; i >= 0; i--) {
-        const monthStart = startOfMonth(subMonths(now, i));
-        emptyMonths.push({
-          month: monthStart.toLocaleString('default', { month: 'short' }),
-          year: monthStart.getFullYear(),
-          amount: 0,
-          count: 0
-        });
-      }
-      return emptyMonths;
-    }
-    
-    const now = new Date();
-    const paymentsByMonth = [];
-    
-    for (let i = 5; i >= 0; i--) {
-      const monthStart = startOfMonth(subMonths(now, i));
-      const monthEnd = endOfMonth(subMonths(now, i));
-      
-      const monthPayments = payments.filter(p => {
-        try {
-          const paymentDate = new Date(p.createdAt || p.paymentDate);
-          const isInMonth = paymentDate >= monthStart && paymentDate <= monthEnd;
-          // Match the status check: either no status (means completed), or explicitly COMPLETED/PAID
-          const isCompleted = !p.status || p.status === 'COMPLETED' || p.status === 'PAID' || 
-                             p.status?.toLowerCase() === 'completed' || p.status?.toLowerCase() === 'paid';
-          
-          return isInMonth && isCompleted;
-        } catch (e) {
-          return false;
-        }
-      });
-      
-      const amount = monthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      const count = monthPayments.length;
-      
-      paymentsByMonth.push({
-        month: monthStart.toLocaleString('default', { month: 'short' }),
-        year: monthStart.getFullYear(),
-        amount: amount,
-        count: count
-      });
-    }
-    
-    return paymentsByMonth;
-  }
-  
-  $: totalPaymentsAmount = monthlyPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  $: totalPaymentsCount = monthlyPayments.reduce((sum, p) => sum + (p.count || 0), 0);
   
   let canvas;
   let chart = null;
@@ -461,6 +395,17 @@
         </button>
       </div>
       
+      <!-- Refresh Button -->
+      <button 
+        class="p-2 bg-white/80 backdrop-blur-sm rounded-xl border border-white/20 hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl"
+        on:click={onRefresh}
+        title="Refresh chart data"
+      >
+        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </button>
+      
       {#if totalCessions > 0}
         <div class="text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg font-semibold">
           {$t('dashboard.total_cessions')}: {totalCessions}
@@ -471,6 +416,7 @@
   
   {#if realTrends.length > 0}
     <!-- Enhanced Quick Stats Grid - Moved to Top -->
+    {#if dataLoaded}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" in:fade={{ duration: 400, easing: quintOut }}>
       <div class="group bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
         <div class="flex items-center justify-between mb-2">
@@ -481,8 +427,8 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-black text-emerald-900">{realTrends[realTrends.length - 1].count}</p>
-        <p class="text-xs text-emerald-600 font-semibold mt-1">{$t('dashboard.value')}: {formatCurrency(realTrends[realTrends.length - 1].value)} TND</p>
+        <p class="text-2xl font-black text-emerald-900">{chartStats.newThisMonth?.count || 0}</p>
+        <p class="text-xs text-emerald-600 font-semibold mt-1">{$t('dashboard.value')}: {formatCurrency(chartStats.newThisMonth?.value || 0)} TND</p>
       </div>
       
       <div class="group bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-4 border border-indigo-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -494,8 +440,8 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-black text-indigo-900">{activeCount}</p>
-        <p class="text-xs text-indigo-600 font-semibold mt-1">{$t('dashboard.monthly')}: {formatCurrency(activeValue)} TND</p>
+        <p class="text-2xl font-black text-indigo-900">{chartStats.currentlyActive?.count || 0}</p>
+        <p class="text-xs text-indigo-600 font-semibold mt-1">{$t('dashboard.monthly')}: {formatCurrency(chartStats.currentlyActive?.value || 0)} TND</p>
       </div>
       
       <div class="group bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -507,8 +453,8 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-black text-amber-900">{totalPaymentsCount}</p>
-        <p class="text-xs text-amber-600 font-semibold mt-1">{$t('dashboard.total_value')}: {formatCurrency(totalPaymentsAmount)} TND</p>
+        <p class="text-2xl font-black text-amber-900">{chartStats.paymentsReceived?.count || 0}</p>
+        <p class="text-xs text-amber-600 font-semibold mt-1">{$t('dashboard.total_value')}: {formatCurrency(chartStats.paymentsReceived?.amount || 0)} TND</p>
       </div>
       
       <div class="group bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl p-4 border border-pink-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -520,10 +466,11 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-black text-pink-900">{averageValuePerCession > 0 ? formatCurrency(averageValuePerCession) : '0.000'} TND</p>
+        <p class="text-2xl font-black text-pink-900">{chartStats.averageValue > 0 ? formatCurrency(chartStats.averageValue) : '0.000'} TND</p>
         <p class="text-xs text-pink-600 font-semibold mt-1">{$t('dashboard.per_cession')}</p>
       </div>
     </div>
+    {/if}
     
     <!-- Chart View -->
     <div class="h-[350px] relative">
