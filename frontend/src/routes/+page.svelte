@@ -837,7 +837,7 @@
     <!-- Header Section (Matching Login Page Style) -->
     {#if dashboardVisible}
       <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5" in:slide={{ duration: 400, delay: 200 }}>
-        <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="w-full px-6 py-4">
           <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
             <div class="flex items-center space-x-4" class:space-x-reverse={isRTL}>
               <!-- Logo/Brand (Matching Login Page) -->
@@ -893,7 +893,7 @@
     {/if}
 
     <!-- Dashboard Content -->
-    <div class="max-w-7xl mx-auto px-6 py-8">
+    <div class="w-full px-6 py-8">
       <!-- Main Dashboard Grid -->
       {#if widgetsVisible}
         <div class="space-y-8" in:fly={{ y: 30, duration: 600, delay: 600 }}>

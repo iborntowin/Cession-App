@@ -72,7 +72,11 @@
       "finance": "Finance",
       "settings": "Settings",
       "logout": "Logout",
-      "financial": "Finance"
+      "financial": "Finance",
+      "back": "Go Back",
+      "forward": "Go Forward",
+      "back_tooltip": "Navigate to previous page",
+      "forward_tooltip": "Navigate to next page"
     },
     "view": "View",
     "view_all": "View All",

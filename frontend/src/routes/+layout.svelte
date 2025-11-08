@@ -12,11 +12,13 @@
   import KeyboardShortcutsHelp from '$lib/components/KeyboardShortcutsHelp.svelte';
   import Breadcrumbs from '$lib/components/Breadcrumbs.svelte';
   import UpdateNotification from '$lib/components/UpdateNotification.svelte';
+  import NavigationControls from '$lib/components/NavigationControls.svelte';
   import { language } from '$lib/stores/language';
   import { t } from '$lib/i18n';
   import { fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { checkForUpdatesEnhanced } from '$lib/custom-updater';
+  import { navigationHistory } from '$lib/stores/navigationHistory';
   
   export let data;
   
@@ -62,6 +64,9 @@
           goto('/');
       }
 
+      // Initialize navigation history
+      navigationHistory.init();
+
       // Check for updates on startup
       if (tokenAfterMount) {
         setTimeout(() => {
@@ -74,6 +79,21 @@
       };
     });
   }
+  
+  // Track navigation changes
+  afterNavigate((navigation) => {
+    if (browser && navigation.to?.url) {
+      const path = navigation.to.url.pathname;
+      
+      // Don't track login/signup routes
+      if (path !== '/login' && path !== '/signup') {
+        navigationHistory.push(path, {
+          from: navigation.from?.url?.pathname,
+          type: navigation.type
+        });
+      }
+    }
+  });
   
   async function checkForUpdates() {
     try {
@@ -204,23 +224,30 @@
   <div class="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
     <!-- Sticky Glassmorphic Header -->
     <header class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
-      <div class="max-w-7xl mx-auto px-6 py-4">
-        <div class="flex justify-between items-center">
-          <!-- Logo/Brand -->
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+      <div class="w-full px-6 py-4">
+        <div class="flex items-center justify-between">
+          <!-- Left Section: Logo + Title (touching left edge) -->
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h1 class="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            <h1 class="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent whitespace-nowrap">
               {$t('common.app.title')}
             </h1>
+            
+            <!-- Navigation Controls -->
+            <div class="ml-6 hidden md:block">
+              <NavigationControls />
+            </div>
           </div>
           
-          <!-- Mobile menu button -->
-          <div class="md:hidden">
-            <button 
+          <!-- Right Section: Mobile Menu + Desktop Nav -->
+          <div class="flex items-center gap-3">
+            <!-- Mobile menu button -->
+            <div class="md:hidden">
+              <button 
               on:click={toggleMobileMenu}
               class="text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-md p-2"
             >
@@ -234,9 +261,9 @@
             </button>
           </div>
           
-          <!-- Desktop Navigation Links -->
-          <nav class="hidden md:flex items-center space-x-1">
-            {#each navigationItems as item (item.href)}
+            <!-- Desktop Navigation Links -->
+            <nav class="hidden md:flex items-center space-x-1">
+              {#each navigationItems as item (item.href)}
               <a 
                 href={item.href} 
                 class={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${getActiveClass(item.href)}`}
@@ -248,8 +275,8 @@
               </a>
             {/each}
             
-            <!-- User dropdown/logout -->
-            <div class="relative ml-2">
+              <!-- User dropdown/logout -->
+              <div class="relative ml-2">
               <button 
                 class="flex items-center space-x-1 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                 on:click={logout}
@@ -259,8 +286,9 @@
                 </svg>
                 <span class="text-sm font-medium text-gray-700 hidden lg:inline">{$t('common.actions.logout')}</span>
               </button>
-            </div>
-          </nav>
+              </div>
+            </nav>
+          </div>
         </div>
         
         <!-- Mobile Navigation Menu -->
@@ -296,7 +324,7 @@
     </header>
     
     <!-- Main Content -->
-    <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-6" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
+    <main class="flex-grow w-full px-6 py-6" transition:fly={{ y: 20, duration: 300, easing: cubicOut }}>
       {#if isLoggedIn && currentRoute !== '/'}
         <Breadcrumbs />
       {/if}
@@ -305,7 +333,7 @@
     
     <!-- Footer -->
     <footer class="bg-white/80 backdrop-blur-sm border-t border-white/20 py-4 mt-8">
-      <div class="max-w-7xl mx-auto px-6 text-center text-gray-500 text-sm">
+      <div class="w-full px-6 text-center text-gray-500 text-sm">
         &copy; {new Date().getFullYear()} {$t('common.app.title')}
       </div>
     </footer>
