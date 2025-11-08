@@ -4,7 +4,6 @@
   import { user } from '$lib/stores';
   import { get } from 'svelte/store';
   import { format } from 'date-fns';
-  import { fr } from 'date-fns/locale';
   import { Chart } from 'chart.js/auto';
   import { onDestroy } from 'svelte';
   import FinancialModal from '$lib/components/FinancialModal.svelte';

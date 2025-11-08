@@ -980,14 +980,19 @@
 <!-- Enhanced Expense Modal -->
 {#if showExpenseModal}
   <div 
-    class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" 
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
     on:click|self={closeExpenseModal}
+    on:keydown={(e) => { if (e.key === 'Escape') closeExpenseModal(); }}
     in:fade={{ duration: 200 }}
     out:fade={{ duration: 200 }}
+    role="presentation"
+    tabindex="-1"
   >
     <div 
-      class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100" 
-      on:click|stopPropagation
+      class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="expense-modal-title"
       in:scale={{ duration: 300, start: 0.9 }}
       out:scale={{ duration: 200, start: 0.9 }}
     >
@@ -998,7 +1003,7 @@
               <span class="text-white text-lg">💸</span>
             </div>
             <div>
-              <h2 class="text-lg font-semibold text-gray-900">{$t('finance.expenses.add')}</h2>
+              <h2 id="expense-modal-title" class="text-lg font-semibold text-gray-900">{$t('finance.expenses.add')}</h2>
               <p class="text-sm text-gray-500">Suivez vos dépenses d'entreprise</p>
             </div>
           </div>

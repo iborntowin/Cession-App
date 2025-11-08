@@ -305,10 +305,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Day Selector -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="day-select" class="block text-sm font-medium text-gray-700 mb-2">
                   Day of Week
                 </label>
                 <select
+                  id="day-select"
                   bind:value={selectedDay}
                   class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                 >
@@ -320,10 +321,11 @@
 
               <!-- Hour Selector -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="hour-select" class="block text-sm font-medium text-gray-700 mb-2">
                   Time (Hour)
                 </label>
                 <select
+                  id="hour-select"
                   bind:value={selectedHour}
                   class="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                 >
@@ -347,10 +349,11 @@
           {:else}
             <!-- Custom Cron Expression -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
+              <label for="cron-input" class="block text-sm font-medium text-gray-700 mb-2">
                 Custom Cron Expression
               </label>
               <input
+                id="cron-input"
                 type="text"
                 bind:value={customCron}
                 placeholder="0 0 10 * * SAT"

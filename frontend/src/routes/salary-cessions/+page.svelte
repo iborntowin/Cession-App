@@ -515,8 +515,9 @@
 
           <!-- Month Selector -->
           <div class="flex items-center space-x-2" class:space-x-reverse={isRTL}>
-            <label class="text-sm font-medium text-gray-700">{$t('salary_cessions.filters.month')}:</label>
+            <label for="month-input" class="text-sm font-medium text-gray-700">{$t('salary_cessions.filters.month')}:</label>
             <input
+              id="month-input"
               type="month"
               bind:value={selectedMonth}
               on:change={handleMonthChange}
@@ -983,10 +984,6 @@
     
     .print-only {
       display: block !important;
-    }
-    
-    body {
-      background: white !important;
     }
     
     .bg-gradient-to-br {

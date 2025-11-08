@@ -2005,15 +2005,6 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 
-  .metric-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .metric-card:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  }
-
   canvas {
     max-width: 100%;
     height: auto !important;
@@ -2023,12 +2014,6 @@
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
-  }
-
-  .shimmer-bg {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
   }
 
   /* Enhanced card hover effects */
@@ -2058,14 +2043,6 @@
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
   }
 
-  /* Gradient text effects */
-  .gradient-text {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
   /* Pulse animation for key metrics */
   @keyframes pulse-glow {
     0%, 100% {
@@ -2076,56 +2053,11 @@
     }
   }
 
-  .pulse-metric {
-    animation: pulse-glow 3s ease-in-out infinite;
-  }
-
-  /* Custom scrollbar for better UX */
-  .analytics-container::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .analytics-container::-webkit-scrollbar-track {
-    background: rgba(0,0,0,0.05);
-    border-radius: 3px;
-  }
-
-  .analytics-container::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 3px;
-  }
-
-  .analytics-container::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #5a67d8, #6b46c1);
-  }
-
   /* Loading animation */
   @keyframes loading-shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
 
-  .loading-shimmer {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .loading-shimmer::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    animation: loading-shimmer 1.5s infinite;
-  }
-
   /* Enhanced tooltip styling */
-  .chart-tooltip {
-    background: rgba(255, 255, 255, 0.98) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 2px solid rgba(102, 126, 234, 0.2) !important;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
-  }
 </style>

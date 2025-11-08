@@ -124,3 +124,38 @@ export function setLanguage(lang: string) {
   }
   }
 }
+
+// Force inclusion of all translations to prevent tree-shaking
+function forceTranslationInclusion() {
+  // Access specific translation keys to ensure they're included in the build
+  const keys = [
+    'dashboard.per_cession',
+    'dashboard.total_cessions', 
+    'dashboard.monthly_trend'
+  ];
+  
+  keys.forEach(key => {
+    // Access each language version
+    const enValue = key.split('.').reduce((obj, k) => obj?.[k], translations.en);
+    const frValue = key.split('.').reduce((obj, k) => obj?.[k], translations.fr);
+    const arValue = key.split('.').reduce((obj, k) => obj?.[k], translations.ar);
+    
+    // Store on window to ensure they're not tree-shaken
+    if (typeof window !== 'undefined') {
+      window.__translations = window.__translations || {};
+      window.__translations[key] = { en: enValue, fr: frValue, ar: arValue };
+    }
+  });
+}
+
+// Call the function to force inclusion
+if (browser) {
+  forceTranslationInclusion();
+}
+
+// Extend Window interface for translations
+declare global {
+  interface Window {
+    __translations?: Record<string, { en: any; fr: any; ar: any }>;
+  }
+}

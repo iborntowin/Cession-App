@@ -1759,7 +1759,7 @@
                 <div class="p-6">
               <!-- Document Type Selection -->
               <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-3">{$t('clients.details.documents.select_type')}</label>
+                <div class="block text-sm font-medium text-gray-700 mb-3">{$t('clients.details.documents.select_type')}</div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {#each Object.keys(documentTemplates) as docType}
                     <button
@@ -1781,8 +1781,8 @@
 
               <!-- Debug toggle to allow empty fields -->
               <div class="mb-6 flex items-center space-x-3 justify-end">
-                <label class="text-sm text-gray-600">{$t('clients.details.documents.allow_empty_debug')}</label>
-                <input type="checkbox" bind:checked={allowEmptyFields} class="w-5 h-5" />
+                <label for="allow-empty-checkbox" class="text-sm text-gray-600">{$t('clients.details.documents.allow_empty_debug')}</label>
+                <input id="allow-empty-checkbox" type="checkbox" bind:checked={allowEmptyFields} class="w-5 h-5" />
               </div>
 
               <!-- Document Form -->
@@ -1793,7 +1793,7 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {#if selectedDocumentType === 'شهادة في إحالة' && cessions.length > 0}
                       <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-4 text-center">{$t('clients.details.cessions.select_primary_hint')}</label>
+                        <div class="block text-sm font-medium text-gray-700 mb-4 text-center">{$t('clients.details.cessions.select_primary_hint')}</div>
                         <div class="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
                           {#each cessions as c, i}
                             <div
@@ -1870,15 +1870,15 @@
                         </div>
 
                         <div class="mt-3 flex items-center gap-3">
-                          <label class="flex items-center text-sm">
-                            <input type="checkbox" bind:checked={includeSecondCession} class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500" /> {$t('clients.details.cessions.include_second')}
+                          <label for="include-second-checkbox" class="flex items-center text-sm">
+                            <input id="include-second-checkbox" type="checkbox" bind:checked={includeSecondCession} class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500" /> {$t('clients.details.cessions.include_second')}
                           </label>
                         </div>
                       </div>
 
                       {#if includeSecondCession}
                         <div class="md:col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-4 text-center">{$t('clients.details.cessions.select_second')}</label>
+                          <div class="block text-sm font-medium text-gray-700 mb-4 text-center">{$t('clients.details.cessions.select_second')}</div>
                           <div class="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
                             {#each cessions as c, i}
                               <div
@@ -1959,7 +1959,7 @@
 
                       {#if includeThirdCession}
                         <div class="md:col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-4 text-center">اختر الإحالة الثالثة</label>
+                          <div class="block text-sm font-medium text-gray-700 mb-4 text-center">اختر الإحالة الثالثة</div>
                           <div class="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
                             {#each cessions as c, i}
                               <div
@@ -2045,7 +2045,7 @@
                       return true;
                     }) as [fieldKey, field]}
                       <div class="md:col-span-{field.type === 'textarea' ? '2' : '1'}">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="{fieldKey}-input" class="block text-sm font-medium text-gray-700 mb-2">
                           {field.label}
                           {#if field.required}
                             <span class="text-red-500">*</span>
@@ -2054,6 +2054,7 @@
 
                         {#if field.type === 'date'}
                           <input
+                            id="{fieldKey}-input"
                             type="date"
                             bind:value={documentFormData[fieldKey]}
                             on:input={(e) => updateFormField(fieldKey, e.target.value)}
@@ -2069,6 +2070,7 @@
                           {/if}
                         {:else if field.type === 'number'}
                           <input
+                            id="{fieldKey}-input"
                             type="number"
                             bind:value={documentFormData[fieldKey]}
                             on:input={(e) => updateFormField(fieldKey, e.target.value)}
@@ -2085,6 +2087,7 @@
                           {/if}
                         {:else if field.type === 'textarea'}
                           <textarea
+                            id="{fieldKey}-input"
                             bind:value={documentFormData[fieldKey]}
                             on:input={(e) => updateFormField(fieldKey, e.target.value)}
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -2100,6 +2103,7 @@
                           {/if}
                         {:else}
                           <input
+                            id="{fieldKey}-input"
                             type="text"
                             bind:value={documentFormData[fieldKey]}
                             on:input={(e) => updateFormField(fieldKey, e.target.value)}
@@ -2165,7 +2169,7 @@
   <div class="fixed inset-0 z-50 overflow-y-auto" transition:fade={{ duration: 300 }}>
     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
       <!-- Background overlay -->
-      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" on:click={closeDocumentModal}></div>
+      <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" on:click={closeDocumentModal} on:keydown={(e) => { if (e.key === 'Escape') closeDocumentModal(); }} role="button" tabindex="-1"></div>
 
       <!-- Modal panel -->
       <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
@@ -2262,8 +2266,8 @@
 </div>
 
 <style>
-  @container(max-width:120px){.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-120{display: none;}}
-  @container(max-width:240px){.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-240{display: none;}}
-  @container(max-width:360px){.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-360{display: none;}}
-  @container(max-width:480px){.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-480{display: none;}}
+  @container(max-width:120px) {.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-120{display: none;}}
+  @container(max-width:240px) {.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-240{display: none;}}
+  @container(max-width:360px) {.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-360{display: none;}}
+  @container(max-width:480px) {.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-480{display: none;}}
 </style>

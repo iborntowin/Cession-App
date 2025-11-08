@@ -1971,7 +1971,10 @@
   {#if showQuickSell && selectedProduct}
     <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
          transition:fade={{ duration: 200 }}
-         on:click|self={() => showQuickSell = false}>
+         on:click|self={() => showQuickSell = false}
+         on:keydown={(e) => { if (e.key === 'Escape') showQuickSell = false; }}
+         role="button"
+         tabindex="-1">
       <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
            transition:scale={{ duration: 300, easing: backOut }}>
         <div class="flex items-center justify-between mb-6" class:flex-row-reverse={isRTL}>
@@ -2011,10 +2014,11 @@
         <!-- Sell Form -->
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
+            <label for="quantity-input" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
               Quantity to Sell
             </label>
             <input
+              id="quantity-input"
               type="number"
               bind:value={quantityToSell}
               min="1"
@@ -2025,10 +2029,11 @@
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
+            <label for="price-input" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">
               Selling Price (per unit)
             </label>
             <input
+              id="price-input"
               type="number"
               bind:value={sellingPriceToSell}
               min="0"

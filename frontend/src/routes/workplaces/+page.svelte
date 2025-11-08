@@ -882,7 +882,7 @@
 {#each filteredWorkplaces as workplace, index (workplace.id)}
   <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden" transition:fly={{ y: 20, duration: 300, delay: 50 * index, easing: cubicOut }}>
           <!-- Workplace Header -->
-          <div class="p-6 border-b border-gray-200/50 flex justify-between items-center cursor-pointer" on:click={() => toggleWorkplaceExpansion(workplace.id)}>
+          <div class="p-6 border-b border-gray-200/50 flex justify-between items-center cursor-pointer" on:click={() => toggleWorkplaceExpansion(workplace.id)} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWorkplaceExpansion(workplace.id); } }} role="button" tabindex="0">
             <div class="flex items-center space-x-4">
               <div class={`transform transition-transform ${expandedWorkplaces.has(workplace.id) ? 'rotate-90' : ''}`}>
                 <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

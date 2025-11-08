@@ -633,8 +633,9 @@
 
         <!-- Workplace Filter -->
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.workplace_label')}</label>
+          <label for="workplace-filter" class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.workplace_label')}</label>
           <select 
+            id="workplace-filter"
             bind:value={selectedWorkplace} 
             on:change={handleFilterChange}
             class="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -648,8 +649,9 @@
 
         <!-- Items per page -->
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.show_label')}</label>
+          <label for="items-per-page" class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.show_label')}</label>
           <select 
+            id="items-per-page"
             bind:value={itemsPerPage} 
             on:change={handleFilterChange}
             class="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -666,8 +668,9 @@
 
         <!-- Threshold with explanation -->
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700" title="Minimum number of missed months to be considered 'at risk'. For example, setting to 2 will only show clients who have missed 2+ payments.">{$t('payments.danger_clients.filters.threshold_months')}:</label>
+          <label for="threshold-months" class="text-sm font-medium text-gray-700" title="Minimum number of missed months to be considered 'at risk'. For example, setting to 2 will only show clients who have missed 2+ payments.">{$t('payments.danger_clients.filters.threshold_months')}:</label>
           <select 
+            id="threshold-months"
             bind:value={thresholdMonths} 
             on:change={handleThresholdChange}
             class="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -945,8 +948,9 @@
         <div class="flex items-center gap-3">
           <!-- Days Threshold Input -->
           <div class="flex items-center space-x-2 bg-white px-4 py-3 rounded-lg border-2 border-orange-200">
-            <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Days:</label>
+            <label for="days-threshold" class="text-sm font-medium text-gray-700 whitespace-nowrap">Days:</label>
             <input
+              id="days-threshold"
               type="number"
               bind:value={unstartedDaysThreshold}
               on:change={handleUnstartedDaysThresholdChange}
@@ -995,8 +999,9 @@
           
           <!-- Workplace Filter -->
           <div class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.workplace_label')}</label>
+            <label for="unstarted-workplace-filter" class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.workplace_label')}</label>
             <select 
+              id="unstarted-workplace-filter"
               bind:value={selectedUnstartedWorkplace} 
               on:change={handleUnstartedFilterChange}
               class="px-3 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -1010,8 +1015,9 @@
           
           <!-- Items per page -->
           <div class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.show_label')}</label>
+            <label for="unstarted-items-per-page" class="text-sm font-medium text-gray-700">{$t('payments.danger_clients.filters.show_label')}</label>
             <select 
+              id="unstarted-items-per-page"
               bind:value={unstartedItemsPerPage} 
               on:change={handleUnstartedFilterChange}
               class="px-3 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"

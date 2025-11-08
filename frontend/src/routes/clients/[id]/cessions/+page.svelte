@@ -7,6 +7,7 @@
   import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { browser } from '$app/environment';
+  import { t } from '$lib/i18n';
   
   export let data;
   

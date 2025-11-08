@@ -671,10 +671,6 @@
   }
 
   /* Enhanced hover effects */
-  .group:hover .group-hover\:scale-110 {
-    transform: scale(1.1);
-  }
-
   .group:hover .group-hover\:translate-x-1 {
     transform: translateX(0.25rem);
   }

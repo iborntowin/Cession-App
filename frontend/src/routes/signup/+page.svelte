@@ -274,11 +274,6 @@
 
 <style>
   /* Custom animations */
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-20px); }
-  }
-
   @keyframes pulse-slow {
     0%, 100% { opacity: 0.3; }
     50% { opacity: 0.8; }
@@ -328,12 +323,6 @@
   /* Floating background elements */
   .absolute.animate-pulse {
     animation: pulse-slow 6s ease-in-out infinite;
-  }
-
-  /* Custom checkbox styling */
-  input[type="checkbox"]:checked {
-    background-color: #10b981;
-    border-color: #10b981;
   }
 
   /* Enhanced shadows */

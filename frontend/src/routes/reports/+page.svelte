@@ -245,8 +245,9 @@
             <div class="flex flex-wrap items-center gap-4">
               <!-- Month Selector -->
               <div class="flex items-center space-x-2">
-                <label class="text-sm font-semibold text-gray-700">{$t('reports.month')}:</label>
+                <label for="month-input" class="text-sm font-semibold text-gray-700">{$t('reports.month')}:</label>
                 <input
+                  id="month-input"
                   type="month"
                   bind:value={selectedMonth}
                   class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium"
@@ -491,10 +492,6 @@
     
     thead {
       display: table-header-group;
-    }
-    
-    tfoot {
-      display: table-footer-group;
     }
   }
 </style>

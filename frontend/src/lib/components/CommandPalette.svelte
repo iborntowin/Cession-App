@@ -104,15 +104,16 @@
   <div 
     class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-20" 
     on:click={() => isOpen = false}
-    on:keydown={handleKeydown}
+    on:keydown={(e) => { if (e.key === 'Escape') isOpen = false; }}
     transition:fade={{ duration: 200 }}
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="command-palette-title"
+    role="presentation"
+    tabindex="-1"
   >
     <div 
       class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden border-2 border-purple-200"
-      on:click|stopPropagation
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="command-palette-title"
       transition:scale={{ duration: 200, start: 0.95 }}
     >
       
@@ -128,7 +129,6 @@
             bind:value={searchQuery}
             placeholder="Type a command or search... (Ctrl+K)"
             class="w-full pl-12 pr-4 py-3 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 placeholder-gray-500 shadow-sm"
-            autofocus
           />
         </div>
         <div class="flex items-center justify-between mt-3 text-xs text-gray-600">

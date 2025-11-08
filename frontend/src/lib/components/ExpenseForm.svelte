@@ -231,7 +231,7 @@
 </script>
 
 <!-- 🌟 World-Class Expense Form with Glassmorphism Design -->
-<div class="bg-gradient-to-br from-red-50 via-pink-50 to-rose-50 rounded-2xl p-1" style="direction: {textDirection}" on:click|stopPropagation>
+<div class="bg-gradient-to-br from-red-50 via-pink-50 to-rose-50 rounded-2xl p-1" style="direction: {textDirection}" on:click|stopPropagation on:keydown|stopPropagation role="presentation">
   <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
     
     <!-- Success State -->
@@ -347,15 +347,15 @@
             
             <!-- Category Selection -->
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-3" style="text-align: {textAlign}">
+              <h3 id="category-label" class="block text-sm font-semibold text-gray-700 mb-3" style="text-align: {textAlign}">
                 {$t('finance.expense.category')} *
                 {#if expense.category}
                   <span class="text-green-600 text-xs ml-2">✓</span>
                 {/if}
-              </label>
+              </h3>
               
               <!-- Quick Category Selection -->
-              <div class="grid grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+              <div class="grid grid-cols-3 md:grid-cols-4 gap-3 mb-4" role="group" aria-labelledby="category-label">
                 {#each categories.slice(0, 8) as category}
                   <button
                     type="button"
@@ -400,6 +400,7 @@
                       placeholder="Search categories..."
                       class="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 text-gray-900 text-sm"
                       style="text-align: {textAlign}"
+                      aria-label="Search categories"
                     />
                     <div class="absolute inset-y-0 {isRTL ? 'left-0 pl-4' : 'right-0 pr-4'} flex items-center pointer-events-none">
                       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -433,7 +434,7 @@
 
             <!-- Description with Quick Suggestions -->
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2" style="text-align: {textAlign}">
+              <label for="description-input" class="block text-sm font-semibold text-gray-700 mb-2" style="text-align: {textAlign}">
                 {$t('finance.expense.description')} *
                 {#if expense.label && expense.label.trim().length >= 3}
                   <span class="text-green-600 text-xs ml-2 flex items-center">
@@ -446,6 +447,7 @@
               </label>
               <div class="relative">
                 <input
+                  id="description-input"
                   type="text"
                   bind:value={expense.label}
                   placeholder="What is this expense for?"
@@ -612,7 +614,7 @@
             
             <!-- Enhanced Amount Input -->
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2" style="text-align: {textAlign}">
+              <label for="amount-input" class="block text-sm font-semibold text-gray-700 mb-2" style="text-align: {textAlign}">
                 {$t('finance.expense.amount')} *
                 {#if expense.amount && parseFloat(expense.amount) > 0}
                   <span class="text-green-600 text-xs ml-2">✓</span>
@@ -634,6 +636,7 @@
                   <span class="text-gray-500 font-medium">TND</span>
                 </div>
                 <input
+                  id="amount-input"
                   type="number"
                   bind:value={expense.amount}
                   on:focus={() => amountFocused = true}
@@ -682,13 +685,14 @@
 
             <!-- Date -->
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2" style="text-align: {textAlign}">
+              <label for="date-input" class="block text-sm font-semibold text-gray-700 mb-2" style="text-align: {textAlign}">
                 {$t('finance.expense.date')} *
                 {#if expense.date}
                   <span class="text-green-600 text-xs ml-2">✓</span>
                 {/if}
               </label>
               <input
+                id="date-input"
                 type="date"
                 bind:value={expense.date}
                 class="w-full px-4 py-3 bg-white/50 border {formErrors.date ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-red-500'} rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 text-gray-900"
@@ -701,10 +705,11 @@
 
             <!-- Additional Notes -->
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2" style="text-align: {textAlign}">
+              <label for="notes-textarea" class="block text-sm font-semibold text-gray-700 mb-2" style="text-align: {textAlign}">
                 {$t('finance.expense.notes')}
               </label>
               <textarea
+                id="notes-textarea"
                 bind:value={expense.description}
                 rows="4"
                 placeholder={$t('finance.expense.notes_placeholder')}

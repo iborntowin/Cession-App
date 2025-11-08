@@ -23,6 +23,9 @@
   <div
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     on:click={handleBackdropClick}
+    on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleBackdropClick(e); } }}
+    role="button"
+    tabindex="0"
   >
     <div class="rounded-lg shadow-xl max-w-md w-full mx-4 border"
       class:bg-white={variant === 'danger'}

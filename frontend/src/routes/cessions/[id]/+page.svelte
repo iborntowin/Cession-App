@@ -520,7 +520,6 @@
                       bind:value={editStartDate}
                       on:keydown={(e) => handleKeydown(e, saveStartDate)}
                       class="flex-1 px-3 py-2 bg-white/90 backdrop-blur-sm border-2 border-purple-200 rounded-lg focus:border-purple-500 focus:outline-none transition-all duration-200 text-gray-900 font-medium"
-                      autofocus
                     />
                     <div class="flex items-center space-x-1">
                       <button

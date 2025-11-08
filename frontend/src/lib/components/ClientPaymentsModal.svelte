@@ -202,12 +202,12 @@
 </script>
 
 {#if isOpen || inline}
-  <div class={inline ? "inline-content" : "modal-overlay"} on:click={inline ? null : onClose}>
-    <div class={inline ? "" : "modal-content"} on:click|stopPropagation={inline ? null : true}>
+  <div class={inline ? "inline-content" : "modal-overlay"} on:click={inline ? null : onClose} on:keydown={inline ? null : (e) => { if (e.key === 'Escape') onClose(); }} role={inline ? null : "presentation"}>
+    <div class={inline ? "" : "modal-content"} on:click|stopPropagation={inline ? null : true} role={inline ? null : "dialog"} aria-modal={inline ? null : true} aria-labelledby={inline ? null : "modal-title"}>
       <!-- Header -->
       <div class={inline ? "inline-header" : "modal-header"}>
         <div>
-          <h2 class="text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+          <h2 id={inline ? null : "modal-title"} class="text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
             Payment History Details
           </h2>
           <p class="text-sm text-gray-600 mt-1">{clientName}</p>
@@ -284,12 +284,13 @@
           <!-- Search -->
           {#if !inline}
             <div class="filter-item">
-              <label class="filter-label">Search</label>
+              <label for="search-input" class="filter-label">Search</label>
               <div class="search-input-wrapper">
                 <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
                 <input
+                  id="search-input"
                   type="text"
                   bind:value={searchQuery}
                   placeholder="Search by amount, cession, notes..."
@@ -301,8 +302,8 @@
           
           <!-- Cession Filter -->
           <div class="filter-item">
-            <label class="filter-label">Filter by Cession</label>
-            <select bind:value={selectedCession} class="filter-input">
+            <label for="cession-select" class="filter-label">Filter by Cession</label>
+            <select id="cession-select" bind:value={selectedCession} class="filter-input">
               <option value="all">All Cessions</option>
               {#each uniqueCessions as cession}
                 <option value={cession.id}>
@@ -314,8 +315,8 @@
           
           <!-- Status Filter -->
           <div class="filter-item">
-            <label class="filter-label">Filter by Status</label>
-            <select bind:value={selectedStatus} class="filter-input">
+            <label for="status-select" class="filter-label">Filter by Status</label>
+            <select id="status-select" bind:value={selectedStatus} class="filter-input">
               <option value="all">All Statuses</option>
               <option value="paid">Paid</option>
               <option value="pending">Pending</option>
@@ -326,14 +327,14 @@
           
           <!-- Date From -->
           <div class="filter-item">
-            <label class="filter-label">Date From</label>
-            <input type="date" bind:value={dateFrom} class="filter-input" />
+            <label for="date-from" class="filter-label">Date From</label>
+            <input id="date-from" type="date" bind:value={dateFrom} class="filter-input" />
           </div>
           
           <!-- Date To -->
           <div class="filter-item">
-            <label class="filter-label">Date To</label>
-            <input type="date" bind:value={dateTo} class="filter-input" />
+            <label for="date-to" class="filter-label">Date To</label>
+            <input id="date-to" type="date" bind:value={dateTo} class="filter-input" />
           </div>
           
           <!-- Reset Button -->

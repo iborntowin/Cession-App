@@ -122,14 +122,16 @@
   <div 
     class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     on:click={() => visible = false}
+    on:keydown={(e) => { if (e.key === 'Escape') visible = false; }}
     transition:fade={{ duration: 200 }}
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="shortcuts-title"
+    role="presentation"
+    tabindex="-1"
   >
     <div 
       class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden"
-      on:click|stopPropagation
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="shortcuts-title"
       transition:scale={{ duration: 200, start: 0.95 }}
     >
       <!-- Header -->

@@ -820,9 +820,9 @@
         <!-- File Uploads -->
         <div class="space-y-6 pt-4">
           <div class="flex items-center justify-between">
-            <label class="block text-sm font-medium text-purple-600">
+            <h3 class="block text-sm font-medium text-purple-600">
               Required Documents
-            </label>
+            </h3>
             <button
               type="button"
               on:click={() => showDocuments = !showDocuments}
@@ -845,10 +845,11 @@
           {#if showDocuments}
             <!-- ID Card Upload -->
             <div class="mb-4">
-              <label class="block text-sm font-medium text-purple-600 mb-2">
+              <label for="idCardFile" class="block text-sm font-medium text-purple-600 mb-2">
                 National ID Card
               </label>
               <input
+                id="idCardFile"
                 type="file"
                 accept="image/*,application/pdf"
                 class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
@@ -862,10 +863,11 @@
 
             <!-- Job Card Upload -->
             <div class="mb-4">
-              <label class="block text-sm font-medium text-purple-600 mb-2">
+              <label for="jobCardFile" class="block text-sm font-medium text-purple-600 mb-2">
                 Job Card (Optional)
               </label>
               <input
+                id="jobCardFile"
                 type="file"
                 accept="image/*,application/pdf"
                 class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
@@ -879,10 +881,11 @@
 
             <!-- Other Documents -->
             <div>
-              <label class="block text-sm font-medium text-purple-600 mb-2">
+              <label for="otherDocumentsFile" class="block text-sm font-medium text-purple-600 mb-2">
                 Additional Documents
               </label>
               <input
+                id="otherDocumentsFile"
                 type="file"
                 accept="image/*,application/pdf"
                 class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"

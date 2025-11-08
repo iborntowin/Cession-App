@@ -1877,8 +1877,9 @@
                 <h4 class="text-lg font-semibold text-gray-900 mb-4">{$t('inventory.ui.basic_info')}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.name')} *</label>
+                    <label for="product-name" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.name')} *</label>
                     <input 
+                      id="product-name"
                       type="text" 
                       bind:value={newProduct.name} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -1887,8 +1888,9 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.sku')} *</label>
+                    <label for="product-sku" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.sku')} *</label>
                     <input 
+                      id="product-sku"
                       type="text" 
                       bind:value={newProduct.sku} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -1897,8 +1899,9 @@
                     />
                   </div>
                   <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.description')}</label>
+                    <label for="product-description" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.description')}</label>
                     <textarea 
+                      id="product-description"
                       bind:value={newProduct.description} 
                       rows="3" 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -1906,8 +1909,9 @@
                     ></textarea>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.category')} *</label>
+                    <label for="product-category" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.category')} *</label>
                     <select 
+                      id="product-category"
                       bind:value={newProduct.category_id} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
                       required
@@ -1929,12 +1933,13 @@
                 <h4 class="text-lg font-semibold text-gray-900 mb-4">{$t('inventory.ui.pricing_info')}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.purchase_price')} *</label>
+                    <label for="purchase-price" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.purchase_price')} *</label>
                     <div class="relative">
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <span class="text-gray-500 sm:text-sm">{$t('inventory.ui.currency_symbol')}</span>
                       </div>
                       <input 
+                        id="purchase-price"
                         type="number" 
                         step="0.01" 
                         bind:value={newProduct.purchase_price} 
@@ -1944,12 +1949,13 @@
                     </div>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.selling_price')} *</label>
+                    <label for="selling-price" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.selling_price')} *</label>
                     <div class="relative">
                       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <span class="text-gray-500 sm:text-sm">{$t('inventory.ui.currency_symbol')}</span>
                       </div>
                       <input 
+                        id="selling-price"
                         type="number" 
                         step="0.01" 
                         bind:value={newProduct.selling_price} 
@@ -1969,8 +1975,9 @@
                 <h4 class="text-lg font-semibold text-gray-900 mb-4">{$t('inventory.ui.inventory_details')}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.stock_quantity')} *</label>
+                    <label for="stock-quantity" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.stock_quantity')} *</label>
                     <input 
+                      id="stock-quantity"
                       type="number" 
                       bind:value={newProduct.stock_quantity} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -1978,8 +1985,9 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.reorder_point')} *</label>
+                    <label for="reorder-point" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.reorder_point')} *</label>
                     <input 
+                      id="reorder-point"
                       type="number" 
                       bind:value={newProduct.reorder_point} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -1997,8 +2005,9 @@
                 <h4 class="text-lg font-semibold text-gray-900 mb-4">{$t('inventory.ui.additional_details')}</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.supplier')}</label>
+                    <label for="supplier" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.supplier')}</label>
                     <input 
+                      id="supplier"
                       type="text" 
                       bind:value={newProduct.supplier} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -2006,8 +2015,9 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.location')}</label>
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.location')}</label>
                     <input 
+                      id="location"
                       type="text" 
                       bind:value={newProduct.location} 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -2015,8 +2025,9 @@
                     />
                   </div>
                   <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.specs')}</label>
+                    <label for="specs-textarea" class="block text-sm font-medium text-gray-700 mb-2">{$t('inventory.create.fields.specs')}</label>
                     <textarea 
+                      id="specs-textarea"
                       bind:value={newProduct.specs} 
                       rows="3" 
                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
@@ -2152,10 +2163,11 @@
 
         <!-- Restock Quantity -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="restock-quantity" class="block text-sm font-medium text-gray-700 mb-2">
             {$t('inventory.restock.quantity')} *
           </label>
           <input
+            id="restock-quantity"
             type="number"
             bind:value={restockQuantity}
             min="1"
@@ -2166,10 +2178,11 @@
 
         <!-- Purchase Price Update -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="new-purchase-price" class="block text-sm font-medium text-gray-700 mb-2">
             {$t('inventory.restock.new_purchase_price')}
           </label>
           <input
+            id="new-purchase-price"
             type="number"
             bind:value={newPurchasePrice}
             on:input={checkPurchasePriceChange}
@@ -2198,10 +2211,11 @@
 
         <!-- Reason -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="restock-reason" class="block text-sm font-medium text-gray-700 mb-2">
             {$t('inventory.restock.reason')}
           </label>
           <textarea
+            id="restock-reason"
             bind:value={restockReason}
             rows="3"
             class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
@@ -2291,101 +2305,15 @@
     }
   }
   
-  .animate-fadeInUp {
-    animation: fadeInUp 0.6s ease-out forwards;
-  }
-  
-  .animate-scaleIn {
-    animation: scaleIn 0.5s ease-out forwards;
-  }
-  
-  .animate-slideInRight {
-    animation: slideInRight 0.4s ease-out forwards;
-  }
-  
-  .animate-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-    background-size: 200px 100%;
-    animation: shimmer 2s infinite;
-  }
-  
   /* Custom gradient backgrounds */
-  .gradient-mesh {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
-  }
-  
-  @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
   
   /* Hover effects for cards */
-  .card-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  }
   
   /* Progress bar animations */
-  .progress-bar {
-    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
-    background-size: 200% 100%;
-    animation: progressShine 3s ease-in-out infinite;
-  }
-  
-  @keyframes progressShine {
-    0%, 100% { background-position: 200% 0; }
-    50% { background-position: -200% 0; }
-  }
   
   /* Floating animation for icons */
-  .float {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-  }
   
   /* Glow effect */
-  .glow {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-    animation: glow 2s ease-in-out infinite alternate;
-  }
-  
-  @keyframes glow {
-    from { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-    to { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
-  }
   
   /* Ripple effect */
-  .ripple {
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .ripple::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
-  }
-  
-  .ripple:hover::before {
-    width: 300px;
-    height: 300px;
-  }
 </style>

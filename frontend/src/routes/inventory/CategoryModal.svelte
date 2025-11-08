@@ -414,19 +414,10 @@
     box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.25), 0 2px 4px -1px rgba(16, 185, 129, 0.06);
   }
 
-  /* Hover effects */
-  .group:hover .group-hover\:scale-110 {
-    transform: scale(1.1);
-  }
-
   /* Custom animations */
   @keyframes float {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
-  }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
   }
 
   /* Ring focus styles */

@@ -4,7 +4,7 @@
   import { loading, showAlert, user } from '$lib/stores';
   import { fade, fly, scale, slide, blur } from 'svelte/transition';
   import { quintOut, cubicOut, elasticOut, backOut } from 'svelte/easing';
-  import { format, formatDistanceToNow, addMonths, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
+  import { format, formatDistanceToNow, addMonths, startOfMonth, endOfMonth, subMonths, startOfDay } from 'date-fns';
   import { t } from '$lib/i18n';
   import { language } from '$lib/stores/language';
   import { goto } from '$app/navigation';
@@ -959,16 +959,8 @@
   }
 
   /* Custom focus styles (Matching Login Page) */
-  input:focus,
-  button:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-  }
 
   /* Enhanced hover effects (Matching Login Page) */
-  .group:hover .group-hover\:scale-110 {
-    transform: scale(1.1);
-  }
 
   /* Gradient text effect (Matching Login Page) */
   .bg-clip-text {
@@ -999,9 +991,6 @@
   }
 
   /* Card hover effects */
-  .group:hover {
-    transform: translateY(-2px);
-  }
 
   /* Progress bar animations */
   .bg-gradient-to-r {
@@ -1021,44 +1010,12 @@
   }
 
   /* Notification panel backdrop */
-  .fixed.inset-0 {
-    backdrop-filter: blur(4px);
-    background-color: rgba(0, 0, 0, 0.1);
-  }
 
   /* Floating button pulse effect */
-  .fixed.bottom-6.right-6 button {
-    animation: float 3s ease-in-out infinite;
-  }
 
   /* Status badge animations */
-  .inline-flex.rounded-full {
-    animation: pulse 2s infinite;
-  }
 
-  /* Custom scrollbar for notifications */
-  .overflow-y-auto::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .overflow-y-auto::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 2px;
-  }
-
-  .overflow-y-auto::-webkit-scrollbar-thumb {
-    background: rgba(16, 185, 129, 0.3);
-    border-radius: 2px;
-  }
-
-  .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-    background: rgba(16, 185, 129, 0.5);
-  }
-
-  /* RTL support */
-  [dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
-    --tw-space-x-reverse: 1;
-  }
+  /* Custom scrollbar for notifications */  /* RTL support */
 
   /* Enhanced card shadows on hover */
   .shadow-2xl:hover {
@@ -1101,33 +1058,9 @@
   }
 
   /* Staggered animations */
-  .space-y-4 > * {
-    animation-delay: calc(var(--animation-order, 0) * 100ms);
-  }
 
   /* Enhanced glassmorphism */
-  .bg-white\/80 {
-    background-color: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  .bg-white\/90 {
-    background-color: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
 
   /* Focus ring matching login page */
-  .focus\:ring-2:focus {
-    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-  }
-
-  .focus\:ring-emerald-500:focus {
-    --tw-ring-opacity: 1;
-    --tw-ring-color: rgb(16 185 129 / var(--tw-ring-opacity));
-  }
 </style>
 

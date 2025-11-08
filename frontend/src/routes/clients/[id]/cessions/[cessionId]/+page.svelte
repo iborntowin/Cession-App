@@ -10,7 +10,7 @@
 <script>
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { format, parseDate } from 'date-fns';
+  import { format } from 'date-fns';
   import { ar } from 'date-fns/locale';
   import { openPDF, downloadPDF } from '$lib/pdfGenerator';
   import { showAlert, loading } from '$lib/stores';

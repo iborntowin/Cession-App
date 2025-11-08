@@ -1543,12 +1543,13 @@
             <div class="space-y-4">
               <!-- Workplace Filter -->
               <div class="relative">
-                <label class="block text-sm font-medium text-gray-700 mb-2">{$t('clients.search.workplace_label')}</label>
+                <label for="workplace-select" class="block text-sm font-medium text-gray-700 mb-2">{$t('clients.search.workplace_label')}</label>
                 <div class="relative">
                   <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                   </svg>
                   <select
+                    id="workplace-select"
                     bind:value={filters.selectedWorkplace}
                     on:change={() => {
                       if (filters.selectedWorkplace) {
@@ -1589,12 +1590,13 @@
 
               <!-- Job Filter -->
               <div class="relative">
-                <label class="block text-sm font-medium text-gray-700 mb-2">{$t('clients.search.job_title_label')}</label>
+                <label for="job-select" class="block text-sm font-medium text-gray-700 mb-2">{$t('clients.search.job_title_label')}</label>
                 <div class="relative">
                   <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V2m0 4V2m0 4v2a2 2 0 01-2 2H8a2 2 0 01-2-2V6m8 0H8m8 12v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2m8 0v2H8v-2"/>
                   </svg>
                   <select
+                    id="job-select"
                     multiple
                     bind:value={filters.selectedJobs}
                     on:change={performSearch}

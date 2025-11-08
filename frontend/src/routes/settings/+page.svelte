@@ -439,8 +439,7 @@
   }
 
   /* Custom focus styles */
-  input:focus,
-  button:focus {
+  input:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
@@ -462,10 +461,6 @@
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-  }
-
-  .animate-spin {
-    animation: spin 1s linear infinite;
   }
 
   /* Floating background elements */
@@ -498,14 +493,7 @@
     50% { transform: translateY(-10px); }
   }
 
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
   /* Custom styles for better RTL support */
-  :global([dir="rtl"]) .card {
-    text-align: right;
-  }
   
   :global([dir="rtl"]) .flex {
     flex-direction: row-reverse;
@@ -517,13 +505,6 @@
   }
 
   /* Enhanced button hover effects */
-  button:hover {
-    transform: translateY(-1px);
-  }
-
-  button:active {
-    transform: translateY(0);
-  }
 
   /* Improved card hover effects */
   .hover\:shadow-lg:hover {
@@ -531,11 +512,4 @@
   }
 
   /* Loading state improvements */
-  .disabled\:opacity-50:disabled {
-    opacity: 0.5;
-  }
-
-  .disabled\:cursor-not-allowed:disabled {
-    cursor: not-allowed;
-  }
 </style>

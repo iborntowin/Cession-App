@@ -3,7 +3,6 @@
   export let payments = [];
   export let clients = [];
   export let formatCurrency;
-  export let safeFormatDistanceToNow;
   export let analytics = { revenueGrowth: 0 }; // ✅ NEW: Accept revenue growth from parent
   
   import { slide, fly } from 'svelte/transition';

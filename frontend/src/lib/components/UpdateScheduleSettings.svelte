@@ -449,10 +449,4 @@
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
   }
-
-  /* Focus styles */
-  select:focus,
-  input:focus {
-    outline: none;
-  }
 </style>

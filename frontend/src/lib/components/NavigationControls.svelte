@@ -206,11 +206,6 @@
     }
   }
   
-  /* RTL support for arrows */
-  [dir="rtl"] svg.rotate-180 {
-    transform: scaleX(-1);
-  }
-  
   /* Hover glow effect */
   button:not(:disabled):hover {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);

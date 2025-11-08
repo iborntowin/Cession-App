@@ -3,8 +3,6 @@
   
   export let analytics;
   export let quickStats;
-  export let totalClients;
-  export let recentClients;
   export let systemHealth;
   export let formatCurrency;
 

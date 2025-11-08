@@ -136,14 +136,17 @@
       "warning": "Warning",
       "info": "Information"
     },
-    "loading": "Loading...",
-    "no_data": "No data available",
-    "confirm": "Are you sure?",
-    "language": {
-      "select": "Select Language",
-      "en": "English",
-      "fr": "Français",
-      "ar": "العربية"
+    "loading": {
+      "updating": "Updating...",
+      "loading": "Loading...",
+      "error_loading": "Error loading data",
+      "total": "Total",
+      "address": "Address",
+      "placeholder_search": "Search...",
+      "all_statuses": "All Statuses",
+      "all_time": "All time",
+      "all_clients": "All clients",
+      "all_status": "All status"
     },
     "settings": {
       "title": "Settings",
@@ -357,7 +360,7 @@
       "monthly_revenue": "Monthly Revenue",
       "this_month_total": "This month's total",
       "avg_deal_size": "Avg Deal Size",
-      "per_cession": "Per cession",
+      "per_cession": "Per Cession",
       "completion_rate": "Completion Rate",
       "portfolio_health": "Portfolio Health"
     },

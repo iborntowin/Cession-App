@@ -1653,7 +1653,7 @@
           <!-- Month Selector (Prominent) -->
           <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
             <div class="flex items-center gap-2 flex-wrap">
-              <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider shrink-0">Filter by Month:</label>
+              <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider shrink-0">Filter by Month:</span>
               <div class="flex items-center gap-2 flex-wrap">
                 {#each [
                   { value: '', name: 'All' },
@@ -2110,25 +2110,12 @@
 
 <style>
   /* Table density styles */
-  table.compact tbody td {
-    padding: 8px 16px;
-  }
-  
-  table.compact tbody th {
-    padding: 8px 16px;
-  }
-  
   table.comfortable tbody td {
     padding: 20px 24px;
   }
   
   table.comfortable tbody th {
     padding: 20px 24px;
-  }
-
-  /* Smooth transitions */
-  .transition-all {
-    transition: all 0.2s ease-in-out;
   }
 
   /* Custom scrollbar for table */
@@ -2150,36 +2137,11 @@
     background: #94a3b8;
   }
 
-  /* Loading shimmer effect */
-  @keyframes shimmer {
-    0% {
-      background-position: -468px 0;
-    }
-    100% {
-      background-position: 468px 0;
-    }
-  }
-
-  .loading-shimmer {
-    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-    background-size: 400% 100%;
-    animation: shimmer 1.2s ease-in-out infinite;
-  }
-
   /* Focus states */
   button:focus-visible,
   input:focus-visible,
   select:focus-visible {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
-  }
-
-  /* Hover animations */
-  .hover-scale {
-    transition: transform 0.2s ease-in-out;
-  }
-  
-  .hover-scale:hover {
-    transform: scale(1.05);
   }
 </style>
