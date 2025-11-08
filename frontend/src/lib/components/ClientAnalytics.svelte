@@ -5,6 +5,8 @@
   import Chart from 'chart.js/auto';
   import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import ClientPaymentsModal from './ClientPaymentsModal.svelte';
+  import PaymentHeatmap from './PaymentHeatmap.svelte';
 
   export let client;
   export let cessions = [];
@@ -39,7 +41,6 @@
   let cessionChart = null; // New chart for missing months timeline
   let paymentChart = null;
   let trendChart = null;
-  let timelinessChart = null;
   let missingMonthsChart = null;
 
   // Reactive statement to initialize charts when data is ready
@@ -88,7 +89,9 @@
           return paymentResponse.data.map(payment => ({
             ...payment,
             cessionId: cession.id,
-            cessionNumber: cession.number || cession.reference
+            cessionNumber: cession.number || cession.reference,
+            monthlyPayment: cession.monthlyPayment,
+            cessionName: `${formatCurrency(cession.monthlyPayment)}/month`
           }));
         }
         return [];
@@ -461,7 +464,7 @@
 
       return {
         cessionId: cession.id,
-        cessionName: cession.number || cession.reference || 'Unknown',
+        cessionName: monthlyPayment > 0 ? `${formatCurrency(monthlyPayment)}/month` : (cession.number || cession.reference || 'Unknown'),
         startDate: startDate,
         expectedEndDate: expectedEndDate,
         monthlyPayment: monthlyPayment,
@@ -978,122 +981,6 @@
       });
     }
 
-    // Payment Timeliness Chart - Creative Gauge/Pie Chart
-    const timelinessCtx = document.getElementById('payment-timeliness-chart');
-    if (timelinessCtx && (analytics.onTimePayments > 0 || analytics.latePayments > 0)) {
-      if (timelinessChart) timelinessChart.destroy();
-
-      const totalPayments = analytics.onTimePayments + analytics.latePayments;
-      const onTimePercentage = totalPayments > 0 ? (analytics.onTimePayments / totalPayments) * 100 : 0;
-      const latePercentage = totalPayments > 0 ? (analytics.latePayments / totalPayments) * 100 : 0;
-
-      timelinessChart = new Chart(timelinessCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['On-Time Payments', 'Late Payments'],
-          datasets: [{
-            data: [analytics.onTimePayments, analytics.latePayments],
-            backgroundColor: [
-              colors.success,
-              colors.danger
-            ],
-            borderWidth: 0,
-            hoverBorderWidth: 4,
-            hoverBorderColor: '#ffffff',
-            hoverOffset: 12,
-            cutout: '75%'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: '75%',
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 25,
-                font: { size: 14, weight: '600', family: 'Inter' },
-                generateLabels: function(chart) {
-                  const data = chart.data;
-                  return data.labels.map((label, i) => ({
-                    text: `${label}: ${data.datasets[0].data[i]} (${Math.round((data.datasets[0].data[i] / totalPayments) * 100)}%)`,
-                    fillStyle: data.datasets[0].backgroundColor[i],
-                    strokeStyle: data.datasets[0].backgroundColor[i],
-                    lineWidth: 0,
-                    hidden: false,
-                    index: i
-                  }));
-                }
-              }
-            },
-            title: {
-              display: true,
-              text: 'Payment Timeliness Overview',
-              font: { size: 18, weight: 'bold', family: 'Inter' },
-              padding: { bottom: 30 }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(255, 255, 255, 0.98)',
-              titleColor: colors.dark,
-              bodyColor: colors.dark,
-              borderColor: colors.primary,
-              borderWidth: 2,
-              cornerRadius: 12,
-              displayColors: true,
-              callbacks: {
-                title: function(context) {
-                  return context[0].label;
-                },
-                label: function(context) {
-                  const value = context.parsed;
-                  const percentage = Math.round((value / totalPayments) * 100);
-                  return [
-                    `Count: ${value}`,
-                    `Percentage: ${percentage}%`,
-                    `Total Payments: ${totalPayments}`
-                  ];
-                }
-              }
-            }
-          },
-          animation: {
-            duration: 2500,
-            easing: 'easeInOutQuart',
-            animateScale: true,
-            animateRotate: true
-          }
-        },
-        plugins: [{
-          id: 'centerText',
-          beforeDraw: function(chart) {
-            const width = chart.width;
-            const height = chart.height;
-            const ctx = chart.ctx;
-
-            ctx.restore();
-            ctx.font = 'bold 24px Inter';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = colors.dark;
-
-            const text = `${Math.round(onTimePercentage)}%`;
-            const textX = Math.round((width - ctx.measureText(text).width) / 2);
-            const textY = height / 2;
-
-            ctx.fillText(text, textX, textY - 10);
-
-            ctx.font = '14px Inter';
-            ctx.fillStyle = colors.dark + '80';
-            const subText = 'On-Time Rate';
-            const subTextX = Math.round((width - ctx.measureText(subText).width) / 2);
-            ctx.fillText(subText, subTextX, textY + 15);
-
-            ctx.save();
-          }
-        }]
-      });
-    }
-
     // Missing Months Timeline Chart - New Creative Chart
     const missingCtx = document.getElementById('missing-months-chart');
     if (missingCtx && analytics.missingMonthsTimeline.length > 0) {
@@ -1431,131 +1318,18 @@
         </div>
       </div>
 
-      <!-- Payment Reliability Insights - New Creative Section -->
-      <div class="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-8 border border-white/20 shadow-xl mb-8">
-        <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl shadow-lg mb-4">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <h2 class="text-3xl font-bold bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent mb-2">
-            Payment Reliability Insights
-          </h2>
-          <p class="text-gray-600">Understanding payment patterns and reliability metrics</p>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <!-- Payment Timeliness Chart -->
-          <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/30">
-            <h3 class="text-xl font-bold text-gray-900 mb-6 text-center">Payment Timeliness</h3>
-            <div class="relative h-80 w-full">
-              <canvas id="payment-timeliness-chart" class="w-full h-full"></canvas>
-            </div>
-            <div class="mt-6 text-center">
-              <div class="inline-flex items-center space-x-2 bg-emerald-100 px-4 py-2 rounded-full">
-                <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span class="text-sm font-semibold text-emerald-800">
-                  {analytics.onTimePayments} of {analytics.onTimePayments + analytics.latePayments} payments on time
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Reliability Metrics -->
-          <div class="space-y-6">
-            <!-- On-Time Rate Card -->
-            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-3">
-                  <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 class="text-lg font-bold text-gray-900">On-Time Rate</h4>
-                    <p class="text-sm text-gray-600">Payment reliability score</p>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-3xl font-bold text-emerald-600">
-                    {analytics.onTimePayments + analytics.latePayments > 0 ? Math.round((analytics.onTimePayments / (analytics.onTimePayments + analytics.latePayments)) * 100) : 0}%
-                  </div>
-                </div>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  class="h-3 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-1000 ease-out"
-                  style="width: {analytics.onTimePayments + analytics.latePayments > 0 ? (analytics.onTimePayments / (analytics.onTimePayments + analytics.latePayments)) * 100 : 0}%;"
-                ></div>
-              </div>
-            </div>
-
-            <!-- Average Delay Card -->
-            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-3">
-                  <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 class="text-lg font-bold text-gray-900">Average Delay</h4>
-                    <p class="text-sm text-gray-600">When payments are late</p>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-3xl font-bold" style="color: {analytics.averagePaymentDelay > 30 ? colors.danger : colors.warning};">
-                    {Math.round(analytics.averagePaymentDelay)} days
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-2 text-sm">
-                <span class="text-gray-600">Status:</span>
-                <span class="px-3 py-1 rounded-full text-xs font-medium"
-                      style="background-color: {analytics.averagePaymentDelay > 30 ? colors.danger : analytics.averagePaymentDelay > 15 ? colors.warning : colors.success}20; color: {analytics.averagePaymentDelay > 30 ? colors.danger : analytics.averagePaymentDelay > 15 ? colors.warning : colors.success};">
-                  {analytics.averagePaymentDelay <= 15 ? 'Excellent' : analytics.averagePaymentDelay <= 30 ? 'Good' : 'Needs Attention'}
-                </span>
-              </div>
-            </div>
-
-            <!-- Payment Streak Card -->
-            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-3">
-                  <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 class="text-lg font-bold text-gray-900">Best Streak</h4>
-                    <p class="text-sm text-gray-600">Consecutive on-time months</p>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-3xl font-bold text-purple-600">
-                    {analytics.longestStreak}
-                  </div>
-                  <div class="text-sm text-gray-500">months</div>
-                </div>
-              </div>
-              <div class="flex space-x-1">
-                {#each Array(Math.min(analytics.longestStreak, 10)) as _}
-                  <div class="w-4 h-4 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full"></div>
-                {/each}
-                {#if analytics.longestStreak > 10}
-                  <div class="w-4 h-4 bg-gradient-to-r from-purple-300 to-pink-300 rounded-full flex items-center justify-center">
-                    <span class="text-xs text-white font-bold">+</span>
-                  </div>
-                {/if}
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Payment Heatmap -->
+      <div class="mb-8">
+        <PaymentHeatmap payments={allPayments} title="Payment Activity Heatmap (Last 12 Months)" />
       </div>
+
+      <!-- Payment History Details Section (Inline) -->
+      <ClientPaymentsModal
+        inline={true}
+        payments={allPayments}
+        clientName={client?.fullName || ''}
+        onClose={() => {}}
+      />
 
       <!-- Detailed Cession Payment Analysis -->
       <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-8 border border-white/20 shadow-xl mb-8">
@@ -1812,116 +1586,133 @@
       </div>
 
       <!-- Enhanced Payment Expectation vs Reality Timeline -->
-      <div class="bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 rounded-2xl p-8 border border-white/20 shadow-xl mb-8">
-        <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-violet-400 to-fuchsia-600 rounded-2xl shadow-lg mb-4">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-          </div>
-          <h2 class="text-3xl font-bold bg-gradient-to-r from-violet-700 to-fuchsia-700 bg-clip-text text-transparent mb-2">
-            Payment Expectation vs Reality
-          </h2>
-          <p class="text-gray-600">Interactive timeline showing expected payments vs actual performance over time</p>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-lg font-bold text-gray-900">Perfect Months</h3>
-                <p class="text-sm text-gray-600">All expected payments received</p>
-              </div>
+      <div class="relative bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-3xl p-8 border-2 border-white/40 shadow-2xl mb-8 overflow-hidden">
+        <!-- Decorative background elements -->
+        <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl"></div>
+        
+        <div class="relative z-10">
+          <!-- Header Section -->
+          <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl shadow-2xl mb-6 animate-pulse">
+              <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
             </div>
-            <div class="text-3xl font-bold text-emerald-600">
-              {analytics.missingMonthsTimeline.filter(m => m.actualPayments >= m.expectedPayments && m.expectedPayments > 0).length}
-            </div>
+            <h2 class="text-4xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+              Payment Performance Timeline
+            </h2>
+            <p class="text-gray-600 text-lg font-medium">Track expected vs actual payments with intelligent insights</p>
           </div>
 
-          <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-lg font-bold text-gray-900">Partial Months</h3>
-                <p class="text-sm text-gray-600">Some payments missing</p>
+          <!-- Summary Cards with Modern Design -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <!-- Perfect Months Card -->
+            <div class="group relative bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border-2 border-emerald-100 hover:border-emerald-300 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <div class="absolute inset-0 bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div class="relative z-10">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="w-14 h-14 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div class="text-5xl font-black text-emerald-500 group-hover:scale-110 transition-transform duration-500">
+                    {analytics.missingMonthsTimeline.filter(m => m.actualPayments >= m.expectedPayments && m.expectedPayments > 0).length}
+                  </div>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-1">Perfect Months</h3>
+                <p class="text-sm text-gray-600">All payments on time ✨</p>
               </div>
             </div>
-            <div class="text-3xl font-bold text-amber-600">
-              {analytics.missingMonthsTimeline.filter(m => m.actualPayments > 0 && m.actualPayments < m.expectedPayments && m.expectedPayments > 0).length}
-            </div>
-          </div>
 
-          <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
-            <div class="flex items-center space-x-3 mb-4">
-              <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-lg font-bold text-gray-900">Missing Months</h3>
-                <p class="text-sm text-gray-600">No payments received</p>
+            <!-- Partial Months Card -->
+            <div class="group relative bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border-2 border-amber-100 hover:border-amber-300 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <div class="absolute inset-0 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div class="relative z-10">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                  </div>
+                  <div class="text-5xl font-black text-amber-500 group-hover:scale-110 transition-transform duration-500">
+                    {analytics.missingMonthsTimeline.filter(m => m.actualPayments > 0 && m.actualPayments < m.expectedPayments && m.expectedPayments > 0).length}
+                  </div>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-1">Partial Months</h3>
+                <p class="text-sm text-gray-600">Some gaps detected ⚠️</p>
               </div>
             </div>
-            <div class="text-3xl font-bold text-red-600">
-              {analytics.missingMonthsTimeline.filter(m => m.actualPayments === 0 && m.expectedPayments > 0).length}
-            </div>
-          </div>
-        </div>
 
-        <!-- Interactive Timeline Chart -->
-        <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/30">
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center space-x-3">
-              <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
+            <!-- Missing Months Card -->
+            <div class="group relative bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-lg border-2 border-red-100 hover:border-red-300 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+              <div class="absolute inset-0 bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div class="relative z-10">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="w-14 h-14 bg-gradient-to-br from-red-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </div>
+                  <div class="text-5xl font-black text-red-500 group-hover:scale-110 transition-transform duration-500">
+                    {analytics.missingMonthsTimeline.filter(m => m.actualPayments === 0 && m.expectedPayments > 0).length}
+                  </div>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-1">Missing Months</h3>
+                <p class="text-sm text-gray-600">Requires attention 🚨</p>
               </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-900">Payment Timeline Analysis</h3>
-                <p class="text-sm text-gray-600">18-month comprehensive payment tracking</p>
-              </div>
-            </div>
-            <div class="text-right">
-              <div class="text-2xl font-bold text-violet-600">
-                {analytics.missingMonthsTimeline.filter(m => m.actualPayments >= m.expectedPayments && m.expectedPayments > 0).length}/{analytics.missingMonthsTimeline.filter(m => m.expectedPayments > 0).length}
-              </div>
-              <div class="text-xs text-gray-500">months on track</div>
             </div>
           </div>
 
-          <div class="h-96 w-full relative mb-6">
-            <canvas id="missing-months-chart" class="w-full h-full"></canvas>
-          </div>
+          <!-- Chart Container with Modern Design -->
+          <div class="relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border-2 border-white/50">
+            <!-- Header Bar -->
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b-2 border-gray-100">
+              <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
+                  <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-2xl font-bold text-gray-900">18-Month Timeline</h3>
+                  <p class="text-sm text-gray-600 mt-1">Comprehensive payment analysis</p>
+                </div>
+              </div>
+              <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl px-6 py-4 border-2 border-indigo-100">
+                <div class="text-center">
+                  <div class="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    {analytics.missingMonthsTimeline.filter(m => m.actualPayments >= m.expectedPayments && m.expectedPayments > 0).length}/{analytics.missingMonthsTimeline.filter(m => m.expectedPayments > 0).length}
+                  </div>
+                  <div class="text-xs font-semibold text-gray-600 mt-1 uppercase tracking-wide">Months On Track</div>
+                </div>
+              </div>
+            </div>
 
-          <!-- Legend -->
-          <div class="flex flex-wrap justify-center gap-6">
-            <div class="flex items-center space-x-2">
-              <div class="w-4 h-4 bg-violet-500 rounded"></div>
-              <span class="text-sm font-medium text-gray-700">Expected Payments</span>
+            <!-- Chart Canvas -->
+            <div class="h-96 w-full relative mb-8">
+              <canvas id="missing-months-chart" class="w-full h-full"></canvas>
             </div>
-            <div class="flex items-center space-x-2">
-              <div class="w-4 h-4 bg-green-500 rounded"></div>
-              <span class="text-sm font-medium text-gray-700">Actual Payments</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div class="w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-              <span class="text-sm font-medium text-gray-700">On Track</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <div class="w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
-              <span class="text-sm font-medium text-gray-700">Missing</span>
+
+            <!-- Enhanced Legend -->
+            <div class="flex flex-wrap justify-center gap-8 pt-6 border-t-2 border-gray-100">
+              <div class="flex items-center space-x-3 group cursor-pointer">
+                <div class="w-5 h-5 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-lg shadow-lg group-hover:scale-110 transition-transform"></div>
+                <span class="text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">Expected Payments</span>
+              </div>
+              <div class="flex items-center space-x-3 group cursor-pointer">
+                <div class="w-5 h-5 bg-gradient-to-br from-emerald-400 to-green-500 rounded-lg shadow-lg group-hover:scale-110 transition-transform"></div>
+                <span class="text-sm font-bold text-gray-700 group-hover:text-emerald-600 transition-colors">Actual Payments</span>
+              </div>
+              <div class="flex items-center space-x-3 group cursor-pointer">
+                <div class="w-4 h-4 bg-emerald-500 rounded-full border-3 border-white shadow-lg group-hover:scale-110 transition-transform"></div>
+                <span class="text-sm font-bold text-gray-700 group-hover:text-emerald-600 transition-colors">On Track ✓</span>
+              </div>
+              <div class="flex items-center space-x-3 group cursor-pointer">
+                <div class="w-4 h-4 bg-red-500 rounded-full border-3 border-white shadow-lg group-hover:scale-110 transition-transform"></div>
+                <span class="text-sm font-bold text-gray-700 group-hover:text-red-600 transition-colors">Missing ✗</span>
+              </div>
             </div>
           </div>
         </div>
