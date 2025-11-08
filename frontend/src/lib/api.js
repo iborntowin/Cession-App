@@ -73,7 +73,16 @@ const handleResponse = async (response) => {
 
 // Get authentication headers
 export const getAuthHeaders = () => {
-  const currentToken = get(token);
+  let currentToken = get(token);
+  
+  // If token is not in store, try to get it from localStorage
+  if (!currentToken && browser) {
+    currentToken = localStorage.getItem('token');
+    if (currentToken) {
+      // Update the store with the token from localStorage
+      token.set(currentToken);
+    }
+  }
 
   if (!currentToken) {
     throw new Error('No authentication token found');

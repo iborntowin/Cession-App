@@ -110,7 +110,15 @@
       "job_card": "Work Card",
       "other": "Other Documents",
       "upload": "Upload Document",
-      "download": "Download Document"
+      "download": "Download Document",
+      "templates": {
+        "required_fields": "Please fill all required fields ({count})"
+      },
+      "title": "Documents",
+      "create": "Create",
+      "hide": "Hide",
+      "select_type": "Select document type",
+      "allow_empty_debug": "Allow empty fields (debug)"
     },
     "validation": {
       "required": "This field is required",
@@ -442,6 +450,11 @@
       "job": "Job",
       "subtitle": "View and manage client information",
       "not_found": "Client not found",
+      "tabs": {
+        "personal": "Personal Information",
+        "cessions": "Cessions",
+        "analytics": "Analytics"
+      },
       "actions": {
         "edit": "Edit Client",
         "create_cession": "Create Cession"
@@ -472,6 +485,17 @@
         "view_all": "View All Cessions",
         "no_cessions": "No cessions found for this client",
         "active_cessions": "Active Cessions",
+        "select_primary_hint": "Select Cession (Click on cession box)",
+        "card": {
+          "amount_label": "Amount:",
+          "remaining_label": "Remaining:"
+        },
+        "include_second": "Include second cession",
+        "select_second": "Select second cession",
+        "primary_selected": "Primary cession",
+        "primary": "Primary",
+        "unavailable": "Unavailable",
+        "select_third": "Select third cession",
         "table": {
           "id": "ID",
           "start_date": "Start Date",
@@ -480,6 +504,13 @@
           "actions": "Actions",
           "view_details": "View Details"
         }
+      },
+      "documents": {
+        "title": "Documents",
+        "create": "Create",
+        "hide": "Hide",
+        "select_type": "Select document type",
+        "allow_empty_debug": "Allow empty fields (debug)"
       },
       "cin": "ID Number",
       "worker_number": "Worker Number",

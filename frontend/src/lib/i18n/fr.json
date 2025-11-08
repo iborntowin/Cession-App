@@ -106,7 +106,15 @@
       "job_card": "Carte de Travail",
       "other": "Autres Documents",
       "upload": "Téléverser un Document",
-      "download": "Télécharger le Document"
+      "download": "Télécharger le Document",
+      "title": "Documents",
+      "create": "Créer des Documents",
+      "hide": "Masquer",
+      "select_type": "Sélectionner le Type",
+      "allow_empty_debug": "Autoriser le débogage vide",
+      "templates": {
+        "required_fields": "Champs requis manquants : "
+      }
     },
     "validation": {
       "required": "Ce champ est obligatoire",
@@ -582,22 +590,39 @@
       "cin": "Numéro d'Identité",
       "not_found": "Client non trouvé",
       "worker_number": "Numéro d'Employé",
+      "tabs": {
+        "personal": "Informations Personnelles",
+        "cessions": "Cessions",
+        "analytics": "Analyses"
+      },
       "actions": {
         "edit": "Modifier le Client",
         "create_cession": "Créer une Cession"
       },
       "cessions": {
-        "view_all": "Voir toutes les cessions",
-        "no_cessions": "Aucune cession trouvée",
         "title": "Cessions",
+        "details": {},
+        "view_all": "Voir toutes les cessions",
+        "no_cessions": "Aucune cession trouvée pour ce client",
         "active_cessions": "Cessions Actives",
+        "select_primary_hint": "Sélectionner Cession (Cliquez sur la boîte de cession)",
+        "card": {
+          "amount_label": "Montant :",
+          "remaining_label": "Restant :"
+        },
+        "include_second": "Inclure deuxième cession",
+        "select_second": "Sélectionner deuxième cession",
+        "primary_selected": "Cession primaire",
+        "primary": "Primaire",
+        "unavailable": "Indisponible",
+        "select_third": "Sélectionner troisième cession",
         "table": {
-          "start_date": "Date de début",
-          "view_details": "Voir les détails",
-          "id": "ID de la table",
+          "id": "ID",
+          "start_date": "Date de Début",
           "amount": "Montant",
           "status": "Statut",
-          "actions": "Actions"
+          "actions": "Actions",
+          "view_details": "Voir les Détails"
         }
       },
       "workplace": "Lieu de Travail",
@@ -627,6 +652,13 @@
           "workplace": "Lieu de Travail :",
           "client": "Client :"
         }
+      },
+      "documents": {
+        "title": "Documents",
+        "create": "Créer",
+        "hide": "Masquer",
+        "select_type": "Sélectionner le type",
+        "allow_empty_debug": "Autoriser le débogage vide"
       }
     },
     "actions": {
@@ -673,6 +705,9 @@
       "danger_zone_subtitle": "Les actions dans cette zone sont irréversibles."
     },
     "empty": {
+      "title": "Aucun client trouvé",
+      "add_first": "Ajouter votre premier client",
+      "clear_filters": "Effacer les filtres de recherche",
       "no_clients": "Aucun client trouvé."
     }
   },

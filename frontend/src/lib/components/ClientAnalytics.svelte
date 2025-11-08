@@ -1,0 +1,2169 @@
+<script>
+  import { onMount } from 'svelte';
+  import { clientsApi, cessionsApi, paymentsApi } from '$lib/api';
+  import { formatCurrency } from '$lib/utils/formatters';
+  import Chart from 'chart.js/auto';
+  import { fade, fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
+
+  export let client;
+  export let cessions = [];
+
+  let allPayments = [];
+  let analytics = {
+    financialHealthScore: 0,
+    paymentRegularityScore: 0,
+    riskLevel: 'low',
+    totalDebt: 0,
+    totalPaid: 0,
+    averagePaymentDelay: 0,
+    onTimePayments: 0,
+    latePayments: 0,
+    activeCessions: 0,
+    completedCessions: 0,
+    paymentHistory: [],
+    cessionProgress: [],
+    monthlyPaymentTrends: [],
+    missingMonths: [],
+    averageMonthlyPayment: 0,
+    longestStreak: 0,
+    totalPaymentMonths: 0,
+    expectedMonthlyIncome: 0,
+    monthlyTimeliness: [], // New: monthly breakdown of on-time vs late payments
+    missingMonthsTimeline: [], // New: comprehensive missing months from start to end
+    riskAlerts: [] // New: risk assessment alerts
+  };
+
+  let isLoading = true;
+  let selectedCession = null;
+  let cessionChart = null; // New chart for missing months timeline
+  let paymentChart = null;
+  let trendChart = null;
+  let timelinessChart = null;
+  let missingMonthsChart = null;
+
+  // Reactive statement to initialize charts when data is ready
+  $: if (!isLoading) {
+    // Use setTimeout to ensure DOM is fully rendered
+    setTimeout(() => {
+      initializeCharts();
+    }, 100);
+  }
+
+  // Color schemes inspired by big tech financial apps - enhanced palette
+  const colors = {
+    primary: '#6366f1',      // Indigo
+    secondary: '#8b5cf6',    // Purple
+    success: '#10b981',      // Emerald
+    warning: '#f59e0b',      // Amber
+    danger: '#ef4444',       // Red
+    info: '#06b6d4',         // Cyan
+    light: '#f8fafc',        // Slate 50
+    dark: '#1e293b',         // Slate 800
+    gradients: {
+      health: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      risk: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      progress: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      success: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      warning: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      danger: 'linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%)'
+    },
+    chartColors: [
+      '#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4',
+      '#ec4899', '#84cc16', '#f97316', '#3b82f6', '#8b5cf6', '#06b6d4'
+    ]
+  };
+
+  onMount(async () => {
+    await loadPaymentData();
+    calculateAnalytics();
+  });
+
+  async function loadPaymentData() {
+    try {
+      // Load all payments for client's cessions
+      const paymentPromises = cessions.map(async (cession) => {
+        const paymentResponse = await paymentsApi.getCessionPayments(cession.id);
+        if (paymentResponse.success && Array.isArray(paymentResponse.data)) {
+          return paymentResponse.data.map(payment => ({
+            ...payment,
+            cessionId: cession.id,
+            cessionNumber: cession.number || cession.reference
+          }));
+        }
+        return [];
+      });
+
+      const paymentResults = await Promise.all(paymentPromises);
+      allPayments = paymentResults.flat();
+
+    } catch (error) {
+      console.error('Error loading payment data:', error);
+    }
+  }
+
+  function calculateAnalytics() {
+    if (!cessions.length) return;
+
+    // Calculate total debt and payments
+    analytics.totalDebt = cessions.reduce((sum, c) => sum + (c.totalLoanAmount || 0), 0);
+    analytics.totalPaid = allPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // Calculate expected monthly income from active cessions
+    analytics.expectedMonthlyIncome = cessions
+      .filter(c => c.status === 'ACTIVE')
+      .reduce((sum, c) => sum + (c.monthlyPayment || 0), 0);
+
+    // Calculate cession status
+    analytics.activeCessions = cessions.filter(c => c.status === 'ACTIVE').length;
+    analytics.completedCessions = cessions.filter(c => c.status === 'FINISHED').length;
+
+    // Calculate payment regularity
+    calculatePaymentRegularity();
+
+    // Calculate financial health score
+    calculateFinancialHealthScore();
+
+    // Prepare payment history for timeline
+    preparePaymentHistory();
+
+    // Prepare cession progress data
+    prepareCessionProgress();
+
+    // Calculate monthly trends
+    calculateMonthlyTrends();
+
+    // Calculate monthly payment timeliness
+    calculateMonthlyTimeliness();
+
+    // Calculate detailed cession payment analysis
+    calculateCessionPaymentDetails();
+
+    // Calculate comprehensive missing months timeline
+    calculateMissingMonthsTimeline();
+
+    // Assess risk alerts
+    assessRiskAlerts();
+
+    // Calculate additional metrics
+    calculateAdditionalMetrics();
+
+    isLoading = false;
+  }
+
+  function calculateAdditionalMetrics() {
+    if (!allPayments.length) return;
+
+    // Average monthly payment
+    analytics.averageMonthlyPayment = analytics.monthlyPaymentTrends.length > 0
+      ? analytics.monthlyPaymentTrends.reduce((sum, t) => sum + t.amount, 0) / analytics.monthlyPaymentTrends.length
+      : 0;
+
+    // Total payment months
+    analytics.totalPaymentMonths = analytics.monthlyPaymentTrends.length;
+
+    // Calculate longest payment streak
+    analytics.longestStreak = calculateLongestStreak();
+  }
+
+  function calculateLongestStreak() {
+    if (!analytics.monthlyPaymentTrends.length) return 0;
+
+    const months = analytics.monthlyPaymentTrends.map(t => t.month).sort();
+    let longestStreak = 1;
+    let currentStreak = 1;
+
+    for (let i = 1; i < months.length; i++) {
+      const prevDate = new Date(months[i - 1] + '-01');
+      const currDate = new Date(months[i] + '-01');
+
+      const monthDiff = (currDate.getFullYear() - prevDate.getFullYear()) * 12 +
+                       (currDate.getMonth() - prevDate.getMonth());
+
+      if (monthDiff === 1) {
+        currentStreak++;
+        longestStreak = Math.max(longestStreak, currentStreak);
+      } else {
+        currentStreak = 1;
+      }
+    }
+
+    return longestStreak;
+  }
+
+  function calculatePaymentRegularity() {
+    if (!allPayments.length) return;
+
+    let totalDelay = 0;
+    let paymentCount = 0;
+    analytics.onTimePayments = 0;
+    analytics.latePayments = 0;
+
+    // Group payments by cession and check regularity
+    const cessionGroups = {};
+    allPayments.forEach(payment => {
+      if (!cessionGroups[payment.cessionId]) {
+        cessionGroups[payment.cessionId] = [];
+      }
+      cessionGroups[payment.cessionId].push(payment);
+    });
+
+    Object.values(cessionGroups).forEach(cessionPayments => {
+      const sortedPayments = cessionPayments.sort((a, b) =>
+        new Date(a.paymentDate) - new Date(b.paymentDate)
+      );
+
+      sortedPayments.forEach((payment, index) => {
+        if (index > 0) {
+          const prevPayment = sortedPayments[index - 1];
+          const expectedDate = new Date(prevPayment.paymentDate);
+          expectedDate.setMonth(expectedDate.getMonth() + 1); // Assuming monthly payments
+
+          const actualDate = new Date(payment.paymentDate);
+          const delayDays = Math.max(0, (actualDate - expectedDate) / (1000 * 60 * 60 * 24));
+
+          if (delayDays > 30) {
+            analytics.latePayments++;
+          } else {
+            analytics.onTimePayments++;
+          }
+
+          totalDelay += delayDays;
+          paymentCount++;
+        }
+      });
+    });
+
+    analytics.averagePaymentDelay = paymentCount > 0 ? totalDelay / paymentCount : 0;
+    analytics.paymentRegularityScore = Math.max(0, 100 - (analytics.averagePaymentDelay * 2));
+  }
+
+  function calculateFinancialHealthScore() {
+    const regularityWeight = 0.4;
+    const completionWeight = 0.3;
+    const debtRatioWeight = 0.3;
+
+    const completionRate = analytics.totalDebt > 0 ? (analytics.totalPaid / analytics.totalDebt) * 100 : 0;
+    const debtRatio = Math.min(100, (analytics.totalDebt - analytics.totalPaid) / Math.max(analytics.totalDebt, 1) * 100);
+
+    analytics.financialHealthScore =
+      (analytics.paymentRegularityScore * regularityWeight) +
+      (completionRate * completionWeight) +
+      ((100 - debtRatio) * debtRatioWeight);
+
+    // Determine risk level
+    if (analytics.financialHealthScore >= 80) {
+      analytics.riskLevel = 'low';
+    } else if (analytics.financialHealthScore >= 60) {
+      analytics.riskLevel = 'medium';
+    } else {
+      analytics.riskLevel = 'high';
+    }
+  }
+
+  function preparePaymentHistory() {
+    analytics.paymentHistory = allPayments
+      .sort((a, b) => new Date(a.paymentDate) - new Date(b.paymentDate))
+      .map(payment => ({
+        date: new Date(payment.paymentDate),
+        amount: payment.amount,
+        cession: payment.cessionNumber,
+        delay: calculatePaymentDelay(payment)
+      }));
+  }
+
+  function calculatePaymentDelay(payment) {
+    // Simplified delay calculation - in real app, you'd compare to expected payment dates
+    const paymentDate = new Date(payment.paymentDate);
+    const today = new Date();
+    const daysDiff = (today - paymentDate) / (1000 * 60 * 60 * 24);
+    return daysDiff > 30 ? 'late' : 'on-time';
+  }
+
+  function prepareCessionProgress() {
+    analytics.cessionProgress = cessions.map(cession => {
+      // Calculate progress based on payments for this cession
+      const cessionPayments = allPayments.filter(p => p.cessionId === cession.id);
+      const totalPaid = cessionPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalAmount = cession.totalLoanAmount || 0;
+      const progress = totalAmount > 0 ? Math.min(100, (totalPaid / totalAmount) * 100) : 0;
+
+      // Calculate monthly payment amount
+      const monthlyPayment = cession.monthlyPayment || cessionPayments.length > 0
+        ? cessionPayments.reduce((sum, p) => sum + p.amount, 0) / Math.max(1, cessionPayments.length)
+        : 0;
+
+      return {
+        name: cession.number
+          ? `${cession.number} (${formatCurrency(Math.round(monthlyPayment))}/month)`
+          : cession.reference
+          ? `${cession.reference} (${formatCurrency(Math.round(monthlyPayment))}/month)`
+          : `${formatCurrency(Math.round(monthlyPayment))}/month`,
+        progress: Math.round(progress),
+        remaining: Math.max(0, totalAmount - totalPaid),
+        total: totalAmount,
+        paid: totalPaid,
+        monthlyPayment: Math.round(monthlyPayment),
+        status: cession.status,
+        paymentCount: cessionPayments.length,
+        startDate: cession.startDate
+      };
+    });
+  }
+
+  function calculateMonthlyTrends() {
+    const monthlyData = {};
+    const paymentGaps = {};
+
+    allPayments.forEach(payment => {
+      const date = new Date(payment.paymentDate);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyData[key]) {
+        monthlyData[key] = { total: 0, count: 0, dates: [] };
+      }
+      monthlyData[key].total += payment.amount;
+      monthlyData[key].count++;
+      monthlyData[key].dates.push(date);
+    });
+
+    analytics.monthlyPaymentTrends = Object.entries(monthlyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month,
+        amount: data.total,
+        count: data.count,
+        averagePayment: data.total / data.count
+      }));
+
+    // Detect missing months
+    analytics.missingMonths = detectMissingMonths(monthlyData);
+  }
+
+  function detectMissingMonths(monthlyData) {
+    if (analytics.monthlyPaymentTrends.length < 2) return [];
+
+    const months = Object.keys(monthlyData).sort();
+    const missing = [];
+    const startDate = new Date(months[0] + '-01');
+    const endDate = new Date(months[months.length - 1] + '-01');
+
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyData[monthKey]) {
+        missing.push({
+          month: monthKey,
+          displayMonth: currentDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+        });
+      }
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+
+    return missing;
+  }
+
+  function calculateMonthlyTimeliness() {
+    const monthlyData = {};
+
+    // Group payments by month and analyze timeliness
+    allPayments.forEach(payment => {
+      const date = new Date(payment.paymentDate);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      if (!monthlyData[key]) {
+        monthlyData[key] = { onTime: 0, late: 0, total: 0 };
+      }
+
+      // For each payment, check if it was on time (within 30 days of expected monthly payment)
+      // This is a simplified calculation - in a real app, you'd compare to actual due dates
+      const paymentDelay = calculatePaymentDelay(payment);
+      if (paymentDelay === 'late') {
+        monthlyData[key].late++;
+      } else {
+        monthlyData[key].onTime++;
+      }
+      monthlyData[key].total++;
+    });
+
+    // Convert to array format for charting
+    analytics.monthlyTimeliness = Object.entries(monthlyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month,
+        onTime: data.onTime,
+        late: data.late,
+        total: data.total,
+        onTimePercentage: data.total > 0 ? (data.onTime / data.total) * 100 : 0,
+        latePercentage: data.total > 0 ? (data.late / data.total) * 100 : 0
+      }));
+  }
+
+  function calculateCessionPaymentDetails() {
+    analytics.cessionPaymentDetails = cessions.map(cession => {
+      const cessionPayments = allPayments.filter(p => p.cessionId === cession.id)
+        .sort((a, b) => new Date(a.paymentDate) - new Date(b.paymentDate));
+
+      const startDate = cession.startDate ? new Date(cession.startDate) : null;
+      const totalAmount = cession.totalLoanAmount || 0;
+      const monthlyPayment = cession.monthlyPayment || 0;
+
+      // Calculate expected duration in months
+      const expectedMonths = monthlyPayment > 0 ? Math.ceil(totalAmount / monthlyPayment) : 0;
+
+      // Calculate expected end date
+      let expectedEndDate = null;
+      if (startDate && expectedMonths > 0) {
+        expectedEndDate = new Date(startDate);
+        expectedEndDate.setMonth(expectedEndDate.getMonth() + expectedMonths - 1);
+      }
+
+      // Track paid months
+      const paidMonths = [];
+      const missingMonths = [];
+      let totalPaid = 0;
+
+      if (startDate && monthlyPayment > 0) {
+        const currentDate = new Date();
+        let checkDate = new Date(startDate);
+
+        for (let i = 0; i < expectedMonths; i++) {
+          const monthKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}`;
+          const monthPayments = cessionPayments.filter(p => {
+            const paymentDate = new Date(p.paymentDate);
+            return paymentDate.getFullYear() === checkDate.getFullYear() &&
+                   paymentDate.getMonth() === checkDate.getMonth();
+          });
+
+          const monthTotal = monthPayments.reduce((sum, p) => sum + p.amount, 0);
+          totalPaid += monthTotal;
+
+          if (monthTotal >= monthlyPayment * 0.8) { // Consider paid if 80% of monthly payment is received
+            paidMonths.push({
+              month: monthKey,
+              displayMonth: checkDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+              amount: monthTotal,
+              date: new Date(checkDate)
+            });
+          } else if (checkDate <= currentDate) {
+            missingMonths.push({
+              month: monthKey,
+              displayMonth: checkDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+              expectedAmount: monthlyPayment,
+              receivedAmount: monthTotal,
+              date: new Date(checkDate)
+            });
+          }
+
+          checkDate.setMonth(checkDate.getMonth() + 1);
+        }
+      }
+
+      return {
+        cessionId: cession.id,
+        cessionName: cession.number || cession.reference || 'Unknown',
+        startDate: startDate,
+        expectedEndDate: expectedEndDate,
+        monthlyPayment: monthlyPayment,
+        totalAmount: totalAmount,
+        totalPaid: totalPaid,
+        expectedMonths: expectedMonths,
+        paidMonths: paidMonths,
+        missingMonths: missingMonths,
+        completionRate: totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0,
+        status: cession.status
+      };
+    });
+  }
+
+  function calculateMissingMonthsTimeline() {
+    if (!cessions.length) return;
+
+    // Create a comprehensive timeline based on all cessions' start and end dates
+    const allTimelinePoints = [];
+
+    cessions.forEach(cession => {
+      if (cession.startDate) {
+        const startDate = new Date(cession.startDate);
+        const endDate = cession.endDate ? new Date(cession.endDate) : new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)); // 1 year from now if no end date
+
+        // Generate monthly points for this cession
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+          const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+          allTimelinePoints.push({
+            month: monthKey,
+            date: new Date(currentDate),
+            cessionId: cession.id,
+            cessionName: cession.number || cession.reference || 'Unknown',
+            expectedPayment: cession.monthlyPayment || 0
+          });
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+      }
+    });
+
+    // Group by month and analyze
+    const monthlyGroups = {};
+    allTimelinePoints.forEach(point => {
+      if (!monthlyGroups[point.month]) {
+        monthlyGroups[point.month] = {
+          date: point.date,
+          expectedPayments: 0,
+          actualPayments: 0,
+          cessions: new Set(),
+          totalExpectedAmount: 0,
+          totalActualAmount: 0
+        };
+      }
+      monthlyGroups[point.month].expectedPayments += 1;
+      monthlyGroups[point.month].totalExpectedAmount += point.expectedPayment;
+      monthlyGroups[point.month].cessions.add(point.cessionId);
+    });
+
+    // Add actual payments data
+    allPayments.forEach(payment => {
+      const date = new Date(payment.paymentDate);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+      if (monthlyGroups[monthKey]) {
+        monthlyGroups[monthKey].actualPayments += 1;
+        monthlyGroups[monthKey].totalActualAmount += payment.amount;
+      }
+    });
+
+    // Convert to timeline format
+    analytics.missingMonthsTimeline = Object.entries(monthlyGroups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month,
+        displayMonth: data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+        expectedPayments: data.expectedPayments,
+        actualPayments: data.actualPayments,
+        expectedAmount: data.totalExpectedAmount,
+        actualAmount: data.totalActualAmount,
+        isMissing: data.actualPayments === 0 && data.expectedPayments > 0,
+        status: data.actualPayments > 0 ? 'paid' : data.expectedPayments > 0 ? 'missing' : 'no-expectation',
+        cessionCount: data.cessions.size
+      }));
+  }
+
+  function assessRiskAlerts() {
+    const alerts = [];
+
+    // Payment gap alert
+    if (analytics.missingMonths.length > 2) {
+      alerts.push({
+        type: 'warning',
+        title: 'Payment Gaps Detected',
+        message: `${analytics.missingMonths.length} months with missing payments`,
+        icon: '⚠️',
+        severity: 'high'
+      });
+    }
+
+    // Late payment trend alert
+    const latePaymentRatio = analytics.latePayments / (analytics.onTimePayments + analytics.latePayments);
+    if (latePaymentRatio > 0.3) {
+      alerts.push({
+        type: 'danger',
+        title: 'High Late Payment Rate',
+        message: `${Math.round(latePaymentRatio * 100)}% of payments are late`,
+        icon: '🚨',
+        severity: 'high'
+      });
+    }
+
+    // Low health score alert
+    if (analytics.financialHealthScore < 60) {
+      alerts.push({
+        type: 'danger',
+        title: 'Poor Financial Health',
+        message: `Health score of ${Math.round(analytics.financialHealthScore)} indicates high risk`,
+        icon: '📉',
+        severity: 'critical'
+      });
+    }
+
+    // Streak achievement
+    if (analytics.longestStreak >= 6) {
+      alerts.push({
+        type: 'success',
+        title: 'Payment Streak Achievement',
+        message: `${analytics.longestStreak} consecutive months of payments!`,
+        icon: '🎉',
+        severity: 'positive'
+      });
+    }
+
+    analytics.riskAlerts = alerts;
+  }
+
+  function initializeCharts() {
+    // Payment Timeline Chart
+    const paymentCtx = document.getElementById('payment-timeline-chart');
+    if (paymentCtx && analytics.paymentHistory.length > 0) {
+      if (paymentChart) paymentChart.destroy();
+      paymentChart = new Chart(paymentCtx, {
+        type: 'line',
+        data: {
+          labels: analytics.paymentHistory.map(p => p.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })),
+          datasets: [{
+            label: 'Payment Amount',
+            data: analytics.paymentHistory.map(p => p.amount),
+            borderColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundColor: function(context) {
+              const chart = context.chart;
+              const {ctx, chartArea} = chart;
+              if (!chartArea) return;
+              const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+              gradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
+              gradient.addColorStop(1, 'rgba(118, 75, 162, 0.05)');
+              return gradient;
+            },
+            borderWidth: 4,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: colors.primary,
+            pointBorderWidth: 3,
+            pointRadius: 8,
+            pointHoverRadius: 12,
+            pointHoverBackgroundColor: colors.primary,
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 4,
+            shadowColor: 'rgba(102, 126, 234, 0.3)',
+            shadowBlur: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              titleColor: colors.dark,
+              bodyColor: colors.dark,
+              borderColor: colors.primary,
+              borderWidth: 2,
+              cornerRadius: 16,
+              displayColors: false,
+              titleFont: { size: 14, weight: 'bold' },
+              bodyFont: { size: 13 },
+              padding: 16,
+              callbacks: {
+                title: function(context) {
+                  return context[0].label;
+                },
+                label: function(context) {
+                  return `💰 Amount: ${formatCurrency(context.parsed.y)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false, drawBorder: false },
+              ticks: {
+                font: { size: 12, weight: '500' },
+                color: colors.dark + '80',
+                maxTicksLimit: 8,
+                padding: 10
+              },
+              border: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0,0,0,0.04)',
+                drawBorder: false,
+                lineWidth: 1
+              },
+              ticks: {
+                callback: function(value) {
+                  return formatCurrency(value);
+                },
+                font: { size: 12, weight: '500' },
+                color: colors.dark + '80',
+                padding: 15
+              },
+              border: { display: false }
+            }
+          },
+          animation: {
+            duration: 2000,
+            easing: 'easeInOutQuart',
+            delay: function(context) {
+              return context.dataIndex * 50;
+            }
+          },
+          elements: {
+            point: {
+              hoverBorderWidth: 4
+            }
+          }
+        }
+      });
+    }
+
+    // Cession Progress Chart
+    const progressCtx = document.getElementById('cession-progress-chart');
+    if (progressCtx && analytics.cessionProgress.length > 0) {
+      if (cessionChart) cessionChart.destroy();
+      cessionChart = new Chart(progressCtx, {
+        type: 'doughnut',
+        data: {
+          labels: analytics.cessionProgress.map(c => c.name),
+          datasets: [{
+            data: analytics.cessionProgress.map(c => c.progress),
+            backgroundColor: analytics.cessionProgress.map((c, index) => {
+              const colors = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                'linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%)'
+              ];
+              return colors[index % colors.length];
+            }),
+            borderWidth: 0,
+            hoverBorderWidth: 6,
+            hoverBorderColor: '#ffffff',
+            hoverOffset: 15,
+            cutout: '75%'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '75%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 25,
+                font: { size: 13, weight: '600', family: 'Inter' },
+                usePointStyle: true,
+                pointStyle: 'circle',
+                generateLabels: function(chart) {
+                  const data = chart.data;
+                  return data.labels.map((label, i) => ({
+                    text: `${label.split(' (')[0]} (${data.datasets[0].data[i]}%)`,
+                    fillStyle: (() => {
+                      const canvas = document.createElement('canvas');
+                      const ctx = canvas.getContext('2d');
+                      const gradient = ctx.createLinearGradient(0, 0, 20, 0);
+                      const colors = [
+                        ['#667eea', '#764ba2'],
+                        ['#f093fb', '#f5576c'],
+                        ['#4facfe', '#00f2fe'],
+                        ['#43e97b', '#38f9d7'],
+                        ['#fa709a', '#fee140'],
+                        ['#ff6b6b', '#ffa726']
+                      ];
+                      const [start, end] = colors[i % colors.length];
+                      gradient.addColorStop(0, start);
+                      gradient.addColorStop(1, end);
+                      return gradient;
+                    })(),
+                    strokeStyle: (() => {
+                      const colors = [
+                        ['#667eea', '#764ba2'],
+                        ['#f093fb', '#f5576c'],
+                        ['#4facfe', '#00f2fe'],
+                        ['#43e97b', '#38f9d7'],
+                        ['#fa709a', '#fee140'],
+                        ['#ff6b6b', '#ffa726']
+                      ];
+                      return colors[i % colors.length][0];
+                    })(),
+                    lineWidth: 0,
+                    hidden: false,
+                    index: i
+                  }));
+                }
+              }
+            },
+            title: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              titleColor: colors.dark,
+              bodyColor: colors.dark,
+              borderColor: colors.primary,
+              borderWidth: 2,
+              cornerRadius: 16,
+              displayColors: true,
+              titleFont: { size: 14, weight: 'bold' },
+              bodyFont: { size: 13 },
+              padding: 16,
+              callbacks: {
+                title: function(context) {
+                  return context[0].label.split(' (')[0];
+                },
+                label: function(context) {
+                  const cession = analytics.cessionProgress[context.dataIndex];
+                  return [
+                    `📊 Progress: ${context.parsed}%`,
+                    `💰 Paid: ${formatCurrency(cession.paid)}`,
+                    `⏳ Remaining: ${formatCurrency(cession.remaining)}`,
+                    `📅 Monthly: ${formatCurrency(cession.monthlyPayment)}`,
+                    `📈 Status: ${cession.status}`
+                  ];
+                }
+              }
+            }
+          },
+          animation: {
+            duration: 2500,
+            easing: 'easeInOutQuart',
+            animateScale: true,
+            animateRotate: true
+          },
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const dataIndex = elements[0].index;
+              selectedCession = analytics.cessionProgress[dataIndex];
+              // Re-render center text
+              updateCenterText(cessionChart, selectedCession);
+            } else {
+              selectedCession = null;
+              updateCenterText(cessionChart, null);
+            }
+          },
+          onHover: (event, activeElements) => {
+            event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+          }
+        },
+        plugins: [{
+          id: 'centerText',
+          beforeDraw: function(chart) {
+            updateCenterText(chart, selectedCession);
+          }
+        }]
+      });
+    }
+
+    // Monthly Trends Chart
+    const trendCtx = document.getElementById('monthly-trends-chart');
+    if (trendCtx && analytics.monthlyPaymentTrends.length > 0) {
+      if (trendChart) trendChart.destroy();
+
+      // Create gradient for bars
+      const ctx = trendCtx.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(0.5, '#764ba2');
+      gradient.addColorStop(1, '#f093fb');
+
+      const hoverGradient = ctx.createLinearGradient(0, 0, 0, 400);
+      hoverGradient.addColorStop(0, '#5a67d8');
+      hoverGradient.addColorStop(0.5, '#6b46c1');
+      hoverGradient.addColorStop(1, '#d53f8c');
+
+      trendChart = new Chart(trendCtx, {
+        type: 'bar',
+        data: {
+          labels: analytics.monthlyPaymentTrends.map(t => {
+            const date = new Date(t.month + '-01');
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+          }),
+          datasets: [{
+            label: 'Monthly Payments',
+            data: analytics.monthlyPaymentTrends.map(t => t.amount),
+            backgroundColor: gradient,
+            hoverBackgroundColor: hoverGradient,
+            borderRadius: 12,
+            borderSkipped: false,
+            borderWidth: 0,
+            barThickness: 50,
+            maxBarThickness: 60,
+            shadowColor: 'rgba(102, 126, 234, 0.3)',
+            shadowBlur: 15,
+            shadowOffsetX: 0,
+            shadowOffsetY: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            title: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              titleColor: colors.dark,
+              bodyColor: colors.dark,
+              borderColor: colors.primary,
+              borderWidth: 2,
+              cornerRadius: 16,
+              displayColors: false,
+              titleFont: { size: 14, weight: 'bold' },
+              bodyFont: { size: 13 },
+              padding: 16,
+              callbacks: {
+                title: function(context) {
+                  return context[0].label;
+                },
+                label: function(context) {
+                  const trend = analytics.monthlyPaymentTrends[context.dataIndex];
+                  return [
+                    `💰 Total: ${formatCurrency(context.parsed.y)}`,
+                    `📊 Payments: ${trend.count}`,
+                    `📈 Average: ${formatCurrency(trend.averagePayment)}`
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false, drawBorder: false },
+              ticks: {
+                font: { size: 12, weight: '500' },
+                color: colors.dark + '80',
+                maxTicksLimit: 12,
+                padding: 10
+              },
+              border: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0,0,0,0.04)',
+                drawBorder: false,
+                lineWidth: 1
+              },
+              ticks: {
+                callback: function(value) {
+                  return formatCurrency(value);
+                },
+                font: { size: 12, weight: '500' },
+                color: colors.dark + '80',
+                padding: 15
+              },
+              border: { display: false }
+            }
+          },
+          animation: {
+            duration: 2000,
+            easing: 'easeInOutQuart',
+            delay: function(context) {
+              return context.dataIndex * 100;
+            },
+            onProgress: function(animation) {
+              // Add glow effect during animation
+              const chart = animation.chart;
+              const ctx = chart.ctx;
+              ctx.shadowColor = 'rgba(102, 126, 234, 0.3)';
+              ctx.shadowBlur = 20;
+            }
+          },
+          onHover: (event, activeElements) => {
+            event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+          }
+        }
+      });
+    }
+
+    // Payment Timeliness Chart - Creative Gauge/Pie Chart
+    const timelinessCtx = document.getElementById('payment-timeliness-chart');
+    if (timelinessCtx && (analytics.onTimePayments > 0 || analytics.latePayments > 0)) {
+      if (timelinessChart) timelinessChart.destroy();
+
+      const totalPayments = analytics.onTimePayments + analytics.latePayments;
+      const onTimePercentage = totalPayments > 0 ? (analytics.onTimePayments / totalPayments) * 100 : 0;
+      const latePercentage = totalPayments > 0 ? (analytics.latePayments / totalPayments) * 100 : 0;
+
+      timelinessChart = new Chart(timelinessCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['On-Time Payments', 'Late Payments'],
+          datasets: [{
+            data: [analytics.onTimePayments, analytics.latePayments],
+            backgroundColor: [
+              colors.success,
+              colors.danger
+            ],
+            borderWidth: 0,
+            hoverBorderWidth: 4,
+            hoverBorderColor: '#ffffff',
+            hoverOffset: 12,
+            cutout: '75%'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '75%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 25,
+                font: { size: 14, weight: '600', family: 'Inter' },
+                generateLabels: function(chart) {
+                  const data = chart.data;
+                  return data.labels.map((label, i) => ({
+                    text: `${label}: ${data.datasets[0].data[i]} (${Math.round((data.datasets[0].data[i] / totalPayments) * 100)}%)`,
+                    fillStyle: data.datasets[0].backgroundColor[i],
+                    strokeStyle: data.datasets[0].backgroundColor[i],
+                    lineWidth: 0,
+                    hidden: false,
+                    index: i
+                  }));
+                }
+              }
+            },
+            title: {
+              display: true,
+              text: 'Payment Timeliness Overview',
+              font: { size: 18, weight: 'bold', family: 'Inter' },
+              padding: { bottom: 30 }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              titleColor: colors.dark,
+              bodyColor: colors.dark,
+              borderColor: colors.primary,
+              borderWidth: 2,
+              cornerRadius: 12,
+              displayColors: true,
+              callbacks: {
+                title: function(context) {
+                  return context[0].label;
+                },
+                label: function(context) {
+                  const value = context.parsed;
+                  const percentage = Math.round((value / totalPayments) * 100);
+                  return [
+                    `Count: ${value}`,
+                    `Percentage: ${percentage}%`,
+                    `Total Payments: ${totalPayments}`
+                  ];
+                }
+              }
+            }
+          },
+          animation: {
+            duration: 2500,
+            easing: 'easeInOutQuart',
+            animateScale: true,
+            animateRotate: true
+          }
+        },
+        plugins: [{
+          id: 'centerText',
+          beforeDraw: function(chart) {
+            const width = chart.width;
+            const height = chart.height;
+            const ctx = chart.ctx;
+
+            ctx.restore();
+            ctx.font = 'bold 24px Inter';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = colors.dark;
+
+            const text = `${Math.round(onTimePercentage)}%`;
+            const textX = Math.round((width - ctx.measureText(text).width) / 2);
+            const textY = height / 2;
+
+            ctx.fillText(text, textX, textY - 10);
+
+            ctx.font = '14px Inter';
+            ctx.fillStyle = colors.dark + '80';
+            const subText = 'On-Time Rate';
+            const subTextX = Math.round((width - ctx.measureText(subText).width) / 2);
+            ctx.fillText(subText, subTextX, textY + 15);
+
+            ctx.save();
+          }
+        }]
+      });
+    }
+
+    // Missing Months Timeline Chart - New Creative Chart
+    const missingCtx = document.getElementById('missing-months-chart');
+    if (missingCtx && analytics.missingMonthsTimeline.length > 0) {
+      if (missingMonthsChart) missingMonthsChart.destroy();
+
+      missingCtx.height = 200;
+
+      missingMonthsChart = new Chart(missingCtx, {
+        type: 'line',
+        data: {
+          labels: analytics.missingMonthsTimeline.map(m => m.displayMonth),
+          datasets: [{
+            label: 'Expected vs Actual Payments',
+            data: analytics.missingMonthsTimeline.map(m => m.expectedPayments),
+            borderColor: colors.primary,
+            backgroundColor: colors.primary + '20',
+            borderWidth: 3,
+            fill: false,
+            tension: 0.1,
+            pointBackgroundColor: function(context) {
+              const status = analytics.missingMonthsTimeline[context.dataIndex].status;
+              switch (status) {
+                case 'paid': return colors.success;
+                case 'missing': return colors.danger;
+                default: return colors.info;
+              }
+            },
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: function(context) {
+              const status = analytics.missingMonthsTimeline[context.dataIndex].status;
+              return status === 'missing' ? 8 : 6;
+            },
+            pointHoverRadius: 10,
+            pointHoverBorderWidth: 3
+          }, {
+            label: 'Actual Payments',
+            data: analytics.missingMonthsTimeline.map(m => m.actualPayments),
+            borderColor: colors.success,
+            backgroundColor: colors.success + '20',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.1,
+            pointBackgroundColor: colors.success,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                padding: 20,
+                font: { size: 12, weight: '500' },
+                usePointStyle: true
+              }
+            },
+            title: {
+              display: true,
+              text: 'Payment Coverage Timeline (18-Month View)',
+              font: { size: 16, weight: 'bold', family: 'Inter' },
+              padding: { bottom: 20 }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.98)',
+              titleColor: colors.dark,
+              bodyColor: colors.dark,
+              borderColor: colors.primary,
+              borderWidth: 2,
+              cornerRadius: 12,
+              displayColors: true,
+              callbacks: {
+                title: function(context) {
+                  return analytics.missingMonthsTimeline[context[0].dataIndex].displayMonth;
+                },
+                label: function(context) {
+                  const data = analytics.missingMonthsTimeline[context.dataIndex];
+                  const datasetLabel = context.dataset.label;
+                  if (datasetLabel === 'Expected vs Actual Payments') {
+                    return [
+                      `Expected: ${data.expectedPayments} payment${data.expectedPayments !== 1 ? 's' : ''}`,
+                      `Status: ${data.status === 'missing' ? '❌ Missing' : data.status === 'paid' ? '✅ Paid' : '➖ No expectation'}`
+                    ];
+                  } else {
+                    return `Actual: ${data.actualPayments} payment${data.actualPayments !== 1 ? 's' : ''}`;
+                  }
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                font: { size: 11 },
+                maxTicksLimit: 12,
+                maxRotation: 45
+              }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: {
+                stepSize: 1,
+                font: { size: 11 }
+              },
+              title: {
+                display: true,
+                text: 'Number of Payments',
+                font: { size: 12, weight: '500' }
+              }
+            }
+          },
+          animation: {
+            duration: 2000,
+            easing: 'easeInOutQuart'
+          }
+        }
+      });
+    }
+  }
+
+  function updateCenterText(chart, selectedCession) {
+    const width = chart.width;
+    const height = chart.height;
+    const ctx = chart.ctx;
+
+    ctx.restore();
+    ctx.font = 'bold 32px Inter';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = colors.dark;
+
+    if (selectedCession) {
+      const percentage = selectedCession.progress;
+      const text = `${Math.round(percentage)}%`;
+      const textX = width / 2;
+      const textY = height / 2;
+
+      ctx.fillText(text, textX, textY - 15);
+
+      ctx.font = '16px Inter';
+      ctx.fillStyle = colors.dark + '80';
+      const subText = selectedCession.name.split(' (')[0];
+      ctx.fillText(subText, textX, textY + 8);
+
+      ctx.font = '12px Inter';
+      ctx.fillStyle = colors.primary;
+      const paymentText = `${formatCurrency(selectedCession.monthlyPayment)}/month`;
+      ctx.fillText(paymentText, textX, textY + 25);
+
+      // Add a subtle glow effect
+      ctx.shadowColor = colors.primary;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = colors.primary;
+      ctx.globalAlpha = 0.1;
+      ctx.beginPath();
+      ctx.arc(textX, textY, 50, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else {
+      // Show overall progress when no cession is selected
+      const totalProgress = analytics.cessionProgress.reduce((sum, c) => sum + c.progress, 0) / analytics.cessionProgress.length;
+      const text = `${Math.round(totalProgress)}%`;
+      const textX = width / 2;
+      const textY = height / 2;
+
+      ctx.fillText(text, textX, textY - 15);
+
+      ctx.font = '18px Inter';
+      ctx.fillStyle = colors.dark + '80';
+      const subText = 'Average Progress';
+      ctx.fillText(subText, textX, textY + 10);
+
+      ctx.font = '14px Inter';
+      ctx.fillStyle = colors.primary;
+      const countText = `${analytics.cessionProgress.length} Cessions`;
+      ctx.fillText(countText, textX, textY + 35);
+    }
+
+    ctx.save();
+  }
+
+  function getHealthScoreColor(score) {
+    if (score >= 80) return colors.success;
+    if (score >= 60) return colors.warning;
+    return colors.danger;
+  }
+
+  function getRiskLevelColor(level) {
+    switch (level) {
+      case 'low': return colors.success;
+      case 'medium': return colors.warning;
+      case 'high': return colors.danger;
+      default: return colors.info;
+    }
+  }
+
+  function getRiskLevelText(level) {
+    switch (level) {
+      case 'low': return 'Low Risk';
+      case 'medium': return 'Medium Risk';
+      case 'high': return 'High Risk';
+      default: return 'Unknown';
+    }
+  }
+</script>
+
+{#if isLoading}
+  <div class="flex items-center justify-center py-12" transition:fade={{ duration: 300 }}>
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+      <p class="text-gray-600">Analyzing client financial health...</p>
+    </div>
+  </div>
+{:else}
+  <div class="client-analytics space-y-8" transition:fly={{ y: 20, duration: 500, easing: cubicOut }}>
+    <!-- Financial Health Overview -->
+    <div class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl p-8 border border-white/20 shadow-xl">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-2">
+          Financial Health Dashboard
+        </h2>
+        <p class="text-gray-600">Comprehensive analysis of {client?.fullName}'s financial performance</p>
+      </div>
+
+      <!-- Health Score Card -->
+      <div class="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">Financial Health Score</h3>
+            <p class="text-gray-600">Overall financial wellness indicator</p>
+          </div>
+          <div class="text-right">
+            <div class="text-4xl font-bold" style="color: {getHealthScoreColor(analytics.financialHealthScore)}">
+              {Math.round(analytics.financialHealthScore)}
+            </div>
+            <div class="text-sm text-gray-500">out of 100</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+          <div
+            class="h-3 rounded-full transition-all duration-1000 ease-out"
+            style="width: {analytics.financialHealthScore}%; background: {getHealthScoreColor(analytics.financialHealthScore)}"
+          ></div>
+        </div>
+
+        <!-- Risk Level -->
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-700">Risk Assessment:</span>
+          <span
+            class="px-3 py-1 rounded-full text-sm font-medium"
+            style="background-color: {getRiskLevelColor(analytics.riskLevel)}20; color: {getRiskLevelColor(analytics.riskLevel)}"
+          >
+            {getRiskLevelText(analytics.riskLevel)}
+          </span>
+        </div>
+      </div>
+
+      <!-- Key Metrics Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Debt -->
+        <div class="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-white/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Total Debt</p>
+              <p class="text-2xl font-bold text-gray-900">{formatCurrency(analytics.totalDebt)}</p>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-lg flex items-center justify-center shadow-lg">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total Paid -->
+        <div class="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-white/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Total Paid</p>
+              <p class="text-2xl font-bold text-green-600">{formatCurrency(analytics.totalPaid)}</p>
+              <p class="text-xs text-gray-500">{((analytics.totalPaid / analytics.totalDebt) * 100).toFixed(1)}% of total</p>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center shadow-lg">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expected Monthly Income -->
+        <div class="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-white/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Expected Monthly</p>
+              <p class="text-2xl font-bold text-blue-600">{formatCurrency(analytics.expectedMonthlyIncome)}</p>
+              <p class="text-xs text-gray-500">from active cessions</p>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Streak -->
+        <div class="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-white/20 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-600">Longest Streak</p>
+              <p class="text-2xl font-bold text-purple-600">{analytics.longestStreak} months</p>
+              <p class="text-xs text-gray-500">consecutive payments</p>
+            </div>
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Reliability Insights - New Creative Section -->
+      <div class="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-8 border border-white/20 shadow-xl mb-8">
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl shadow-lg mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent mb-2">
+            Payment Reliability Insights
+          </h2>
+          <p class="text-gray-600">Understanding payment patterns and reliability metrics</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <!-- Payment Timeliness Chart -->
+          <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-white/30">
+            <h3 class="text-xl font-bold text-gray-900 mb-6 text-center">Payment Timeliness</h3>
+            <div class="relative h-80 w-full">
+              <canvas id="payment-timeliness-chart" class="w-full h-full"></canvas>
+            </div>
+            <div class="mt-6 text-center">
+              <div class="inline-flex items-center space-x-2 bg-emerald-100 px-4 py-2 rounded-full">
+                <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span class="text-sm font-semibold text-emerald-800">
+                  {analytics.onTimePayments} of {analytics.onTimePayments + analytics.latePayments} payments on time
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reliability Metrics -->
+          <div class="space-y-6">
+            <!-- On-Time Rate Card -->
+            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="text-lg font-bold text-gray-900">On-Time Rate</h4>
+                    <p class="text-sm text-gray-600">Payment reliability score</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-3xl font-bold text-emerald-600">
+                    {analytics.onTimePayments + analytics.latePayments > 0 ? Math.round((analytics.onTimePayments / (analytics.onTimePayments + analytics.latePayments)) * 100) : 0}%
+                  </div>
+                </div>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  class="h-3 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-1000 ease-out"
+                  style="width: {analytics.onTimePayments + analytics.latePayments > 0 ? (analytics.onTimePayments / (analytics.onTimePayments + analytics.latePayments)) * 100 : 0}%;"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Average Delay Card -->
+            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="text-lg font-bold text-gray-900">Average Delay</h4>
+                    <p class="text-sm text-gray-600">When payments are late</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-3xl font-bold" style="color: {analytics.averagePaymentDelay > 30 ? colors.danger : colors.warning};">
+                    {Math.round(analytics.averagePaymentDelay)} days
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2 text-sm">
+                <span class="text-gray-600">Status:</span>
+                <span class="px-3 py-1 rounded-full text-xs font-medium"
+                      style="background-color: {analytics.averagePaymentDelay > 30 ? colors.danger : analytics.averagePaymentDelay > 15 ? colors.warning : colors.success}20; color: {analytics.averagePaymentDelay > 30 ? colors.danger : analytics.averagePaymentDelay > 15 ? colors.warning : colors.success};">
+                  {analytics.averagePaymentDelay <= 15 ? 'Excellent' : analytics.averagePaymentDelay <= 30 ? 'Good' : 'Needs Attention'}
+                </span>
+              </div>
+            </div>
+
+            <!-- Payment Streak Card -->
+            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="text-lg font-bold text-gray-900">Best Streak</h4>
+                    <p class="text-sm text-gray-600">Consecutive on-time months</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-3xl font-bold text-purple-600">
+                    {analytics.longestStreak}
+                  </div>
+                  <div class="text-sm text-gray-500">months</div>
+                </div>
+              </div>
+              <div class="flex space-x-1">
+                {#each Array(Math.min(analytics.longestStreak, 10)) as _}
+                  <div class="w-4 h-4 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full"></div>
+                {/each}
+                {#if analytics.longestStreak > 10}
+                  <div class="w-4 h-4 bg-gradient-to-r from-purple-300 to-pink-300 rounded-full flex items-center justify-center">
+                    <span class="text-xs text-white font-bold">+</span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Cession Payment Analysis -->
+      <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-8 border border-white/20 shadow-xl mb-8">
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-400 to-purple-600 rounded-2xl shadow-lg mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+          </div>
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent mb-2">
+            Detailed Cession Payment Analysis
+          </h2>
+          <p class="text-gray-600">Complete breakdown of payment timelines, missing months, and cession progress</p>
+        </div>
+
+        <div class="space-y-6">
+          {#each analytics.cessionPaymentDetails || [] as cessionDetail}
+            <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30">
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-bold text-gray-900">{cessionDetail.cessionName}</h3>
+                    <p class="text-sm text-gray-600">Status: <span class="font-medium {cessionDetail.status === 'ACTIVE' ? 'text-green-600' : 'text-blue-600'}">{cessionDetail.status}</span></p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-2xl font-bold text-indigo-600">{Math.round(cessionDetail.completionRate)}%</div>
+                  <div class="text-xs text-gray-500">Complete</div>
+                </div>
+              </div>
+
+              <!-- Key Metrics -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center">
+                  <div class="text-sm font-medium text-blue-700 mb-1">Monthly Payment</div>
+                  <div class="text-lg font-bold text-blue-900">{formatCurrency(cessionDetail.monthlyPayment)}</div>
+                </div>
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center">
+                  <div class="text-sm font-medium text-green-700 mb-1">Total Paid</div>
+                  <div class="text-lg font-bold text-green-900">{formatCurrency(cessionDetail.totalPaid)}</div>
+                </div>
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center">
+                  <div class="text-sm font-medium text-purple-700 mb-1">Expected Months</div>
+                  <div class="text-lg font-bold text-purple-900">{cessionDetail.expectedMonths}</div>
+                </div>
+                <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 text-center">
+                  <div class="text-sm font-medium text-orange-700 mb-1">Paid Months</div>
+                  <div class="text-lg font-bold text-orange-900">{cessionDetail.paidMonths.length}</div>
+                </div>
+              </div>
+
+              <!-- Timeline Information -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-50 rounded-xl p-4">
+                  <h4 class="text-md font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Timeline
+                  </h4>
+                  <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">Start Date:</span>
+                      <span class="font-medium">{cessionDetail.startDate ? cessionDetail.startDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">Expected End:</span>
+                      <span class="font-medium">{cessionDetail.expectedEndDate ? cessionDetail.expectedEndDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-gray-600">Duration:</span>
+                      <span class="font-medium">{cessionDetail.expectedMonths} months</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-gray-50 rounded-xl p-4">
+                  <h4 class="text-md font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Missing Payments
+                  </h4>
+                  {#if cessionDetail.missingMonths.length > 0}
+                    <div class="space-y-1 max-h-32 overflow-y-auto">
+                      {#each cessionDetail.missingMonths as missing}
+                        <div class="flex justify-between text-sm">
+                          <span class="text-gray-600">{missing.displayMonth}:</span>
+                          <span class="font-medium text-red-600">{formatCurrency(missing.expectedAmount)}</span>
+                        </div>
+                      {/each}
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-gray-200">
+                      <div class="flex justify-between font-semibold text-red-700">
+                        <span>Total Missing:</span>
+                        <span>{cessionDetail.missingMonths.length} months</span>
+                      </div>
+                    </div>
+                  {:else}
+                    <p class="text-sm text-green-600 font-medium">No missing payments! 🎉</p>
+                  {/if}
+                </div>
+              </div>
+
+              <!-- Paid Months Timeline -->
+              {#if cessionDetail.paidMonths.length > 0}
+                <div class="bg-green-50 rounded-xl p-4">
+                  <h4 class="text-md font-bold text-gray-900 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Paid Months ({cessionDetail.paidMonths.length})
+                  </h4>
+                  <div class="flex flex-wrap gap-2">
+                    {#each cessionDetail.paidMonths as paid}
+                      <div class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {paid.displayMonth}: {formatCurrency(paid.amount)}
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      </div>
+
+      <!-- Enhanced Charts Section -->
+      <!-- Enhanced Charts Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Payment Timeline - Enhanced -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] group analytics-card">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900">Payment Timeline</h3>
+                <p class="text-sm text-gray-600">Historical payment flow</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-blue-600">{analytics.paymentHistory.length}</div>
+              <div class="text-xs text-gray-500">total payments</div>
+            </div>
+          </div>
+          <div class="h-72 w-full relative">
+            <canvas id="payment-timeline-chart" class="w-full h-full"></canvas>
+          </div>
+        </div>
+
+        <!-- Cession Progress - Enhanced -->
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] group analytics-card">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+              <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900">Cession Progress</h3>
+                <p class="text-sm text-gray-600">Loan repayment status</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-emerald-600">{analytics.activeCessions}</div>
+              <div class="text-xs text-gray-500">active cessions</div>
+            </div>
+          </div>
+          <div class="h-72 w-full relative">
+            <canvas id="cession-progress-chart" class="w-full h-full"></canvas>
+          </div>
+
+          <!-- Selected Cession Details -->
+          {#if selectedCession}
+            <div class="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-bold text-gray-900">Selected Cession Details</h4>
+                <button
+                  class="text-gray-500 hover:text-gray-700 transition-colors"
+                  on:click={() => selectedCession = null}
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white/70 rounded-lg p-3 text-center">
+                  <div class="text-sm text-gray-600">Monthly Payment</div>
+                  <div class="text-lg font-bold text-blue-600">{formatCurrency(selectedCession.monthlyPayment)}</div>
+                </div>
+                <div class="bg-white/70 rounded-lg p-3 text-center">
+                  <div class="text-sm text-gray-600">Total Paid</div>
+                  <div class="text-lg font-bold text-green-600">{formatCurrency(selectedCession.paid)}</div>
+                </div>
+                <div class="bg-white/70 rounded-lg p-3 text-center">
+                  <div class="text-sm text-gray-600">Remaining</div>
+                  <div class="text-lg font-bold text-red-600">{formatCurrency(selectedCession.remaining)}</div>
+                </div>
+                <div class="bg-white/70 rounded-lg p-3 text-center">
+                  <div class="text-sm text-gray-600">Progress</div>
+                  <div class="text-lg font-bold text-purple-600">{Math.round(selectedCession.progress)}%</div>
+                </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white/70 rounded-lg p-3">
+                  <div class="text-sm text-gray-600 mb-1">Status</div>
+                  <div class="text-md font-semibold text-gray-900">{selectedCession.status}</div>
+                </div>
+                <div class="bg-white/70 rounded-lg p-3">
+                  <div class="text-sm text-gray-600 mb-1">Payment Count</div>
+                  <div class="text-md font-semibold text-gray-900">{selectedCession.paymentCount} payments</div>
+                </div>
+              </div>
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Monthly Trends - Enhanced Full Width -->
+      <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-500 hover:scale-[1.01] group analytics-card mb-8">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900">Monthly Payment Trends</h3>
+              <p class="text-sm text-gray-600">Payment patterns over time</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-bold text-purple-600">{formatCurrency(Math.round(analytics.averageMonthlyPayment))}</div>
+            <div class="text-xs text-gray-500">avg monthly payment</div>
+          </div>
+        </div>
+        <div class="h-80 w-full relative">
+          <canvas id="monthly-trends-chart" class="w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- Enhanced Payment Expectation vs Reality Timeline -->
+      <div class="bg-gradient-to-br from-violet-50 via-fuchsia-50 to-pink-50 rounded-2xl p-8 border border-white/20 shadow-xl mb-8">
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-violet-400 to-fuchsia-600 rounded-2xl shadow-lg mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <h2 class="text-3xl font-bold bg-gradient-to-r from-violet-700 to-fuchsia-700 bg-clip-text text-transparent mb-2">
+            Payment Expectation vs Reality
+          </h2>
+          <p class="text-gray-600">Interactive timeline showing expected payments vs actual performance over time</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-gray-900">Perfect Months</h3>
+                <p class="text-sm text-gray-600">All expected payments received</p>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-emerald-600">
+              {analytics.missingMonthsTimeline.filter(m => m.actualPayments >= m.expectedPayments && m.expectedPayments > 0).length}
+            </div>
+          </div>
+
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-gray-900">Partial Months</h3>
+                <p class="text-sm text-gray-600">Some payments missing</p>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-amber-600">
+              {analytics.missingMonthsTimeline.filter(m => m.actualPayments > 0 && m.actualPayments < m.expectedPayments && m.expectedPayments > 0).length}
+            </div>
+          </div>
+
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-gray-900">Missing Months</h3>
+                <p class="text-sm text-gray-600">No payments received</p>
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-red-600">
+              {analytics.missingMonthsTimeline.filter(m => m.actualPayments === 0 && m.expectedPayments > 0).length}
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Timeline Chart -->
+        <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/30">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+              <div class="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900">Payment Timeline Analysis</h3>
+                <p class="text-sm text-gray-600">18-month comprehensive payment tracking</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-violet-600">
+                {analytics.missingMonthsTimeline.filter(m => m.actualPayments >= m.expectedPayments && m.expectedPayments > 0).length}/{analytics.missingMonthsTimeline.filter(m => m.expectedPayments > 0).length}
+              </div>
+              <div class="text-xs text-gray-500">months on track</div>
+            </div>
+          </div>
+
+          <div class="h-96 w-full relative mb-6">
+            <canvas id="missing-months-chart" class="w-full h-full"></canvas>
+          </div>
+
+          <!-- Legend -->
+          <div class="flex flex-wrap justify-center gap-6">
+            <div class="flex items-center space-x-2">
+              <div class="w-4 h-4 bg-violet-500 rounded"></div>
+              <span class="text-sm font-medium text-gray-700">Expected Payments</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div class="w-4 h-4 bg-green-500 rounded"></div>
+              <span class="text-sm font-medium text-gray-700">Actual Payments</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div class="w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+              <span class="text-sm font-medium text-gray-700">On Track</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div class="w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+              <span class="text-sm font-medium text-gray-700">Missing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Alerts & Insights - Creative Section -->
+      {#if analytics.riskAlerts.length > 0}
+        <div class="bg-gradient-to-br from-red-50 via-pink-50 to-purple-50 rounded-2xl p-8 border border-white/20 shadow-xl mb-8">
+          <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-red-400 to-pink-600 rounded-2xl shadow-lg mb-4">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+            <h2 class="text-3xl font-bold bg-gradient-to-r from-red-700 to-pink-700 bg-clip-text text-transparent mb-2">
+              Risk Alerts & Insights
+            </h2>
+            <p class="text-gray-600">AI-powered analysis of potential financial risks and opportunities</p>
+          </div>
+
+          <div class="space-y-4">
+            {#each analytics.riskAlerts as alert}
+              <div class="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30 hover:shadow-xl transition-all duration-300 hover:scale-[1.01] {alert.severity === 'critical' ? 'ring-2 ring-red-300' : alert.severity === 'high' ? 'ring-2 ring-orange-300' : 'ring-2 ring-green-300'}">
+                <div class="flex items-start space-x-4">
+                  <div class="flex-shrink-0">
+                    <div class="w-12 h-12 {alert.type === 'success' ? 'bg-gradient-to-br from-green-400 to-green-600' : alert.type === 'warning' ? 'bg-gradient-to-br from-amber-400 to-orange-600' : 'bg-gradient-to-br from-red-400 to-pink-600'} rounded-xl flex items-center justify-center shadow-lg">
+                      <span class="text-xl">{alert.icon}</span>
+                    </div>
+                  </div>
+                  <div class="flex-1">
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">{alert.title}</h3>
+                    <p class="text-gray-700 mb-3">{alert.message}</p>
+                    <div class="flex items-center space-x-2">
+                      <span class="px-3 py-1 rounded-full text-xs font-medium
+                        {alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                         alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                         alert.severity === 'positive' ? 'bg-green-100 text-green-800' :
+                         'bg-blue-100 text-blue-800'}">
+                        {alert.severity === 'positive' ? 'Positive' : alert.severity === 'critical' ? 'Critical' : alert.severity === 'high' ? 'High Priority' : 'Medium'}
+                      </span>
+                      {#if alert.type === 'success'}
+                        <span class="text-sm text-green-600 font-medium">🎯 Action Recommended</span>
+                      {:else if alert.type === 'warning'}
+                        <span class="text-sm text-amber-600 font-medium">⚡ Monitor Closely</span>
+                      {:else}
+                        <span class="text-sm text-red-600 font-medium">🚨 Immediate Attention</span>
+                      {/if}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Detailed Metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Payment Performance -->
+        <div class="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-white/20">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Performance</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">On-time Payments</span>
+              <span class="font-semibold text-green-600">{analytics.onTimePayments}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Late Payments</span>
+              <span class="font-semibold text-red-600">{analytics.latePayments}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Average Delay</span>
+              <span class="font-semibold" style="color: {analytics.averagePaymentDelay > 30 ? colors.danger : colors.success}">
+                {Math.round(analytics.averagePaymentDelay)} days
+              </span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Payment Months</span>
+              <span class="font-semibold text-blue-600">{analytics.totalPaymentMonths}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Average Monthly</span>
+              <span class="font-semibold text-purple-600">{formatCurrency(Math.round(analytics.averageMonthlyPayment))}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cession Status -->
+        <div class="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-sm border border-white/20">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Cession Status</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Active Cessions</span>
+              <span class="font-semibold text-blue-600">{analytics.activeCessions}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Completed Cessions</span>
+              <span class="font-semibold text-green-600">{analytics.completedCessions}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Total Cessions</span>
+              <span class="font-semibold text-gray-900">{cessions.length}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Completion Rate</span>
+              <span class="font-semibold text-indigo-600">
+                {cessions.length > 0 ? Math.round((analytics.completedCessions / cessions.length) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<style>
+  .client-analytics {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  .metric-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .metric-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  canvas {
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  /* Big tech inspired animations */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Enhanced card hover effects */
+  .analytics-card {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .analytics-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s;
+  }
+
+  .analytics-card:hover::before {
+    left: 100%;
+  }
+
+  .analytics-card:hover {
+    transform: translateY(-8px) scale(1.01);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Gradient text effects */
+  .gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Pulse animation for key metrics */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(102, 126, 234, 0.6);
+    }
+  }
+
+  .pulse-metric {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  /* Custom scrollbar for better UX */
+  .analytics-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .analytics-container::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.05);
+    border-radius: 3px;
+  }
+
+  .analytics-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 3px;
+  }
+
+  .analytics-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+  }
+
+  /* Loading animation */
+  @keyframes loading-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .loading-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .loading-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: loading-shimmer 1.5s infinite;
+  }
+
+  /* Enhanced tooltip styling */
+  .chart-tooltip {
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 2px solid rgba(102, 126, 234, 0.2) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+  }
+</style>

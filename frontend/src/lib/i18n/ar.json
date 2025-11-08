@@ -105,7 +105,15 @@
       "job_card": "بطاقة العمل",
       "other": "مستندات أخرى",
       "upload": "رفع مستند",
-      "download": "تحميل المستند"
+      "download": "تحميل المستند",
+      "title": "الوثائق",
+      "create": "إنشاء",
+      "hide": "إخفاء",
+      "select_type": "اختر النوع",
+      "allow_empty_debug": "السماح بالتصحيح الفارغ",
+      "templates": {
+        "required_fields": "الحقول المطلوبة: {count}"
+      }
     },
     "validation": {
       "required": "هذا الحقل مطلوب",
@@ -433,6 +441,11 @@
         "edit": "تعديل العميل",
         "create_cession": "إنشاء الإحالة"
       },
+      "tabs": {
+        "personal": "المعلومات الشخصية",
+        "cessions": "الإحالات",
+        "analytics": "التحليلات"
+      },
       "personal_info": {
         "title": "المعلومات الشخصية",
         "full_name": "الاسم الكامل",
@@ -458,6 +471,10 @@
         "view_all": "عرض جميع الإحالات",
         "no_cessions": "لا توجد الإحالةات لهذا العميل",
         "active_cessions": "الإحالات النشطة",
+        "select_primary_hint": "اختر الإحالة الأساسية (انقر على مربع الإحالة)",
+        "card": {
+          "amount_label": "المبلغ"
+        },
         "table": {
           "id": "المعرف",
           "start_date": "تاريخ البدء",
@@ -474,6 +491,13 @@
       "status": {
         "active": "نشط",
         "inactive": "غير نشط"
+      },
+      "documents": {
+        "title": "الوثائق",
+        "create": "إنشاء",
+        "hide": "إخفاء",
+        "select_type": "اختر النوع",
+        "allow_empty_debug": "السماح بالتصحيح الفارغ"
       }
     },
     "status": {
@@ -639,6 +663,9 @@
       "danger_zone_subtitle": "الإجراءات في هذه المنطقة لا يمكن التراجع عنها."
     },
     "empty": {
+      "title": "لم يتم العثور على عملاء",
+      "add_first": "إضافة عميلك الأول",
+      "clear_filters": "مسح مرشحات البحث",
       "no_clients": "لم يتم العثور على عملاء."
     }
   },

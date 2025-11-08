@@ -50,7 +50,21 @@ function handlePluralization(key: string, params: any, lang: string): string {
 // Create a derived store for translations
 export const t = derived(currentLanguage, ($currentLanguage) => {
   return (key: string, params?: any, fallback?: string) => {
-    const value = key.split('.').reduce((obj, k) => obj?.[k], translations[$currentLanguage]);
+    let value;
+    
+    // First try the key as is
+    value = key.split('.').reduce((obj, k) => obj?.[k], translations[$currentLanguage]);
+    
+    // If not found and key doesn't start with known root sections, try under 'common'
+    if (!value) {
+      const firstPart = key.split('.')[0];
+      const rootSections = ['reports', 'dashboard', 'clients', 'cessions', 'payments', 'settings', 'auth', 'finance', 'inventory'];
+      
+      if (!rootSections.includes(firstPart)) {
+        const commonKey = `common.${key}`;
+        value = commonKey.split('.').reduce((obj, k) => obj?.[k], translations[$currentLanguage]);
+      }
+    }
     
     if (!value) {
       console.warn(`Translation key not found: ${key}`);

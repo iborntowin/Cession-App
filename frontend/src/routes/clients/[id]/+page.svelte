@@ -18,6 +18,7 @@
   import { config } from '$lib/config';
   import { token } from '$lib/stores';
   import { openPDF } from '$lib/pdfGenerator';
+  import ClientAnalytics from '$lib/components/ClientAnalytics.svelte';
 
   // Check if we came from salary cessions page
   $: fromSalaryCessions = $page.url.searchParams.get('from') === 'salary-cessions';
@@ -178,6 +179,13 @@
       return;
     }
     
+    // Load client data if not available from SSR
+    if (!data.client) {
+      await loadClient();
+    } else {
+      client = data.client;
+    }
+    
     if (!client) {
       showAlert('Client not found', 'error');
       return;
@@ -207,6 +215,18 @@
     } catch (error) {
       console.error('Error loading cessions:', error);
       showAlert(error.message || 'Failed to load cessions', 'error');
+    }
+  }
+
+  async function loadClient() {
+    try {
+      const response = await clientsApi.getById(data.id);
+      if (response) {
+        client = response;
+      }
+    } catch (error) {
+      console.error('Error loading client:', error);
+      showAlert(error.message || 'Failed to load client', 'error');
     }
   }
 
@@ -1520,56 +1540,104 @@
               </div>
             </div>
 
-            <div class="p-6">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-5 shadow-sm border border-white/20">
-                  <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">{$t('clients.details.personal_info.title')}</h3>
-                  <dl class="grid grid-cols-1 gap-4">
-                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
-                      <dt class="text-sm font-medium text-purple-600">Client Number</dt>
-                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.clientNumber || $t('common.not_provided')}</dd>
-                    </div>
-                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
-                      <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.full_name')}</dt>
-                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.fullName}</dd>
-                    </div>
-                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
-                      <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.cin')}</dt>
-                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.cin}</dd>
-                    </div>
-                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
-                      <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.phone')}</dt>
-                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.phoneNumber || $t('common.not_provided')}</dd>
-                    </div>
-                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
-                      <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.address')}</dt>
-                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.address || $t('common.not_provided')}</dd>
-                    </div>
-                  </dl>
-                </div>
 
-                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-5 shadow-sm border border-white/20">
-                  <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">{$t('clients.details.work_info.title')}</h3>
-                  <dl class="grid grid-cols-1 gap-4">
-                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
-                      <dt class="text-sm font-medium text-purple-600">{$t('clients.details.work_info.job')}</dt>
-                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.jobName || $t('common.not_provided')}</dd>
-                    </div>
-                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
-                      <dt class="text-sm font-medium text-purple-600">{$t('clients.details.work_info.workplace')}</dt>
-                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.workplaceName || $t('common.not_provided')}</dd>
-                    </div>
-                    <div class="bg-white/80 p-3 rounded-lg shadow-sm">
-                      <dt class="text-sm font-medium text-purple-600">{$t('clients.details.work_info.worker_number')}</dt>
-                      <dd class="mt-1 text-sm text-gray-900 font-medium">{client.workerNumber || $t('common.not_provided')}</dd>
-                    </div>
-                  </dl>
+          </div>
+
+          <!-- Tab Navigation -->
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden mt-8">
+            <div class="border-b border-gray-200">
+              <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                <button
+                  on:click={() => activeTab = 'personal'}
+                  class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'personal'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+                >
+                  <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                  {$t('clients.details.tabs.personal')}
+                </button>
+                <button
+                  on:click={() => activeTab = 'cessions'}
+                  class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'cessions'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+                >
+                  <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  {$t('clients.details.tabs.cessions')}
+                </button>
+                <button
+                  on:click={() => activeTab = 'analytics'}
+                  class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 {activeTab === 'analytics'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+                >
+                  <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                  </svg>
+                  {$t('clients.details.tabs.analytics')}
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          <!-- Tab Content -->
+          {#if activeTab === 'personal'}
+          <div class="mt-8">
+            <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+              <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="bg-white/60 backdrop-blur-sm rounded-xl p-5 shadow-sm border border-white/20">
+                    <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">{$t('clients.details.personal_info.title')}</h3>
+                    <dl class="grid grid-cols-1 gap-4">
+                      <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                        <dt class="text-sm font-medium text-purple-600">Client Number</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">{client.clientNumber || $t('common.not_provided')}</dd>
+                      </div>
+                      <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                        <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.full_name')}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">{client.fullName}</dd>
+                      </div>
+                      <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                        <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.cin')}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">{client.cin}</dd>
+                      </div>
+                      <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                        <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.phone')}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">{client.phoneNumber || $t('common.not_provided')}</dd>
+                      </div>
+                      <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                        <dt class="text-sm font-medium text-purple-600">{$t('clients.details.personal_info.address')}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">{client.address || $t('common.not_provided')}</dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <div class="bg-white/60 backdrop-blur-sm rounded-xl p-5 shadow-sm border border-white/20">
+                    <h3 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-4">{$t('clients.details.work_info.title')}</h3>
+                    <dl class="grid grid-cols-1 gap-4">
+                      <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                        <dt class="text-sm font-medium text-purple-600">{$t('clients.details.work_info.job')}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">{client.jobName || $t('common.not_provided')}</dd>
+                      </div>
+                      <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                        <dt class="text-sm font-medium text-purple-600">{$t('clients.details.work_info.workplace')}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">{client.workplaceName || $t('common.not_provided')}</dd>
+                      </div>
+                      <div class="bg-white/80 p-3 rounded-lg shadow-sm">
+                        <dt class="text-sm font-medium text-purple-600">{$t('clients.details.work_info.worker_number')}</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">{client.workerNumber || $t('common.not_provided')}</dd>
+                      </div>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- Cessions Section -->
+          {:else if activeTab === 'cessions'}
           <div class="mt-8">
             <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
               <div class="p-6 border-b border-gray-200">
@@ -1663,34 +1731,35 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    {/if}
-
-    <!-- Document Generation Section -->
-    {#if !data.error && client}
-      <div class="mt-8">
-        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-          <div class="p-6 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">إنشاء الوثائق</h2>
-              <button
-                on:click={() => showDocumentSection = !showDocumentSection}
-                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200"
-              >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                {showDocumentSection ? 'إخفاء' : 'إنشاء وثيقة'}
-              </button>
-            </div>
+          {:else if activeTab === 'analytics'}
+          <div class="mt-8">
+            <ClientAnalytics {client} {cessions} />
           </div>
+          {/if}
 
-          {#if showDocumentSection}
-            <div class="p-6">
+          <!-- Document Generation Section -->
+          <div class="mt-8">
+            <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+              <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                      <h2 class="text-lg font-medium bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{$t('clients.details.documents.title')}</h2>
+                      <button
+                        on:click={() => showDocumentSection = !showDocumentSection}
+                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200"
+                      >
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        {showDocumentSection ? $t('clients.details.documents.hide') : $t('clients.details.documents.create')}
+                      </button>
+                    </div>
+                  </div>
+
+              {#if showDocumentSection}
+                <div class="p-6">
               <!-- Document Type Selection -->
               <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-3">اختر نوع الوثيقة</label>
+                <label class="block text-sm font-medium text-gray-700 mb-3">{$t('clients.details.documents.select_type')}</label>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {#each Object.keys(documentTemplates) as docType}
                     <button
@@ -1703,7 +1772,7 @@
                     >
                       <div class="font-medium">{docType}</div>
                       <div class="text-sm text-gray-500 mt-1">
-                        {Object.values(documentTemplates[docType].fields).filter(f => f.required).length} حقول مطلوبة
+                        {$t('documents.templates.required_fields', { count: Object.values(documentTemplates[docType].fields).filter(f => f.required).length })}
                       </div>
                     </button>
                   {/each}
@@ -1712,7 +1781,7 @@
 
               <!-- Debug toggle to allow empty fields -->
               <div class="mb-6 flex items-center space-x-3 justify-end">
-                <label class="text-sm text-gray-600">السماح بحقول فارغة (ربط تجريبي)</label>
+                <label class="text-sm text-gray-600">{$t('clients.details.documents.allow_empty_debug')}</label>
                 <input type="checkbox" bind:checked={allowEmptyFields} class="w-5 h-5" />
               </div>
 
@@ -1724,7 +1793,7 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {#if selectedDocumentType === 'شهادة في إحالة' && cessions.length > 0}
                       <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-4 text-center">اختر الإحالة (اضغط على صندوق الإحالة)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-4 text-center">{$t('clients.details.cessions.select_primary_hint')}</label>
                         <div class="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
                           {#each cessions as c, i}
                             <div
@@ -1771,12 +1840,12 @@
                                   </div>
 
                                   <div class="flex items-center justify-between text-xs">
-                                    <span class="text-gray-600">المبلغ:</span>
+                                    <span class="text-gray-600">{$t('clients.details.cessions.card.amount_label')}</span>
                                     <span class="font-medium text-gray-900" dir="ltr">{formatCurrency(c.totalLoanAmount)}</span>
                                   </div>
 
                                   <div class="flex items-center justify-between text-xs mt-0.5">
-                                    <span class="text-gray-600">المتبقي:</span>
+                                    <span class="text-gray-600">{$t('clients.details.cessions.card.remaining_label')}</span>
                                     <span class="font-medium text-green-600" dir="ltr">{remainingForCession(c)} د</span>
                                   </div>
 
@@ -1802,14 +1871,14 @@
 
                         <div class="mt-3 flex items-center gap-3">
                           <label class="flex items-center text-sm">
-                            <input type="checkbox" bind:checked={includeSecondCession} class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500" /> تضمين إحالة ثانية
+                            <input type="checkbox" bind:checked={includeSecondCession} class="mr-2 rounded border-gray-300 text-purple-600 focus:ring-purple-500" /> {$t('clients.details.cessions.include_second')}
                           </label>
                         </div>
                       </div>
 
                       {#if includeSecondCession}
                         <div class="md:col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-4 text-center">اختر الإحالة الثانية</label>
+                          <label class="block text-sm font-medium text-gray-700 mb-4 text-center">{$t('clients.details.cessions.select_second')}</label>
                           <div class="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
                             {#each cessions as c, i}
                               <div
@@ -2088,9 +2157,8 @@
           {/if}
         </div>
       </div>
-    {/if}
+    </div>
   </div>
-</div>
 
 <!-- Document Preview Modal -->
 {#if showDocumentModal}
@@ -2187,6 +2255,11 @@
     </div>
   </div>
 {/if}
+
+{/if}
+
+  </div>
+</div>
 
 <style>
   @container(max-width:120px){.table-ba57763e-d2b9-42ac-87a3-288b2624e2e3-column-120{display: none;}}
