@@ -136,25 +136,46 @@ jobs:
 
     - name: Commit version bump
       run: |
-        echo "💾 Committing version changes..."
+        echo "💾 Checking for version changes..."
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add .
-        git commit -m "⬆️ Bump version to ${{ steps.version.outputs.new_version }}"
-        echo "✅ Changes committed"
+
+        # Check if there are any changes to commit
+        if git diff --quiet && git diff --staged --quiet; then
+          echo "ℹ️  No changes to commit (version already exists)"
+        else
+          git add .
+          git commit -m "⬆️ Bump version to ${{ steps.version.outputs.new_version }}"
+          echo "✅ Changes committed"
+        fi
 
     - name: Push changes
       run: |
-        echo "🚀 Pushing changes to repository..."
-        git push
-        echo "✅ Changes pushed successfully"
+        echo "🚀 Checking for changes to push..."
+        # Check if there are commits to push
+        if git log --oneline origin/master..HEAD | grep -q .; then
+          git push
+          echo "✅ Changes pushed successfully"
+        else
+          echo "ℹ️  No new commits to push"
+        fi
 
     - name: Create tag
       run: |
-        echo "🏷️  Creating git tag v${{ steps.version.outputs.new_version }}..."
-        git tag v${{ steps.version.outputs.new_version }}
-        git push origin v${{ steps.version.outputs.new_version }}
-        echo "✅ Tag created and pushed"
+        TAG_NAME="v${{ steps.version.outputs.new_version }}"
+        echo "🏷️  Checking/creating git tag $TAG_NAME..."
+
+        # Check if tag already exists
+        if git tag -l | grep -q "^$TAG_NAME$"; then
+          echo "✅ Tag $TAG_NAME already exists, using existing tag"
+        else
+          echo "📝 Creating new tag $TAG_NAME"
+          git tag "$TAG_NAME"
+        fi
+
+        # Push the tag (this will work whether it was just created or already existed)
+        git push origin "$TAG_NAME"
+        echo "✅ Tag $TAG_NAME pushed successfully"
 
   build-tauri:
     needs: [test-backend, test-frontend]
@@ -274,45 +295,54 @@ jobs:
 
     - name: Create GitHub Release
       if: github.event_name == 'workflow_dispatch'
-      uses: actions/create-release@v1
+      run: |
+        TAG_NAME="v${{ needs.bump-version.outputs.new_version }}"
+        echo "📦 Checking if release exists for $TAG_NAME..."
+
+        # Check if release already exists
+        if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+          echo "✅ Release for $TAG_NAME already exists, skipping creation"
+        else
+          echo "🚀 Creating new release for $TAG_NAME..."
+          gh release create "$TAG_NAME" \
+            --title "Release ${{ needs.bump-version.outputs.new_version }}" \
+            --notes "## 🚀 Release ${{ needs.bump-version.outputs.new_version }}
+
+This release was automatically created via GitHub Actions CI/CD pipeline.
+
+### 📋 Details
+- **Version**: ${{ needs.bump-version.outputs.new_version }}
+- **Type**: ${{ github.event.inputs.version_type }} update
+- **Build**: Automated Windows build
+- **Date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+### 📦 Downloads
+- Windows Installer (.exe)
+- Windows MSI (.msi)
+- Auto-update manifest (latest.json)" \
+            --draft=false \
+            --prerelease=false
+          echo "✅ Release created successfully"
+        fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ needs.bump-version.outputs.new_version }}
-        release_name: Release v${{ needs.bump-version.outputs.new_version }}
-        body: |
-          ## 🚀 Release v${{ needs.bump-version.outputs.new_version }}
-
-          This release was automatically created via GitHub Actions CI/CD pipeline.
-
-          ### 📋 Details
-          - **Version**: ${{ needs.bump-version.outputs.new_version }}
-          - **Type**: ${{ github.event.inputs.version_type }} update
-          - **Build**: Automated Windows build
-          - **Date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-
-          ### 📦 Downloads
-          - Windows Installer (.exe)
-          - Windows MSI (.msi)
-          - Auto-update manifest (latest.json)
-        draft: false
-        prerelease: false
 
     - name: Upload Release Assets
       if: github.event_name == 'workflow_dispatch'
       run: |
         VERSION=${{ needs.bump-version.outputs.new_version }}
+        TAG_NAME="v$VERSION"
         echo "📤 Uploading release assets for version $VERSION..."
 
-        # Upload latest.json
+        # Upload latest.json (use --clobber to overwrite if exists)
         echo "⬆️  Uploading latest.json..."
-        gh release upload v$VERSION ./latest.json --clobber
+        gh release upload "$TAG_NAME" ./latest.json --clobber
 
         # Find and upload MSI file
         MSI_FILE=$(find ./artifacts -name "*.msi" | head -1)
         if [ -f "$MSI_FILE" ]; then
           echo "⬆️  Uploading MSI installer: $(basename "$MSI_FILE")"
-          gh release upload v$VERSION "$MSI_FILE" --clobber
+          gh release upload "$TAG_NAME" "$MSI_FILE" --clobber
         else
           echo "⚠️  MSI file not found"
         fi
@@ -321,7 +351,7 @@ jobs:
         EXE_FILE=$(find ./artifacts -name "*.exe" | head -1)
         if [ -f "$EXE_FILE" ]; then
           echo "⬆️  Uploading EXE installer: $(basename "$EXE_FILE")"
-          gh release upload v$VERSION "$EXE_FILE" --clobber
+          gh release upload "$TAG_NAME" "$EXE_FILE" --clobber
         else
           echo "⚠️  EXE file not found"
         fi

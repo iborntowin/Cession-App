@@ -39,9 +39,19 @@ The CI/CD pipeline now supports creating releases directly from the GitHub Actio
 ### 1. Version Analysis & Bump
 ```
 📦 Current version: 1.2.0
-⬆️  Bumping patch version...
+⬆️  Checking patch version bump...
+🎯 Target version: 1.2.1
+⬆️  Bumping to new version 1.2.1...
 🔧 Updating Tauri configuration...
-✨ New version: 1.2.1
+```
+
+**If version already exists:**
+```
+📦 Current version: 1.2.0
+⬆️  Checking patch version bump...
+🎯 Target version: 1.2.1
+⚠️  Tag v1.2.1 already exists!
+🔄 Using existing version 1.2.1
 ```
 
 ### 2. Git Operations
@@ -81,6 +91,23 @@ If you prefer to create releases manually:
 3. Create a tag (e.g., `v1.2.1`)
 4. Publish the release
 5. The CI/CD pipeline will automatically run and upload artifacts
+
+## Handling Existing Versions
+
+The workflow is designed to handle cases where the target version already exists:
+
+### If Version Already Exists:
+- ✅ **No failure**: The workflow continues gracefully
+- ✅ **Uses existing version**: Proceeds with the existing version number
+- ✅ **Skips unnecessary steps**: No duplicate commits/tags/releases
+- ✅ **Uploads assets**: Updates existing release with new assets if needed
+
+### If Release Already Exists:
+- ✅ **No duplicate releases**: Uses existing release
+- ✅ **Asset updates**: Overwrites existing assets with `--clobber` flag
+- ✅ **Continues workflow**: Build and upload process completes successfully
+
+This makes the workflow **idempotent** - you can run it multiple times safely!
 
 ## Version Numbering
 
@@ -125,6 +152,17 @@ fatal: unable to access 'https://github.com/iborntowin/Cession-App/': The reques
 - Verify that the backend builds successfully
 - Ensure all dependencies are properly configured
 
-### Version Not Updated
-- Check that the workflow has write permissions to the repository
-- Verify that the `package.json` and `tauri.conf.json` are in the expected locations
+### Version/Tag Already Exists
+```
+🏷️  Checking/creating git tag v1.2.1...
+✅ Tag v1.2.1 already exists, using existing tag
+```
+- **Solution**: This is normal behavior. The workflow will use the existing version and continue.
+- The workflow is designed to be **idempotent** - safe to run multiple times.
+
+### Release Already Exists
+```
+📦 Checking if release exists for v1.2.1...
+✅ Release for v1.2.1 already exists, skipping creation
+```
+- **Solution**: The workflow will update the existing release with new assets if needed.
