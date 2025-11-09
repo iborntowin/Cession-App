@@ -94,11 +94,16 @@ jobs:
           git push origin "$TAG_NAME" || true
 
   build-tauri:
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, bump-version]
     runs-on: windows-latest
-    if: always()
+    if: always() && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - name: Pull latest changes (including version bump)
+        run: git pull origin master
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -107,8 +112,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
         with:
-          targets: x86_64-pc-windows-msvc
+          workspaces: frontend/src-tauri
       - name: Build backend
         run: cd backend && mvn clean package -DskipTests
       - name: Copy JAR
@@ -119,17 +126,24 @@ jobs:
         run: cd frontend && npm ci
       - name: Build frontend
         run: cd frontend && npm run build:production
-      - name: Verify Rust target
-        run: rustc --print target-list | findstr x86_64-pc-windows-msvc
-      - name: Build Tauri
-        run: cd frontend/src-tauri && npm run tauri build -- --target x86_64-pc-windows-msvc
+      - name: Build Tauri (same as release-builder.js)
+        run: cd frontend && npm run tauri build
+      - name: Verify built version
+        run: |
+          $version = Get-Content frontend/package.json | ConvertFrom-Json | Select-Object -ExpandProperty version
+          Write-Host "Built version: $version"
+          Write-Host "Expected version: ${{ needs.bump-version.outputs.new_version }}"
+          if ($version -ne "${{ needs.bump-version.outputs.new_version }}") {
+            Write-Error "Version mismatch! Built $version but expected ${{ needs.bump-version.outputs.new_version }}"
+            exit 1
+          }
       - name: List build artifacts
-        run: Get-ChildItem -Path "frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle" -Recurse
+        run: Get-ChildItem -Path "frontend/src-tauri/target/release/bundle" -Recurse
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/**
+          path: frontend/src-tauri/target/release/bundle/**
 
   release:
     needs: [build-tauri, bump-version]
@@ -142,31 +156,102 @@ jobs:
         with:
           name: windows-installer
           path: ./artifacts
+      - name: Display downloaded artifacts
+        run: |
+          echo "Artifact directory structure:"
+          find ./artifacts -type f
+          echo ""
+          echo "Expected version: ${{ needs.bump-version.outputs.new_version }}"
       - name: Create latest.json
         run: |
           VERSION="${{ needs.bump-version.outputs.new_version }}"
-          cat > latest.json << 'ENDFILE'
+          DATE_ISO=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          
+          echo "Creating latest.json for version: $VERSION"
+          
+          # Find the actual installer files
+          echo "Searching for installers..."
+          find ./artifacts -type f -name "*.msi" -o -name "*.exe"
+          
+          MSI_FILE=$(find ./artifacts -name "*.msi" -type f | head -1)
+          EXE_FILE=$(find ./artifacts -name "*.exe" -type f | head -1)
+          
+          if [ -z "$MSI_FILE" ]; then
+            echo "ERROR: MSI file not found!"
+            exit 1
+          fi
+          
+          if [ -z "$EXE_FILE" ]; then
+            echo "ERROR: EXE file not found!"
+            exit 1
+          fi
+          
+          echo "Found MSI: $MSI_FILE"
+          echo "Found EXE: $EXE_FILE"
+          
+          # Extract just the filename and convert spaces to dots (GitHub format)
+          MSI_NAME=$(basename "$MSI_FILE" | sed 's/ /./g')
+          EXE_NAME=$(basename "$EXE_FILE" | sed 's/ /./g')
+          
+          echo "MSI will be uploaded as: $MSI_NAME"
+          echo "EXE will be uploaded as: $EXE_NAME"
+          
+          # Verify version in filenames matches expected version
+          if ! echo "$MSI_NAME" | grep -q "$VERSION"; then
+            echo "WARNING: MSI filename doesn't contain version $VERSION"
+            echo "MSI filename: $MSI_NAME"
+          fi
+          
+          if ! echo "$EXE_NAME" | grep -q "$VERSION"; then
+            echo "WARNING: EXE filename doesn't contain version $VERSION"
+            echo "EXE filename: $EXE_NAME"
+          fi
+          
+          # Create latest.json matching release-builder.js format
+          cat > latest.json << EOF
           {
-            "version": "VERSION_PLACEHOLDER",
-            "notes": "Release VERSION_PLACEHOLDER",
-            "pub_date": "DATE_PLACEHOLDER",
+            "version": "$VERSION",
+            "notes": "Release $VERSION - Automated build",
+            "pub_date": "$DATE_ISO",
             "platforms": {
               "windows-x86_64": {
+                "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/$EXE_NAME",
                 "signature": "",
-                "url": "https://github.com/${{ github.repository }}/releases/download/vVERSION_PLACEHOLDER/installer.exe"
+                "msi_url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/$MSI_NAME"
               }
             }
           }
-          ENDFILE
-          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" latest.json
-          sed -i "s/DATE_PLACEHOLDER/$(date -u +'%Y-%m-%dT%H:%M:%SZ')/g" latest.json
+          EOF
+          
+          echo "Generated latest.json:"
+          cat latest.json
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ needs.bump-version.outputs.new_version }}"
           TAG_NAME="v$VERSION"
-          gh release create "$TAG_NAME" --title "Release $VERSION" --notes "Automated release $VERSION" || true
+          
+          RELEASE_NOTES="## Release v$VERSION
+
+Automated build from GitHub Actions CI/CD pipeline.
+
+### Changes
+- Bug fixes and improvements
+
+### Installation
+Download the appropriate installer for your system:
+- **Windows EXE**: Recommended for most users
+- **Windows MSI**: Alternative installer format
+
+### Auto-Updates
+This version includes automatic update support. The app will notify you when new versions are available."
+
+          gh release create "$TAG_NAME" \
+            --title "Release $VERSION" \
+            --notes "$RELEASE_NOTES" \
+            --draft=false \
+            --prerelease=false || echo "Release already exists"
       - name: Upload assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
