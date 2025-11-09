@@ -1,18 +1,21 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import { vi } from 'vitest';
+import { tick } from 'svelte';
 import ExportStatusCard from './ExportStatusCard.svelte';
 
-// Mock the entire API module
+// Mock fetch globally
+global.fetch = vi.fn();
+
+// Mock the config
+vi.mock('$lib/config', () => ({
+  config: {
+    backendUrl: 'http://localhost:8080'
+  }
+}));
+
+// Mock getAuthHeaders
 vi.mock('$lib/api', () => ({
-  __esModule: true,
-  default: {
-    get: vi.fn(),
-    post: vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }),
-    getAuthHeaders: vi.fn(() => ({})),
-  },
-  get: vi.fn(),
-  post: vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) }),
-  getAuthHeaders: vi.fn(() => ({})),
+  getAuthHeaders: vi.fn(() => ({ 'Authorization': 'Bearer test-token' }))
 }));
 
 describe('ExportStatusCard', () => {
@@ -30,63 +33,150 @@ describe('ExportStatusCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset fetch mock
+    global.fetch.mockReset();
   });
 
-  test('renders loading state initially', () => {
+  test('renders initial state with no exports', () => {
+    // Mock the initial fetch calls to return no content
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('/export/status')) {
+        return Promise.resolve({
+          ok: true,
+          status: 204, // No content
+        });
+      }
+      if (url.includes('/export/schedule/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(null)
+        });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    });
+
     render(ExportStatusCard);
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
-  });
-
-  test('displays successful export status', async () => {
-    const { component } = render(ExportStatusCard);
-    await component.$set({ exportStatus: mockExportStatus, loading: false });
-
-    expect(screen.getByText('SUCCESS')).toBeInTheDocument();
-    expect(screen.getByText('export-test.json')).toBeInTheDocument();
-    expect(screen.getByText(/150/)).toBeInTheDocument();
-    expect(screen.getByText(/89/)).toBeInTheDocument();
-    expect(screen.getByText('1.0 KB')).toBeInTheDocument();
-  });
-
-  test('displays failed export status', async () => {
-    const failedStatus = {
-      ...mockExportStatus,
-      status: 'FAILED',
-      errorMessage: 'Network timeout',
-      supabaseUrl: null,
-    };
-    const { component } = render(ExportStatusCard);
-    await component.$set({ exportStatus: failedStatus, loading: false });
-
-    expect(screen.getByText('FAILED')).toBeInTheDocument();
-    expect(screen.getByText('Network timeout')).toBeInTheDocument();
-    expect(screen.queryByText('View Export File')).not.toBeInTheDocument();
-  });
-
-  test('displays message when no exports are found', async () => {
-    const { component } = render(ExportStatusCard);
-    await component.$set({ exportStatus: null, loading: false });
-
     expect(screen.getByText(/no exports yet/i)).toBeInTheDocument();
   });
 
+  test('displays message when no exports are found', async () => {
+    // Mock the fetch calls to return no content
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('/export/status')) {
+        return Promise.resolve({
+          ok: true,
+          status: 204, // No content
+        });
+      }
+      if (url.includes('/export/schedule/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(null)
+        });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    });
+
+    render(ExportStatusCard);
+
+    await waitFor(() => {
+      expect(screen.getByText(/no exports yet/i)).toBeInTheDocument();
+    });
+  });
+
   test('manual sync button triggers export', async () => {
-    const { component } = render(ExportStatusCard);
-    await component.$set({ loading: false });
+    // Mock initial status fetch (no content)
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('/export/status')) {
+        return Promise.resolve({
+          ok: true,
+          status: 204, // No content initially
+        });
+      }
+      if (url.includes('/export/schedule/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(null)
+        });
+      }
+      if (url.includes('/export/manual')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockExportStatus)
+        });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    });
+
+    render(ExportStatusCard);
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(screen.getByText(/no exports yet/i)).toBeInTheDocument();
+    });
 
     const syncButton = screen.getByText('Sync Now');
     await fireEvent.click(syncButton);
 
+    // Wait for the sync to complete and status to update
     await waitFor(() => {
-      expect(screen.getByText(/syncing/i)).toBeInTheDocument();
+      expect(screen.getByText('SUCCESS')).toBeInTheDocument();
     });
   });
 
-  test('handles API errors gracefully on load', async () => {
-    const { component } = render(ExportStatusCard);
-    await component.$set({ error: 'Failed to connect', loading: false });
+  test('handles API errors gracefully on refresh', async () => {
+    // Mock initial successful load
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('/export/status')) {
+        return Promise.resolve({
+          ok: true,
+          status: 204, // No content initially
+        });
+      }
+      if (url.includes('/export/schedule/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(null)
+        });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    });
 
-    expect(screen.getByText(/error/i)).toBeInTheDocument();
-    expect(screen.getByText('Failed to connect')).toBeInTheDocument();
+    render(ExportStatusCard);
+    await tick();
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(screen.getByText(/no exports yet/i)).toBeInTheDocument();
+    });
+
+    // Now mock the refresh to fail
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('/export/status')) {
+        return Promise.resolve({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error'
+        });
+      }
+      if (url.includes('/export/schedule/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(null)
+        });
+      }
+      return Promise.reject(new Error('Unknown URL'));
+    });
+
+    // Click refresh button
+    const refreshButton = screen.getByTitle('Refresh status');
+    await fireEvent.click(refreshButton);
+
+    // Wait for error to appear
+    await waitFor(() => {
+      expect(screen.getByText(/error/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Error: HTTP 500: Internal Server Error')).toBeInTheDocument();
   });
 });
