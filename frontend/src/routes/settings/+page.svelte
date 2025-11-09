@@ -231,7 +231,7 @@
 </script>
 
 <svelte:head>
-  <title>{$t('common.navigation.settings')} - Cession Management</title>
+  <title>{$t('common.navigation.settings')} - {$t('common.app.title')}</title>
 </svelte:head>
 
 <!-- Enhanced Settings Page with Glassmorphism -->
@@ -263,10 +263,10 @@
 
           <!-- Welcome Text -->
           <h1 class="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">
-            {$t('common.settings.title')}
+            {$t('settings.title')}
           </h1>
           <p class="text-gray-600 font-medium text-lg">
-            {$t('common.settings.description')}
+            {$t('settings.description')}
           </p>
         </div>
       {/if}
@@ -287,9 +287,9 @@
                 </div>
                 <div>
                   <h2 class="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                    {$t('common.settings.language_settings.title')}
+                    {$t('settings.language_settings.title')}
                   </h2>
-                  <p class="text-gray-600 text-sm">{$t('common.settings.language_settings.description')}</p>
+                  <p class="text-gray-600 text-sm">{$t('settings.language_settings.description')}</p>
                 </div>
               </div>
             </div>
@@ -320,7 +320,7 @@
                           {#if lang.isRTL}
                             <div class="mt-2">
                               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                RTL Support
+                                {$t('settings.language_settings.rtl_support')}
                               </span>
                             </div>
                           {/if}
@@ -351,13 +351,13 @@
                     </div>
                     <div class="flex-1">
                       <p class="text-sm font-medium text-gray-900">
-                        {$t('common.settings.language_settings.current_selection')}: <span class="font-bold text-blue-700">{currentLanguage.name}</span>
+                        {$t('settings.language_settings.current_selection')}: <span class="font-bold text-blue-700">{currentLanguage.name}</span>
                       </p>
                       <div class="flex items-center space-x-2 mt-1">
-                        <span class="text-xs text-gray-600">Active Language</span>
+                        <span class="text-xs text-gray-600">{$t('settings.language')}</span>
                         {#if currentLanguage.isRTL}
                           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            RTL Layout
+                            {$t('settings.language_settings.rtl_support')}
                           </span>
                         {/if}
                       </div>
@@ -385,10 +385,10 @@
                 </div>
                 <div>
                   <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    {$t('settings.updates.title', 'Software Updates')}
+                    {$t('settings.updates.title')}
                   </h2>
                   <p class="text-sm text-gray-600 mt-1">
-                    {$t('settings.updates.subtitle', 'Keep your application up to date')}
+                    {$t('settings.updates.subtitle')}
                   </p>
                 </div>
               </div>
@@ -409,21 +409,21 @@
             <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300">
               <span class="text-white text-sm">🌍</span>
             </div>
-            <p class="text-xs font-medium text-gray-700">Multi-Language</p>
+            <p class="text-xs font-medium text-gray-700">{$t('settings.features.multi_language')}</p>
           </div>
 
           <div class="bg-white/40 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 hover:bg-white/60 transition-all duration-300 group">
             <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300">
               <span class="text-white text-sm">📱</span>
             </div>
-            <p class="text-xs font-medium text-gray-700">Mobile Sync</p>
+            <p class="text-xs font-medium text-gray-700">{$t('settings.features.mobile_sync')}</p>
           </div>
 
           <div class="bg-white/40 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20 hover:bg-white/60 transition-all duration-300 group">
             <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300">
               <span class="text-white text-sm">⚙️</span>
             </div>
-            <p class="text-xs font-medium text-gray-700">Preferences</p>
+            <p class="text-xs font-medium text-gray-700">{$t('settings.features.preferences')}</p>
           </div>
         </div>
       {/if}

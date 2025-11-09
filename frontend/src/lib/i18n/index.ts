@@ -55,12 +55,13 @@ export const t = derived(currentLanguage, ($currentLanguage) => {
     // First try the key as is
     value = key.split('.').reduce((obj, k) => obj?.[k], translations[$currentLanguage]);
     
-    // If not found and key doesn't start with known root sections, try under 'common'
+    // If not found, try under 'common' for certain keys
     if (!value) {
       const firstPart = key.split('.')[0];
-      const rootSections = ['reports', 'dashboard', 'clients', 'cessions', 'payments', 'settings', 'auth', 'finance', 'inventory'];
+      const rootSections = ['reports', 'dashboard', 'clients', 'cessions', 'payments', 'auth', 'finance', 'inventory'];
       
-      if (!rootSections.includes(firstPart)) {
+      // Always try common for settings, or if key doesn't start with known root sections
+      if (firstPart === 'settings' || !rootSections.includes(firstPart)) {
         const commonKey = `common.${key}`;
         value = commonKey.split('.').reduce((obj, k) => obj?.[k], translations[$currentLanguage]);
       }
@@ -129,7 +130,7 @@ export function setLanguage(lang: string) {
 function forceTranslationInclusion() {
   // Access specific translation keys to ensure they're included in the build
   const keys = [
-    'dashboard.per_cession',
+    'cessions.analytics.per_cession',
     'dashboard.total_cessions', 
     'dashboard.monthly_trend'
   ];

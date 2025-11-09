@@ -136,41 +136,6 @@
       "fr": "Français",
       "ar": "العربية"
     },
-    "settings": {
-      "title": "Paramètres",
-      "description": "Gérer les paramètres de l'application",
-      "language": "Langue",
-      "theme": "Thème",
-      "notifications": "Notifications",
-      "additional_settings": {
-        "title": "Paramètres Supplémentaires",
-        "description": "Gérer les paramètres supplémentaires de l'application",
-        "language": "Langue",
-        "theme": "Thème",
-        "coming_soon": "Bientôt disponible",
-        "notifications": "Notifications"
-      },
-      "account": "Compte",
-      "security": "Sécurité",
-      "language_settings": {
-        "title": "Paramètres de la Langue",
-        "description": "Gérer les paramètres de la langue de l'application",
-        "language": "Langue",
-        "theme": "Thème",
-        "rtl_support": "Support RTL",
-        "notifications": "Notifications",
-        "current_selection": "Langue sélectionnée"
-      },
-      "updates": {
-        "title": "Mises à Jour",
-        "subtitle": "Gardez votre application à jour",
-        "currentVersion": "Version Actuelle",
-        "checkButton": "Vérifier les Mises à Jour",
-        "checking": "Vérification des mises à jour...",
-        "autoInfo": "L'application vérifie automatiquement les mises à jour au démarrage et toutes les 24 heures. Vous serez averti lorsqu'une nouvelle version sera disponible."
-      },
-      "preferences": "Préférences"
-    },
     "app_name": "Gestion des Cessions",
     "not_provided": "Non fourni",
     "error": {
@@ -223,6 +188,35 @@
     "months": "mois",
     "count_months": "{count} mois",
     "not_available": "Non disponible"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Gérez les préférences de l'application et les paramètres de langue",
+    "language_settings": {
+      "title": "Paramètres de langue",
+      "description": "Choisissez votre langue préférée",
+      "current_selection": "Sélection actuelle",
+      "rtl_support": "Support droite-à-gauche"
+    },
+    "updates": {
+      "title": "Mises à jour du logiciel",
+      "subtitle": "Maintenez votre application à jour",
+      "currentVersion": "Version actuelle",
+      "checkButton": "Vérifier les mises à jour",
+      "checking": "Vérification des mises à jour...",
+      "autoInfo": "L'application vérifie automatiquement les mises à jour au démarrage et toutes les 24 heures. Vous serez informé lorsqu'une nouvelle version est disponible."
+    },
+    "language": "Langue",
+    "theme": "Thème",
+    "notifications": "Notifications",
+    "account": "Compte",
+    "security": "Sécurité",
+    "preferences": "Préférences",
+    "features": {
+      "multi_language": "Multi-Language",
+      "mobile_sync": "Synchronisation Mobile",
+      "preferences": "Préférences"
+    }
   },
   "reports": {
     "title": "Liste Nominative des Cessions sur Salaire",
@@ -376,7 +370,6 @@
       "monthly_revenue": "Revenus Mensuels",
       "this_month_total": "Total de ce mois",
       "avg_deal_size": "Taille Moyenne",
-      "per_cession": "Par Cession",
       "completion_rate": "Taux de Réussite",
       "portfolio_health": "Santé du Portefeuille"
     },
@@ -1953,10 +1946,6 @@
       "months_left": "mois restants",
       "fully_paid": "Entièrement remboursé !"
     }
-  },
-  "settings": {
-    "title": "Paramètres",
-    "subtitle": "Gérer vos paramètres"
   },
   "auth": {
     "logout": "Déconnexion",

@@ -165,17 +165,17 @@
         "checking": "Checking for updates...",
         "autoInfo": "The app automatically checks for updates on startup and every 24 hours. You will be notified when a new version is available."
       },
-      "additional_settings": {
-        "title": "Additional Settings",
-        "description": "More settings will be available here in future updates",
-        "coming_soon": "Coming soon..."
-      },
       "language": "Language",
       "theme": "Theme",
       "notifications": "Notifications",
       "account": "Account",
       "security": "Security",
-      "preferences": "Preferences"
+      "preferences": "Preferences",
+      "features": {
+        "multi_language": "Multi-Language",
+        "mobile_sync": "Mobile Sync",
+        "preferences": "Preferences"
+      }
     },
     "app_name": "Cession Management",
     "not_provided": "Not provided",
@@ -226,7 +226,67 @@
     "try_adjusting_filters": "Try adjusting filters",
     "months": "months",
     "clients_count": "{count} clients",
-    "of_total_short": "of total"
+    "language": {
+      "en": "English",
+      "fr": "Français",
+      "ar": "العربية"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language_settings": {
+      "title": "Language Settings",
+      "description": "Choose your preferred language for the application interface",
+      "current_language": "Current Language",
+      "available_languages": "Available Languages",
+      "switch_language": "Switch Language",
+      "language_changed": "Language changed successfully",
+      "restart_required": "Please restart the application for changes to take effect"
+    },
+    "features": {
+      "title": "Features",
+      "description": "Manage application features and settings",
+      "auto_update": {
+        "title": "Auto Update",
+        "description": "Automatically check for and install updates",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "check_updates": "Check for Updates",
+        "last_checked": "Last checked: {date}",
+        "update_available": "Update Available",
+        "up_to_date": "Up to date",
+        "installing": "Installing update...",
+        "restart_to_apply": "Restart to apply update"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Configure notification preferences",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "payment_reminders": "Payment Reminders",
+        "system_updates": "System Updates",
+        "error_alerts": "Error Alerts"
+      },
+      "data_backup": {
+        "title": "Data Backup",
+        "description": "Automatic data backup settings",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "frequency": "Backup Frequency",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "last_backup": "Last backup: {date}",
+        "backup_now": "Backup Now"
+      },
+      "export_settings": {
+        "title": "Export Settings",
+        "description": "Configure export preferences",
+        "default_format": "Default Export Format",
+        "include_images": "Include Images",
+        "compress_files": "Compress Files"
+      }
+    }
   },
   "reports": {
     "title": "Nominal List of Salary Cessions",
@@ -360,11 +420,10 @@
       "monthly_revenue": "Monthly Revenue",
       "this_month_total": "This month's total",
       "avg_deal_size": "Avg Deal Size",
-      "per_cession": "Per Cession",
       "completion_rate": "Completion Rate",
       "portfolio_health": "Portfolio Health"
     },
-    "actions": {
+    "navigation": {
       "new_client": "New Client",
       "new_client_desc": "Add a new client profile",
       "view_clients": "View Clients",

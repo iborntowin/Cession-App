@@ -467,7 +467,7 @@
           </div>
         </div>
         <p class="text-2xl font-black text-pink-900">{chartStats.averageValue > 0 ? formatCurrency(chartStats.averageValue) : '0.000'} TND</p>
-        <p class="text-xs text-pink-600 font-semibold mt-1">{$t('dashboard.per_cession')}</p>
+        <p class="text-xs text-pink-600 font-semibold mt-1">{$t('cessions.analytics.per_cession')}</p>
       </div>
     </div>
     {/if}

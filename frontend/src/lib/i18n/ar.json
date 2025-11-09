@@ -139,35 +139,6 @@
       "fr": "Français",
       "ar": "العربية"
     },
-    "settings": {
-      "title": "الإعدادات",
-      "description": "إدارة تفضيلات التطبيق وإعدادات اللغة",
-      "language_settings": {
-        "title": "إعدادات اللغة",
-        "description": "اختر لغتك المفضلة للتطبيق",
-        "current_selection": "المحدد حالياً",
-        "rtl_support": " اليمين إلى اليسار"
-      },
-      "updates": {
-        "title": "تحديثات البرنامج",
-        "subtitle": "حافظ على تطبيقك محدثًا",
-        "currentVersion": "الإصدار الحالي",
-        "checkButton": "التحقق من التحديثات",
-        "checking": "جارٍ التحقق من التحديثات...",
-        "autoInfo": "يتحقق التطبيق تلقائيًا من التحديثات عند بدء التشغيل وكل 24 ساعة. سيتم إعلامك عندما يكون هناك إصدار جديد متاح."
-      },
-      "additional_settings": {
-        "title": "إعدادات إضافية",
-        "description": "ستتوفر المزيد من الإعدادات هنا في التحديثات المستقبلية",
-        "coming_soon": "قريباً..."
-      },
-      "language": "اللغة",
-      "theme": "المظهر",
-      "notifications": "الإشعارات",
-      "account": "الحساب",
-      "security": "الأمان",
-      "preferences": "التفضيلات"
-    },
     "app_name": "إدارة الإحالات",
     "not_provided": "غير متوفر",
     "error": {
@@ -217,6 +188,35 @@
     "no_results": "لم يتم العثور على نتائج",
     "try_adjusting_filters": "حاول تعديل المرشحات",
     "months": "أشهر"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "description": "إدارة تفضيلات التطبيق وإعدادات اللغة",
+    "language_settings": {
+      "title": "إعدادات اللغة",
+      "description": "اختر لغتك المفضلة للتطبيق",
+      "current_selection": "المحدد حالياً",
+      "rtl_support": "دعم من اليمين إلى اليسار"
+    },
+    "updates": {
+      "title": "تحديثات البرنامج",
+      "subtitle": "حافظ على تطبيقك محدثًا",
+      "currentVersion": "الإصدار الحالي",
+      "checkButton": "التحقق من التحديثات",
+      "checking": "جارٍ التحقق من التحديثات...",
+      "autoInfo": "يتحقق التطبيق تلقائيًا من التحديثات عند بدء التشغيل وكل 24 ساعة. سيتم إعلامك عندما يكون هناك إصدار جديد متاح."
+    },
+    "language": "اللغة",
+    "theme": "المظهر",
+    "notifications": "الإشعارات",
+    "account": "الحساب",
+    "security": "الأمان",
+    "preferences": "التفضيلات",
+    "features": {
+      "multi_language": "متعدد اللغات",
+      "mobile_sync": "مزامنة الجوال",
+      "preferences": "التفضيلات"
+    }
   },
   "reports": {
     "title": "القائمة الاسمية للحوالات على الأجر",
@@ -358,7 +358,6 @@
       "monthly_revenue": "الإيرادات الشهرية",
       "this_month_total": "إجمالي هذا الشهر",
       "avg_deal_size": "متوسط حجم الصفقة",
-      "per_cession": "لكل إحالة",
       "completion_rate": "معدل الإنجاز",
       "portfolio_health": "صحة المحفظة"
     },
