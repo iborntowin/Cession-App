@@ -2,72 +2,262 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
+  release:
+    types: [ published ]
 
 jobs:
-  build-backend:
+  test-backend:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v3
-    
+    - uses: actions/checkout@v4
+
     - name: Set up JDK 17
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-    
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
     - name: Build with Maven
-      run: cd backend && ./mvnw clean package -DskipTests
-    
-    - name: Run tests
-      run: cd backend && ./mvnw test
-  
-  build-frontend:
+      run: cd backend && mvn clean compile
+
+    - name: Run backend tests
+      run: cd backend && mvn test
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: backend-test-results
+        path: backend/target/surefire-reports/
+
+  test-frontend:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v3
-    
+    - uses: actions/checkout@v4
+
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
-    
-    - name: Install dependencies
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install frontend dependencies
       run: cd frontend && npm ci
-    
-    - name: Build
-      run: cd frontend && npm run build
-      
-  deploy-backend:
-    needs: build-backend
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    
+
+    - name: Run frontend tests
+      run: cd frontend && npm run test:coverage
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: frontend-test-results
+        path: frontend/coverage/
+
+  build-tauri:
+    needs: [test-backend, test-frontend]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest'
+            args: '--target x86_64-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: '--target x86_64-unknown-linux-gnu'
+          - platform: 'windows-latest'
+            args: '--target x86_64-pc-windows-msvc'
+    runs-on: ${{ matrix.platform }}
     steps:
-    - uses: actions/checkout@v3
-    
-    # This is a placeholder for the actual deployment step
-    # In a real scenario, you would use the appropriate action for your hosting provider
-    - name: Deploy to Railway
-      run: echo "Deploying to Railway..."
-      # Example: railway up --service backend
-      
-  deploy-frontend:
-    needs: build-frontend
-    if: github.ref == 'refs/heads/main'
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies (ubuntu only)
+      if: matrix.platform == 'ubuntu-22.04'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Rust setup
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+    - name: Rust cache
+      uses: swatinem/rust-cache@v2
+      with:
+        workspaces: './frontend/src-tauri -> target'
+
+    - name: Build backend
+      run: |
+        cd backend
+        mvn clean package -DskipTests
+
+    - name: Copy backend JAR
+      run: |
+        mkdir -p frontend/src-tauri/backend
+        cp backend/target/cession-app-backend-0.0.1-SNAPSHOT.jar frontend/src-tauri/backend/
+
+    - name: Install frontend dependencies
+      run: cd frontend && npm ci
+
+    - name: Build frontend
+      run: cd frontend && npm run build:production
+
+    - name: Build Tauri app
+      uses: tauri-apps/tauri-action@v0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        projectPath: './frontend'
+        args: ${{ matrix.args }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifacts-${{ matrix.platform }}-${{ matrix.args }}
+        path: |
+          ./frontend/src-tauri/target/${{ matrix.args == '--target x86_64-pc-windows-msvc' && 'x86_64-pc-windows-msvc/release/bundle' || matrix.args == '--target x86_64-unknown-linux-gnu' && 'x86_64-unknown-linux-gnu/release/bundle' || 'universal-apple-darwin/release/bundle' }}/**
+        if-no-files-found: error
+
+  release:
+    needs: build-tauri
     runs-on: ubuntu-latest
-    
+    if: github.event_name == 'release'
     steps:
-    - uses: actions/checkout@v3
-    
-    # This is a placeholder for the actual deployment step
-    # In a real scenario, you would use the appropriate action for your hosting provider
-    - name: Deploy to Vercel
-      run: echo "Deploying to Vercel..."
-      # Example: vercel --prod
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: Display structure of downloaded files
+      run: ls -la ./artifacts/
+
+    - name: Create latest.json for auto-updates
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "Version: $VERSION"
+
+        # Create latest.json for Tauri auto-updates
+        cat > latest.json << EOF
+        {
+          "version": "$VERSION",
+          "notes": "${{ github.event.release.body }}",
+          "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+          "platforms": {
+            "windows-x86_64": {
+              "signature": "",
+              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_x64-setup.exe"
+            },
+            "darwin-x86_64": {
+              "signature": "",
+              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_x64.dmg"
+            },
+            "darwin-aarch64": {
+              "signature": "",
+              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_aarch64.dmg"
+            },
+            "linux-x86_64": {
+              "signature": "",
+              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/cession-management-app_$VERSION_amd64.AppImage"
+            }
+          }
+        }
+        EOF
+
+    - name: Upload latest.json
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./latest.json
+        asset_name: latest.json
+        asset_content_type: application/json
+
+    - name: Upload Windows MSI
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./artifacts/artifacts-windows-latest---target-x86_64-pc-windows-msvc/msi/Cession.Management.App_${VERSION}_x64_en-US.msi
+        asset_name: Cession.Management.App_${VERSION}_x64_en-US.msi
+        asset_content_type: application/x-msi
+
+    - name: Upload Windows NSIS
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./artifacts/artifacts-windows-latest---target-x86_64-pc-windows-msvc/nsis/Cession.Management.App_${VERSION}_x64-setup.exe
+        asset_name: Cession.Management.App_${VERSION}_x64-setup.exe
+        asset_content_type: application/x-msdownload
+
+    - name: Upload macOS x86_64 DMG
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./artifacts/artifacts-macos-latest---target-x86_64-apple-darwin/dmg/Cession.Management.App_${VERSION}_x64.dmg
+        asset_name: Cession.Management.App_${VERSION}_x64.dmg
+        asset_content_type: application/x-apple-diskimage
+
+    - name: Upload macOS ARM64 DMG
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./artifacts/artifacts-macos-latest---target-aarch64-apple-darwin/dmg/Cession.Management.App_${VERSION}_aarch64.dmg
+        asset_name: Cession.Management.App_${VERSION}_aarch64.dmg
+        asset_content_type: application/x-apple-diskimage
+
+    - name: Upload Linux AppImage
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./artifacts/artifacts-ubuntu-22.04---target-x86_64-unknown-linux-gnu/appimage/cession-management-app_${VERSION}_amd64.AppImage
+        asset_name: cession-management-app_${VERSION}_amd64.AppImage
+        asset_content_type: application/x-executable
+
+    - name: Upload Linux DEB
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./artifacts/artifacts-ubuntu-22.04---target-x86_64-unknown-linux-gnu/deb/cession-management-app_${VERSION}_amd64.deb
+        asset_name: cession-management-app_${VERSION}_amd64.deb
+        asset_content_type: application/vnd.debian.binary-package
