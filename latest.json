@@ -1,14 +1,14 @@
 {
-  "version": "1.1.15",
-  "notes": "Bug fixes and improvements",
-  "pub_date": "2025-11-08T08:32:20.264Z",
+  "version": "1.2.0",
+  "notes": "Enhance Danger clients , Client profile , Fix all translation errors , Add job filtering and heat maps ",
+  "pub_date": "2025-11-09T09:58:06.937Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/iborntowin/Cession-App/releases/download/v1.1.15/Cession.Management.App_1.1.15_x64-setup.exe",
+      "url": "https://github.com/iborntowin/Cession-App/releases/download/v1.2.0/Cession.Management.App_1.2.0_x64-setup.exe",
       "signature": "",
-      "msi_url": "https://github.com/iborntowin/Cession-App/releases/download/v1.1.15/Cession-Management-App_1.1.15_x64_en-US.msi.zip",
-      "sha256": "f7f59caa0e448b6e536ad594aced6fe7ad0b0d6627809348efd71a74eac1bbbf",
-      "msi_sha256": "1c33a794bcfa232552176035e5f8755329fc52e969dfafb08f2a7b6118f390b0"
+      "msi_url": "https://github.com/iborntowin/Cession-App/releases/download/v1.2.0/Cession-Management-App_1.2.0_x64_en-US.msi.zip",
+      "sha256": "c106a8e5e1d96a96f69e8725e186b3dd5a53a3aead198fa478f79c205657c087",
+      "msi_sha256": "5a1626de5b70b75f3a86e498e5b7ed35358ffbf4526daf62d1cdad064a28f7e0"
     }
   }
 }
