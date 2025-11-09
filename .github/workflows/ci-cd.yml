@@ -232,24 +232,9 @@ jobs:
           VERSION="${{ needs.bump-version.outputs.new_version }}"
           TAG_NAME="v$VERSION"
           
-          RELEASE_NOTES="## Release v$VERSION
-
-Automated build from GitHub Actions CI/CD pipeline.
-
-### Changes
-- Bug fixes and improvements
-
-### Installation
-Download the appropriate installer for your system:
-- **Windows EXE**: Recommended for most users
-- **Windows MSI**: Alternative installer format
-
-### Auto-Updates
-This version includes automatic update support. The app will notify you when new versions are available."
-
           gh release create "$TAG_NAME" \
             --title "Release $VERSION" \
-            --notes "$RELEASE_NOTES" \
+            --notes "Automated build from GitHub Actions CI/CD pipeline. This version includes automatic update support." \
             --draft=false \
             --prerelease=false || echo "Release already exists"
       - name: Upload assets
