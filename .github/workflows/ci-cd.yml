@@ -136,7 +136,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        projectPath: './frontend'
+        projectPath: './frontend/src-tauri'
         args: ${{ matrix.args }}
 
     - name: Upload artifacts

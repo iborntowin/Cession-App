@@ -438,8 +438,8 @@ async function main() {
   try {
     // Parse command line arguments
     const args = process.argv.slice(2);
-    const incrementType = args.includes('--major') ? 'major' :
-                         args.includes('--minor') ? 'minor' : 'patch';
+    let incrementType = args.includes('--major') ? 'major' :
+                       args.includes('--minor') ? 'minor' : 'patch';
     
     logHeader('🚀 AUTOMATED RELEASE BUILDER');
     
@@ -464,7 +464,32 @@ async function main() {
     logSuccess(`Current version: ${currentVersion}`);
     
     // ───────────────────────────────────────────────────────────────────────
-    // STEP 3: Calculate new version
+    // STEP 3: Choose version increment type (interactive)
+    // ───────────────────────────────────────────────────────────────────────
+    if (!args.includes('--major') && !args.includes('--minor') && !args.includes('--patch')) {
+      log('');
+      log('📋 Version Increment Options:', 'cyan');
+      log('   1. Patch (1.0.0 → 1.0.1) - Bug fixes', 'reset');
+      log('   2. Minor (1.0.0 → 1.1.0) - New features', 'reset');
+      log('   3. Major (1.0.0 → 2.0.0) - Breaking changes', 'reset');
+      log('');
+      
+      const choice = await promptUser('Choose version increment type (1-3, default: 1): ');
+      switch (choice.trim()) {
+        case '2':
+          incrementType = 'minor';
+          break;
+        case '3':
+          incrementType = 'major';
+          break;
+        default:
+          incrementType = 'patch';
+          break;
+      }
+    }
+    
+    // ───────────────────────────────────────────────────────────────────────
+    // STEP 4: Calculate new version
     // ───────────────────────────────────────────────────────────────────────
     logStep(`Calculating new version (${incrementType} increment)...`);
     
@@ -472,7 +497,7 @@ async function main() {
     logSuccess(`New version: ${newVersion}`);
     
     // ───────────────────────────────────────────────────────────────────────
-    // STEP 4: Confirm with user
+    // STEP 5: Confirm with user
     // ───────────────────────────────────────────────────────────────────────
     log('');
     const confirmation = await promptUser(`   📋 Proceed with version ${currentVersion} → ${newVersion}? (Y/N): `);
