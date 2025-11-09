@@ -24,6 +24,10 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   test-backend:
     runs-on: ubuntu-latest
@@ -112,31 +116,49 @@ jobs:
       id: version
       run: |
         cd frontend
+        
+        # Show current version
+        CURRENT_VERSION=$(node -p "require('./package.json').version")
+        echo "📦 Current version: $CURRENT_VERSION"
+        
+        # Bump version
+        echo "⬆️  Bumping ${{ github.event.inputs.version_type }} version..."
         npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
+        
         NEW_VERSION=$(node -p "require('./package.json').version")
+        echo "✨ New version: $NEW_VERSION"
         echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
         # Update tauri.conf.json
+        echo "🔧 Updating Tauri configuration..."
         cd src-tauri
         jq ".version = \"$NEW_VERSION\"" tauri.conf.json > temp.json && mv temp.json tauri.conf.json
 
     - name: Commit version bump
       run: |
+        echo "💾 Committing version changes..."
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
-        git commit -m "Bump version to ${{ steps.version.outputs.new_version }}"
+        git commit -m "⬆️ Bump version to ${{ steps.version.outputs.new_version }}"
+        echo "✅ Changes committed"
 
     - name: Push changes
-      run: git push
+      run: |
+        echo "🚀 Pushing changes to repository..."
+        git push
+        echo "✅ Changes pushed successfully"
 
     - name: Create tag
       run: |
+        echo "🏷️  Creating git tag v${{ steps.version.outputs.new_version }}..."
         git tag v${{ steps.version.outputs.new_version }}
         git push origin v${{ steps.version.outputs.new_version }}
+        echo "✅ Tag created and pushed"
 
   build-tauri:
-    needs: [test-backend, test-frontend, bump-version]
+    needs: [test-backend, test-frontend]
+    if: always() && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
@@ -210,27 +232,35 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Download all artifacts
+      run: |
+        echo "📥 Downloading build artifacts..."
+        # Download all artifacts
+        mkdir -p ./artifacts
+
+    - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
         path: ./artifacts
 
     - name: Display structure of downloaded files
-      run: ls -la ./artifacts/
+      run: |
+        echo "📂 Build artifacts downloaded:"
+        find ./artifacts -type f -name "*.exe" -o -name "*.msi" | head -10
 
     - name: Create latest.json for auto-updates
       run: |
         if [ "${{ github.event_name }}" = "release" ]; then
           VERSION=${GITHUB_REF#refs/tags/v}
-        else
+        elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           VERSION=${{ needs.bump-version.outputs.new_version }}
         fi
-        echo "Version: $VERSION"
+        echo "🔖 Creating latest.json for version: $VERSION"
 
         # Create latest.json for Tauri auto-updates
         cat > latest.json << EOF
         {
           "version": "$VERSION",
-          "notes": "Release $VERSION",
+          "notes": "Release $VERSION - Automated build",
           "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
           "platforms": {
             "windows-x86_64": {
@@ -240,6 +270,7 @@ jobs:
           }
         }
         EOF
+        echo "✅ latest.json created"
 
     - name: Create GitHub Release
       if: github.event_name == 'workflow_dispatch'
@@ -248,47 +279,54 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: v${{ needs.bump-version.outputs.new_version }}
-        release_name: Version ${{ needs.bump-version.outputs.new_version }}
+        release_name: Release v${{ needs.bump-version.outputs.new_version }}
         body: |
-          ## Release ${{ needs.bump-version.outputs.new_version }}
+          ## 🚀 Release v${{ needs.bump-version.outputs.new_version }}
 
-          This release was automatically created via GitHub Actions workflow dispatch.
+          This release was automatically created via GitHub Actions CI/CD pipeline.
 
-          ### Changes
-          - Version bump: ${{ github.event.inputs.version_type }}
-          - Automated build and packaging
+          ### 📋 Details
+          - **Version**: ${{ needs.bump-version.outputs.new_version }}
+          - **Type**: ${{ github.event.inputs.version_type }} update
+          - **Build**: Automated Windows build
+          - **Date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+          ### 📦 Downloads
+          - Windows Installer (.exe)
+          - Windows MSI (.msi)
+          - Auto-update manifest (latest.json)
         draft: false
         prerelease: false
 
-    - name: Upload latest.json (Manual Release)
+    - name: Upload Release Assets
       if: github.event_name == 'workflow_dispatch'
       run: |
         VERSION=${{ needs.bump-version.outputs.new_version }}
-        gh release upload v$VERSION ./latest.json --clobber
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        echo "📤 Uploading release assets for version $VERSION..."
 
-    - name: Upload Windows MSI (Manual Release)
-      if: github.event_name == 'workflow_dispatch'
-      run: |
-        VERSION=${{ needs.bump-version.outputs.new_version }}
+        # Upload latest.json
+        echo "⬆️  Uploading latest.json..."
+        gh release upload v$VERSION ./latest.json --clobber
+
+        # Find and upload MSI file
         MSI_FILE=$(find ./artifacts -name "*.msi" | head -1)
         if [ -f "$MSI_FILE" ]; then
+          echo "⬆️  Uploading MSI installer: $(basename "$MSI_FILE")"
           gh release upload v$VERSION "$MSI_FILE" --clobber
+        else
+          echo "⚠️  MSI file not found"
         fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload Windows NSIS (Manual Release)
-      if: github.event_name == 'workflow_dispatch'
-      run: |
-        VERSION=${{ needs.bump-version.outputs.new_version }}
-        NSIS_FILE=$(find ./artifacts -name "*.exe" | head -1)
-        if [ -f "$NSIS_FILE" ]; then
-          gh release upload v$VERSION "$NSIS_FILE" --clobber
+        # Find and upload EXE file
+        EXE_FILE=$(find ./artifacts -name "*.exe" | head -1)
+        if [ -f "$EXE_FILE" ]; then
+          echo "⬆️  Uploading EXE installer: $(basename "$EXE_FILE")"
+          gh release upload v$VERSION "$EXE_FILE" --clobber
+        else
+          echo "⚠️  EXE file not found"
         fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        echo "✅ All assets uploaded successfully!"
 
     - name: Upload latest.json (GitHub Release)
       if: github.event_name == 'release'
