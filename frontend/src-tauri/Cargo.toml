@@ -42,6 +42,9 @@ custom-protocol = ["tauri/custom-protocol"]
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["wincon", "winuser", "consoleapi"] }
 
+[target.x86_64-pc-windows-msvc.dependencies]
+# Ensure 64-bit specific dependencies if needed
+
 [profile.release]
 lto = true
 codegen-units = 1

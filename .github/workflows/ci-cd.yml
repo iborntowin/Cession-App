@@ -107,6 +107,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
       - name: Build backend
         run: cd backend && mvn clean package -DskipTests
       - name: Copy JAR
@@ -117,13 +119,18 @@ jobs:
         run: cd frontend && npm ci
       - name: Build frontend
         run: cd frontend && npm run build:production
+      - name: Verify Rust target
+        run: rustc --print target-list | findstr x86_64-pc-windows-msvc
       - name: Build Tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: './frontend/src-tauri'
-          args: '--target x86_64-pc-windows-msvc'
+          tauriScript: npm run tauri
+          args: build --target x86_64-pc-windows-msvc --bundles msi,nsis
+      - name: List build artifacts
+        run: Get-ChildItem -Path "frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle" -Recurse
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

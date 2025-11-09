@@ -30,6 +30,7 @@
   "bundle": {
     "active": true,
     "targets": [
+      "msi",
       "nsis",
       "dmg",
       "appimage"
@@ -51,6 +52,9 @@
     "shortDescription": "Professional cession management application",
     "longDescription": "A comprehensive desktop and mobile application for managing financial cessions with integrated backend services, real-time monitoring, and advanced error recovery.",
     "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": null,
       "wix": {
         "language": [
           "en-US"
