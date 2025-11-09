@@ -6,6 +6,7 @@
   import { language } from '$lib/stores/language';
   import { fade, fly, scale } from 'svelte/transition';
   import { goto } from '$app/navigation';
+  import ClientDistributionChart from './ClientDistributionChart.svelte';
 
   // RTL support
   $: isRTL = $language.code === 'ar';
@@ -20,6 +21,8 @@
   let filteredUnstartedClients = [];
   let workplaces = [];
   let workplacesMap = {};
+  let jobs = [];
+  let jobsMap = {};
 
   // Filters
   let selectedSeverity = 'all';
@@ -46,6 +49,7 @@
 
   onMount(async () => {
     await loadWorkplaces();
+    await loadJobs();
     await loadDangerClients();
   });
 
@@ -59,6 +63,19 @@
       }
     } catch (error) {
       console.error('Error loading workplaces:', error);
+    }
+  }
+
+  async function loadJobs() {
+    try {
+      const { jobsApi } = await import('$lib/api');
+      jobs = await jobsApi.getAll();
+      jobsMap = {};
+      for (const j of jobs) {
+        jobsMap[j.id] = j.name || j.title || `Job ${j.id}`;
+      }
+    } catch (error) {
+      console.error('Error loading jobs:', error);
     }
   }
 
@@ -601,6 +618,21 @@
         </div>
       </div>
     </div>
+
+    <!-- Client Distribution Chart - Creative Analytics -->
+    {#if analysis && (analysis.dangerClients.length > 0 || analysis.unstartedClients.length > 0)}
+      <div class="mt-8" transition:fade>
+        <ClientDistributionChart
+          dangerClients={analysis.dangerClients}
+          unstartedClients={analysis.unstartedClients}
+          {workplaces}
+          jobs={jobs || []}
+          dataLoaded={true}
+          onRefresh={loadDangerClients}
+          {selectedSeverity}
+        />
+      </div>
+    {/if}
 
     <!-- Filters -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 mb-6 p-4 bg-gray-50 rounded-lg">

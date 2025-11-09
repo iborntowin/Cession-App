@@ -191,6 +191,8 @@ public class PaymentService {
                 unstartedClient.setClientCin(cession.getClient().getCin());
                 unstartedClient.setClientWorkerNumber(cession.getClient().getWorkerNumber());
                 unstartedClient.setClientWorkplace(cession.getClient().getWorkplace() != null ? cession.getClient().getWorkplace().getName() : null);
+                unstartedClient.setClientJobId(cession.getClient().getJob() != null ? cession.getClient().getJob().getId() : null);
+                unstartedClient.setClientJobName(cession.getClient().getJob() != null ? cession.getClient().getJob().getName() : null);
                 unstartedClient.setCessionId(cession.getId());
                 unstartedClient.setStartDate(cession.getStartDate());
                 unstartedClient.setMonthlyAmount(cession.getMonthlyPayment());
@@ -268,6 +270,8 @@ public class PaymentService {
                 dangerClient.setClientCin(cession.getClient().getCin());
                 dangerClient.setClientWorkerNumber(cession.getClient().getWorkerNumber());
                 dangerClient.setClientWorkplace(cession.getClient().getWorkplace() != null ? cession.getClient().getWorkplace().getName() : null);
+                dangerClient.setClientJobId(cession.getClient().getJob() != null ? cession.getClient().getJob().getId() : null);
+                dangerClient.setClientJobName(cession.getClient().getJob() != null ? cession.getClient().getJob().getName() : null);
                 dangerClient.setCessionId(cession.getId());
                 dangerClient.setStartDate(cession.getStartDate());
                 dangerClient.setMonthlyAmount(cession.getMonthlyPayment());
