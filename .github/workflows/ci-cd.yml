@@ -307,9 +307,9 @@ jobs:
           echo "✅ Release for $TAG_NAME already exists, skipping creation"
         else
           echo "🚀 Creating new release for $TAG_NAME..."
-          gh release create "$TAG_NAME" \
-            --title "Release ${{ needs.bump-version.outputs.new_version }}" \
-            --notes "## 🚀 Release ${{ needs.bump-version.outputs.new_version }}
+
+          # Create release notes
+          RELEASE_NOTES="## 🚀 Release ${{ needs.bump-version.outputs.new_version }}
 
 This release was automatically created via GitHub Actions CI/CD pipeline.
 
@@ -322,7 +322,11 @@ This release was automatically created via GitHub Actions CI/CD pipeline.
 ### 📦 Downloads
 - Windows Installer (.exe)
 - Windows MSI (.msi)
-- Auto-update manifest (latest.json)" \
+- Auto-update manifest (latest.json)"
+
+          gh release create "$TAG_NAME" \
+            --title "Release ${{ needs.bump-version.outputs.new_version }}" \
+            --notes "$RELEASE_NOTES" \
             --draft=false \
             --prerelease=false
           echo "✅ Release created successfully"
