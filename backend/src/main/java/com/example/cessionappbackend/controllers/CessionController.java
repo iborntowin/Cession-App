@@ -48,14 +48,15 @@ public class CessionController {
             @RequestParam(required = false) String phoneNumber,
             @RequestParam(required = false) String workplace,
             @RequestParam(required = false) String address,
-            @RequestParam(required = false) String workerNumber) {
+            @RequestParam(required = false) String workerNumber,
+            @RequestParam(required = false) String completionStatus) {
         try {
-            logger.debug("Search request received - name: {}, job: {}, clientNumber: {}, clientCin: {}, phoneNumber: {}, workplace: {}, address: {}, workerNumber: {}", 
-                    name, job, clientNumber, clientCin, phoneNumber, workplace, address, workerNumber);
+            logger.debug("Search request received - name: {}, job: {}, clientNumber: {}, clientCin: {}, phoneNumber: {}, workplace: {}, address: {}, workerNumber: {}, completionStatus: {}", 
+                    name, job, clientNumber, clientCin, phoneNumber, workplace, address, workerNumber, completionStatus);
             
             // If all parameters are null, return all cessions
             if (name == null && job == null && clientNumber == null && clientCin == null && 
-                phoneNumber == null && workplace == null && address == null && workerNumber == null) {
+                phoneNumber == null && workplace == null && address == null && workerNumber == null && completionStatus == null) {
                 return ResponseEntity.ok(cessionService.getAllCessions());
             }
             
@@ -67,7 +68,8 @@ public class CessionController {
                 phoneNumber,
                 workplace,
                 address,
-                workerNumber
+                workerNumber,
+                completionStatus
             );
             logger.debug("Search completed - Found {} cessions", cessions.size());
             return ResponseEntity.ok(cessions);
@@ -102,23 +104,20 @@ public class CessionController {
         }
     }
 
-    @GetMapping("/client/{clientId}/debug")
+    @GetMapping("/client/{clientId}/filtered")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Object> debugClientCessions(@PathVariable UUID clientId) {
+    public ResponseEntity<List<CessionDTO>> getCessionsByClientFiltered(
+            @PathVariable UUID clientId,
+            @RequestParam(required = false, defaultValue = "all") String status,
+            @RequestParam(required = false, defaultValue = "all") String completionStatus) {
         try {
-            logger.debug("Debug request for client ID: {}", clientId);
-            List<CessionDTO> cessions = cessionService.getCessionsByClientId(clientId);
-            return ResponseEntity.ok(Map.of(
-                "clientId", clientId.toString(),
-                "cessionsCount", cessions.size(),
-                "cessions", cessions
-            ));
+            logger.debug("Getting filtered cessions for client ID: {} with status: {} and completionStatus: {}", clientId, status, completionStatus);
+            List<CessionDTO> cessions = cessionService.getCessionsByClientFiltered(clientId, status, completionStatus);
+            logger.debug("Found {} filtered cessions for client ID: {}", cessions.size(), clientId);
+            return ResponseEntity.ok(cessions);
         } catch (Exception e) {
-            logger.error("Error in debug request for client ID: {}", clientId, e);
-            return ResponseEntity.badRequest().body(Map.of(
-                "error", e.getMessage(),
-                "clientId", clientId.toString()
-            ));
+            logger.error("Error getting filtered cessions for client ID: {}", clientId, e);
+            return ResponseEntity.badRequest().build();
         }
     }
 

@@ -13,6 +13,7 @@
   import Breadcrumbs from '$lib/components/Breadcrumbs.svelte';
   import UpdateNotification from '$lib/components/UpdateNotification.svelte';
   import NavigationControls from '$lib/components/NavigationControls.svelte';
+  import { showAlert } from '$lib/stores';
   import { language } from '$lib/stores/language';
   import { t } from '$lib/i18n';
   import { fly } from 'svelte/transition';
@@ -74,8 +75,16 @@
         }, 10000); // Check 10 seconds after app loads
       }
 
+      // Add global dragend listener to reset nav drag state
+      const handleGlobalDragEnd = () => {
+        isDraggingOverNav = false;
+        console.log('Global dragend: Reset isDraggingOverNav to false');
+      };
+      window.addEventListener('dragend', handleGlobalDragEnd);
+
       return () => {
         unsubscribe();
+        window.removeEventListener('dragend', handleGlobalDragEnd);
       };
     });
   }
@@ -173,6 +182,125 @@
     isMobileMenuOpen = !isMobileMenuOpen;
   }
 
+  let isDraggingOverNav = false;
+
+  // 🎯 Drag and Drop Handlers for Navigation
+  function handleNavDragOver(event, href) {
+    // Only allow drop on cessions navigation
+    if (href === '/cessions') {
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = 'copy';
+      isDraggingOverNav = true;
+      console.log('handleNavDragOver: Drag over cessions nav button');
+    }
+  }
+
+  function handleNavDragEnter(event, href) {
+    // Only allow drop on cessions navigation
+    if (href === '/cessions') {
+      event.preventDefault();
+      event.stopPropagation();
+      isDraggingOverNav = true;
+      console.log('handleNavDragEnter: Drag enter cessions nav button');
+    }
+  }
+
+  function handleNavDragLeave(event, href) {
+    // Only for cessions navigation
+    if (href === '/cessions') {
+      // Only set to false if we're actually leaving the element (not entering a child)
+      if (!event.currentTarget.contains(event.relatedTarget)) {
+        isDraggingOverNav = false;
+        console.log('handleNavDragLeave: Drag leave cessions nav button');
+      }
+    }
+  }
+
+  function handleNavClick(event, href) {
+    // This function is now only used for mobile menu logic
+    // Navigation is handled by the button click handler
+  }
+
+  function handleNavDrop(event, href) {
+    console.log('handleNavDrop: CALLED for href:', href, {
+      eventType: event.type,
+      target: event.target,
+      currentTarget: event.currentTarget,
+      dataTransfer: event.dataTransfer,
+      types: event.dataTransfer?.types
+    });
+    
+    // Reset drag state
+    isDraggingOverNav = false;
+    
+    // Only handle drop on cessions navigation
+    if (href === '/cessions') {
+      console.log('handleNavDrop: Processing cessions drop');
+      event.preventDefault();
+      event.stopPropagation();
+      console.log('handleNavDrop: Drop on cessions nav button', {
+        dataTransfer: event.dataTransfer,
+        types: event.dataTransfer?.types
+      });
+
+      try {
+        // Try structured JSON payload first
+        let clientData = null;
+        try {
+          const raw = event.dataTransfer.getData('application/json');
+          console.log('handleNavDrop: Trying application/json', { raw });
+          if (raw) clientData = JSON.parse(raw);
+        } catch (e) {
+          console.debug('handleNavDrop: application/json parse failed', e);
+        }
+
+        // Fallback to plain text JSON (some browsers only allow text/plain)
+        if (!clientData) {
+          const rawPlain = event.dataTransfer.getData('text/plain');
+          console.log('handleNavDrop: Trying text/plain', { rawPlain });
+          if (rawPlain) {
+            try {
+              clientData = JSON.parse(rawPlain);
+            } catch (e) {
+              // If it's not JSON, maybe it's just an id string
+              clientData = { id: rawPlain, fullName: rawPlain };
+            }
+          }
+        }
+
+        // Another fallback (custom type)
+        if (!clientData) {
+          const idOnly = event.dataTransfer.getData('text/client-id');
+          console.log('handleNavDrop: Trying text/client-id', { idOnly });
+          if (idOnly) clientData = { id: idOnly };
+        }
+
+        console.log('handleNavDrop: Final extracted clientData', clientData);
+
+        if (clientData && clientData.id) {
+          console.log('handleNavDrop: Navigating to cessions with client filter', clientData);
+          // Force end any ongoing drag operation
+          event.dataTransfer.clearData();
+          
+          // Navigate to cessions page with client filter
+          goto(`/cessions?clientId=${encodeURIComponent(clientData.id)}`);
+
+          // Show success message
+          showAlert(`✅ Navigating to cessions filtered for client: ${clientData.fullName || clientData.id}`, 'success');
+        } else {
+          console.warn('handleNavDrop: no client id found in dropped data', event.dataTransfer);
+          showAlert('❌ Dropped item does not contain valid client information', 'warning');
+        }
+      } catch (error) {
+        console.error('Error handling nav drop:', error);
+        showAlert('❌ Failed to navigate to cessions with client filter', 'error');
+      }
+    } else {
+      console.log('handleNavDrop: Ignoring drop on non-cessions href:', href);
+    }
+  }
+
   // Make navigation items reactive to ensure translations update
   $: navigationItems = [
     { href: '/', label: $t('common.navigation.dashboard'), icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -264,15 +392,19 @@
             <!-- Desktop Navigation Links -->
             <nav class="hidden md:flex items-center space-x-1">
               {#each navigationItems as item (item.href)}
-              <a 
-                href={item.href} 
+              <button 
                 class={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${getActiveClass(item.href)}`}
+                on:click={() => { if (!isDraggingOverNav) goto(item.href); }}
+                on:dragover={(event) => handleNavDragOver(event, item.href)}
+                on:dragenter={(event) => handleNavDragEnter(event, item.href)}
+                on:dragleave={(event) => handleNavDragLeave(event, item.href)}
+                on:drop={(event) => handleNavDrop(event, item.href)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} />
                 </svg>
                 <span>{item.label}</span>
-              </a>
+              </button>
             {/each}
             
               <!-- User dropdown/logout -->
@@ -296,16 +428,19 @@
           <div class="md:hidden mt-4 pt-4 border-t border-gray-200/50 animate-fly" transition:fly={{ y: -20, duration: 200 }}>
             <nav class="flex flex-col space-y-2">
               {#each navigationItems as item (item.href)}
-                <a 
-                  href={item.href} 
+                <button 
                   class={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-3 ${getActiveClass(item.href)}`}
-                  on:click={() => isMobileMenuOpen = false}
+                  on:click={() => { handleNavClick(null, item.href); if (!isDraggingOverNav) { isMobileMenuOpen = false; goto(item.href); } }}
+                  on:dragover={(event) => handleNavDragOver(event, item.href)}
+                  on:dragenter={(event) => handleNavDragEnter(event, item.href)}
+                  on:dragleave={(event) => handleNavDragLeave(event, item.href)}
+                  on:drop={(event) => handleNavDrop(event, item.href)}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={item.icon} />
                   </svg>
                   <span>{item.label}</span>
-                </a>
+                </button>
               {/each}
               
               <button 

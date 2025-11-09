@@ -7,6 +7,9 @@ export const user = writable(null);
 export const loading = writable(false);
 export const alert = writable({ show: false, message: '', type: 'info' });
 
+// Drag and drop state store
+export const draggedClient = writable(null);
+
 // Initialize stores with localStorage values if in browser
 if (browser) {
   const storedToken = localStorage.getItem('token');

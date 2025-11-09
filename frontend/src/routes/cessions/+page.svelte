@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { cessionsApi } from '$lib/api';
   import { onMount, tick } from 'svelte';
   import { showAlert } from '$lib/stores';
@@ -10,6 +10,7 @@
   import { page } from '$app/stores';
   import { language } from '$lib/stores/language';
   import { goto } from '$app/navigation';
+  import { draggedClient } from '$lib/stores';
   
   // Chart components will be implemented inline or using existing components
   
@@ -28,22 +29,16 @@
   let searchSuggestions = [];
   let showSearchSuggestions = false;
   
-  // 🎯 Advanced UI State
-  let viewMode = 'cards'; // cards, table, analytics, timeline
-  let showQuickActions = false;
-  let selectedCessions = new Set();
-  let showBulkActions = false;
-  let autoRefresh = false; // Disabled by default to prevent flickering
-  let refreshInterval = null;
-  let showInsights = true;
-  let compactMode = false;
-  let isDetailsModalOpen = false;
+  // 🎯 Drag and Drop State
+  let isDragOver = false;
   
   // 🔍 Smart Search & Filtering
   let searchQuery = '';
   let smartFilters = {
     nearExpiry: false,
-    activeOnly: false
+    activeOnly: false,
+    completedOnly: false,
+    incompleteOnly: false
   };
   let searchFields = {
     clientId: '',
@@ -52,6 +47,7 @@
     clientNumber: '',
     amount: '',
     status: 'all',
+    completionStatus: 'all', // New field: 'all', 'completed', 'incomplete'
     dateRange: {
       start: '',
       end: ''
@@ -71,6 +67,14 @@
   let monthlyPaymentStep = 100;
   let isMonthlyPaymentSliderActive = false;
   let filterDebounceTimer;
+  
+  // Missing variable declarations
+  let autoRefresh = false;
+  let viewMode = 'cards';
+  let showBulkActions = false;
+  let selectedCessions = new Set();
+  let isDetailsModalOpen = false;
+  let isComponentMounted = false;
   
   // Enhanced dynamic range calculation with better error handling and no fake data
   function calculateDynamicRanges() {
@@ -411,142 +415,321 @@
   }
   
   onMount(async () => {
+    // Ensure drag overlay is hidden on mount
+    isDragOver = false;
+    
+    // Load cessions first
     await loadCessions();
+    
+    // Wait for DOM to be ready
+    await tick();
+    
+    // Mark component as mounted
+    isComponentMounted = true;
+    
     // Auto-refresh disabled by default to prevent flickering
     // startAutoRefresh();
-    generateEnhancedAnalytics();
     
     // Check for clientId in query params and pre-fill filter
     const unsubscribe = page.subscribe(($page) => {
       const clientId = $page.url.searchParams.get('clientId');
       if (clientId) {
+        console.log('Cessions page: Found clientId in URL params', clientId);
         searchFields.clientId = clientId;
-        applyAdvancedFilters();
+        // Clear the URL param to avoid re-applying on refresh
+        const newUrl = new URL($page.url);
+        newUrl.searchParams.delete('clientId');
+        window.history.replaceState({}, '', newUrl.toString());
+        
+        // Use setTimeout to ensure filter is applied after component is fully mounted
+        setTimeout(() => {
+          applyAdvancedFilters();
+          showAlert('✅ Filtered cessions by client from navigation', 'success');
+        }, 100);
       }
     });
     // Unsubscribe immediately since we only need it once
     unsubscribe();
+
+    // Check for dragged client from drag-and-drop navigation
+    if ($draggedClient) {
+      console.log('Cessions page: Found dragged client from navigation', $draggedClient);
+      searchFields.clientId = String($draggedClient.id);
+      searchFields.clientName = $draggedClient.fullName || $draggedClient.name || '';
+      console.log('Cessions page: Applying client filter', { clientId: searchFields.clientId, clientName: searchFields.clientName });
+      
+      // Use setTimeout to ensure filter is applied after component is fully mounted
+      setTimeout(() => {
+        applyAdvancedFilters();
+        showAlert(`✅ Filtered cessions for client: ${$draggedClient.fullName || $draggedClient.name || $draggedClient.id}`, 'success');
+      }, 100);
+      
+      // Clear the dragged client after applying filter
+      draggedClient.set(null);
+      console.log('Cessions page: Cleared dragged client store');
+    }
+
+    // 🎯 Global Drag Detection for Drop Zone Visibility
+    const handleGlobalDragStart = (event) => {
+      console.log('Global dragstart detected - showing drop zone');
+      isDragOver = true;
+    };
+
+    const handleGlobalDragEnd = (event) => {
+      console.log('Global dragend detected - hiding drop zone', {
+        eventType: event.type,
+        target: event.target,
+        currentTarget: event.currentTarget,
+        dataTransfer: event.dataTransfer,
+        defaultPrevented: event.defaultPrevented
+      });
+      isDragOver = false;
+    };
+
+    const handleGlobalDragOver = (event) => {
+      // Keep drop zone visible during drag
+      if (!isDragOver) {
+        console.log('Global dragover detected - showing drop zone');
+        isDragOver = true;
+      }
+    };
+
+    // Add global drag event listeners with capture mode for better event handling
+    window.addEventListener('dragstart', handleGlobalDragStart, { capture: true });
+    window.addEventListener('dragend', handleGlobalDragEnd, { capture: true });
+    window.addEventListener('dragover', handleGlobalDragOver, { capture: true });
+    window.addEventListener('dragenter', (event) => {
+      isDragOver = true;
+    }, { capture: true });
+    window.addEventListener('drop', (event) => {
+      console.log('Global drop event detected - hiding drop zone');
+      isDragOver = false;
+    }, { capture: true });
+    
+    // Add keyboard listener to force end drag operation if stuck
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && isDragOver) {
+        console.log('Escape key pressed - forcing drag end');
+        isDragOver = false;
+        draggedClient.set(null);
+        showAlert('Drag operation cancelled', 'warning');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener('dragstart', handleGlobalDragStart, { capture: true });
+      window.removeEventListener('dragend', handleGlobalDragEnd, { capture: true });
+      window.removeEventListener('dragover', handleGlobalDragOver, { capture: true });
+      window.removeEventListener('dragenter', (event) => {
+        console.log('Global dragenter detected - showing drop zone');
+        isDragOver = true;
+      }, { capture: true });
+      window.removeEventListener('drop', (event) => {
+        console.log('Global drop event detected - hiding drop zone');
+        isDragOver = false;
+      }, { capture: true });
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   });
 
-  // 🔄 Reactive statements for dynamic filter management
-  $: if (cessions && cessions.length > 0) {
-    // Recalculate ranges when cessions data changes
-    calculateDynamicRanges();
-  }
+  // 🔄 Reactive statements for dynamic filter management - DISABLED TO PREVENT FREEZE
+  // $: if (cessions && cessions.length > 0) {
+  //   calculateDynamicRanges();
+  // }
 
-  // 🎯 Smart filter activation detection
-  $: if (monthlyPaymentSliderMin !== undefined && monthlyPaymentSliderMax !== undefined) {
-    checkFilterActivation();
-  }
+  let lastAnalyticsTime = 0;
+  let lastAnalyticsHash = '';
+  
+  // 🎯 Smart filter activation detection - DISABLED TO PREVENT FREEZE
+  // $: if (monthlyPaymentSliderMin !== undefined && monthlyPaymentSliderMax !== undefined) {
+  //   checkFilterActivation();
+  // }
 
-  // �📊 Auto-generate analytics when filtered data changes
-  $: if (filteredCessions) {
-    generateEnhancedAnalytics();
-  }
+  //  Auto-generate analytics - DISABLED TO PREVENT FREEZE
+  // Analytics will only be generated when viewing the analytics tab
+  // $: if (isComponentMounted && filteredCessions && filteredCessions.length >= 0) {
+  //   const currentHash = `${filteredCessions.length}-${cessions.length}`;
+  //   const now = Date.now();
+  //   if (currentHash !== lastAnalyticsHash && (!lastAnalyticsTime || (now - lastAnalyticsTime) > 2000)) {
+  //     lastAnalyticsHash = currentHash;
+  //     lastAnalyticsTime = now;
+  //     setTimeout(() => {
+  //       try {
+  //         generateEnhancedAnalytics();
+  //       } catch (error) {
+  //         console.error('Error in reactive analytics generation:', error);
+  //       }
+  //     }, 50);
+  //   }
+  // }
   
   // 🚀 Enhanced Analytics & Insights - Comprehensive Data Processing
   function generateEnhancedAnalytics() {
-    // Calculate basic analytics with precise calculations
-    const totalValue = calculatePreciseTotal(cessions);
-    const activeCount = cessions.filter(c => c.status?.toUpperCase() === 'ACTIVE').length;
-    const finishedCount = cessions.filter(c => c.status?.toUpperCase() === 'FINISHED').length;
-    const avgLoanAmount = cessions.length > 0 ? totalValue / cessions.length : 0;
-    const completionRate = cessions.length > 0 ? (finishedCount / cessions.length) * 100 : 0;
-    
-    // Calculate real monthly growth based on creation dates
-    const now = new Date();
-    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    
-    const currentMonthCessions = cessions.filter(c => {
-      const startDate = c.startDate ? new Date(c.startDate) : null;
-      return startDate && startDate >= currentMonth;
-    });
-    
-    const lastMonthCessions = cessions.filter(c => {
-      const startDate = c.startDate ? new Date(c.startDate) : null;
-      return startDate && startDate >= lastMonth && startDate < currentMonth;
-    });
-    
-    const monthlyGrowth = lastMonthCessions.length > 0 
-      ? ((currentMonthCessions.length - lastMonthCessions.length) / lastMonthCessions.length) * 100
-      : currentMonthCessions.length > 0 ? 100 : 0;
-    
-    // Calculate risk score based on real factors
-    const highValueCessions = cessions.filter(c => (c.totalLoanAmount || 0) > avgLoanAmount * 1.5).length;
-    const overdueCessions = cessions.filter(c => {
-      if (!c.endDate) return false;
-      const endDate = new Date(c.endDate);
-      return endDate < now && c.status?.toUpperCase() === 'ACTIVE';
-    }).length;
-    
-    const riskScore = cessions.length > 0 
-      ? Math.min(100, ((highValueCessions + overdueCessions * 2) / cessions.length) * 100)
-      : 0;
-    
-    // Calculate average duration
-    const durations = cessions
-      .filter(c => c.startDate && c.endDate)
-      .map(c => {
-        const start = new Date(c.startDate).getTime();
-        const end = new Date(c.endDate).getTime();
-        return (end - start) / (1000 * 60 * 60 * 24); // days
+    try {
+      console.log('Generating analytics for', filteredCessions.length, 'cessions');
+      
+      // Limit analytics generation to prevent performance issues
+      if (filteredCessions.length > 1000) {
+        console.warn('Too many cessions for analytics, limiting to first 1000');
+        const limitedCessions = filteredCessions.slice(0, 1000);
+        // Use limited data for analytics
+        const totalValue = calculatePreciseTotal(limitedCessions);
+        // ... rest of analytics with limited data
+        return;
+      }
+      
+      // Calculate basic analytics with precise calculations
+      const totalValue = calculatePreciseTotal(cessions);
+      const activeCount = cessions.filter(c => c.status?.toUpperCase() === 'ACTIVE').length;
+      const finishedCount = cessions.filter(c => c.status?.toUpperCase() === 'FINISHED').length;
+      const avgLoanAmount = cessions.length > 0 ? totalValue / cessions.length : 0;
+      const completionRate = cessions.length > 0 ? (finishedCount / cessions.length) * 100 : 0;
+      
+      // Calculate real monthly growth based on creation dates
+      const now = new Date();
+      const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      
+      const currentMonthCessions = cessions.filter(c => {
+        const startDate = c.startDate ? new Date(c.startDate) : null;
+        return startDate && startDate >= currentMonth;
       });
-    const avgDuration = durations.length > 0 
-      ? durations.reduce((sum, d) => sum + d, 0) / durations.length 
-      : 0;
-    
-    // Calculate monthly revenue
-    const monthlyRevenue = cessions
-      .filter(c => {
-        if (!c.startDate) return false;
-        const startDate = new Date(c.startDate);
-        return startDate.getMonth() === now.getMonth() && 
-               startDate.getFullYear() === now.getFullYear();
-      })
-      .reduce((sum, c) => sum + (c.monthlyPayment || 0), 0);
-    
-    // Calculate projected revenue
-    const projectedRevenue = cessions
-      .filter(c => c.status?.toUpperCase() === 'ACTIVE')
-      .reduce((sum, c) => sum + (c.monthlyPayment || 0), 0) * 12;
-    
-    analytics = {
-      totalValue,
-      totalCessions: cessions.length,
-      activeCount,
-      avgLoanAmount,
-      monthlyGrowth,
-      riskScore,
-      completionRate,
-      avgDuration,
-      monthlyRevenue,
-      projectedRevenue
-    };
-    
-    // Generate time-based analytics
-    generateTimeBasedAnalytics();
-    
-    // Generate client analytics
-    generateClientAnalytics();
-    
-    // Generate risk analytics
-    generateRiskAnalytics();
-    
-    // Generate financial analytics
-    generateFinancialAnalytics();
-    
-    // Generate status analytics
-    generateStatusAnalytics();
-    
-    // Generate predictive insights
-    generatePredictiveInsights();
-    
-    // Detect anomalies
-    detectAnomalies();
-    
-    // Generate recommendations
-    generateRecommendations();
+      
+      const lastMonthCessions = cessions.filter(c => {
+        const startDate = c.startDate ? new Date(c.startDate) : null;
+        return startDate && startDate >= lastMonth && startDate < currentMonth;
+      });
+      
+      const monthlyGrowth = lastMonthCessions.length > 0 
+        ? ((currentMonthCessions.length - lastMonthCessions.length) / lastMonthCessions.length) * 100
+        : currentMonthCessions.length > 0 ? 100 : 0;
+      
+      // Calculate risk score based on real factors
+      const highValueCessions = cessions.filter(c => (c.totalLoanAmount || 0) > avgLoanAmount * 1.5).length;
+      const overdueCessions = cessions.filter(c => {
+        if (!c.endDate) return false;
+        const endDate = new Date(c.endDate);
+        return endDate < now && c.status?.toUpperCase() === 'ACTIVE';
+      }).length;
+      
+      const riskScore = cessions.length > 0 
+        ? Math.min(100, ((highValueCessions + overdueCessions * 2) / cessions.length) * 100)
+        : 0;
+      
+      // Calculate average duration
+      const durations = cessions
+        .filter(c => c.startDate && c.endDate)
+        .map(c => {
+          const start = new Date(c.startDate).getTime();
+          const end = new Date(c.endDate).getTime();
+          return (end - start) / (1000 * 60 * 60 * 24); // days
+        });
+      const avgDuration = durations.length > 0 
+        ? durations.reduce((sum, d) => sum + d, 0) / durations.length 
+        : 0;
+      
+      // Calculate monthly revenue
+      const monthlyRevenue = cessions
+        .filter(c => {
+          if (!c.startDate) return false;
+          const startDate = new Date(c.startDate);
+          return startDate.getMonth() === now.getMonth() && 
+                 startDate.getFullYear() === now.getFullYear();
+        })
+        .reduce((sum, c) => sum + (c.monthlyPayment || 0), 0);
+      
+      // Calculate projected revenue
+      const projectedRevenue = cessions
+        .filter(c => c.status?.toUpperCase() === 'ACTIVE')
+        .reduce((sum, c) => sum + (c.monthlyPayment || 0), 0) * 12;
+      
+      analytics = {
+        totalValue,
+        totalCessions: cessions.length,
+        activeCount,
+        avgLoanAmount,
+        monthlyGrowth,
+        riskScore,
+        completionRate,
+        avgDuration,
+        monthlyRevenue,
+        projectedRevenue
+      };
+      
+      // Generate time-based analytics with error handling
+      try {
+        generateTimeBasedAnalytics();
+      } catch (error) {
+        console.error('Error generating time-based analytics:', error);
+      }
+      
+      // Generate client analytics with error handling
+      try {
+        generateClientAnalytics();
+      } catch (error) {
+        console.error('Error generating client analytics:', error);
+      }
+      
+      // Generate risk analytics with error handling
+      try {
+        generateRiskAnalytics();
+      } catch (error) {
+        console.error('Error generating risk analytics:', error);
+      }
+      
+      // Generate financial analytics with error handling
+      try {
+        generateFinancialAnalytics();
+      } catch (error) {
+        console.error('Error generating financial analytics:', error);
+      }
+      
+      // Generate status analytics with error handling
+      try {
+        generateStatusAnalytics();
+      } catch (error) {
+        console.error('Error generating status analytics:', error);
+      }
+      
+      // Generate predictive insights with error handling
+      try {
+        generatePredictiveInsights();
+      } catch (error) {
+        console.error('Error generating predictive insights:', error);
+      }
+      
+      // Detect anomalies with error handling
+      try {
+        detectAnomalies();
+      } catch (error) {
+        console.error('Error detecting anomalies:', error);
+      }
+      
+      // Generate recommendations with error handling
+      try {
+        generateRecommendations();
+      } catch (error) {
+        console.error('Error generating recommendations:', error);
+      }
+      
+    } catch (error) {
+      console.error('Error in generateEnhancedAnalytics:', error);
+      // Set minimal analytics on error
+      analytics = {
+        totalValue: 0,
+        totalCessions: 0,
+        activeCount: 0,
+        avgLoanAmount: 0,
+        monthlyGrowth: 0,
+        riskScore: 0,
+        completionRate: 0,
+        avgDuration: 0,
+        monthlyRevenue: 0,
+        projectedRevenue: 0
+      };
+    }
   }
   
   // 📈 Generate Time-based Analytics
@@ -1188,6 +1371,12 @@
   let lastFilterKey = '';
   
   function applyAdvancedFilters() {
+    // Don't run filters until component is fully mounted
+    if (!isComponentMounted && cessions.length === 0) {
+      console.log('applyAdvancedFilters: Component not mounted yet, skipping');
+      return;
+    }
+    
     // Create cache key based on all filter parameters
     const filterKey = JSON.stringify({
       searchQuery,
@@ -1262,7 +1451,7 @@
     // Apply traditional filters (optimized)
     if (searchFields.clientId || searchFields.clientName || searchFields.clientCin || 
         searchFields.clientNumber || searchFields.amount || searchFields.status !== 'all' ||
-        searchFields.dateRange.start || searchFields.dateRange.end) {
+        searchFields.completionStatus !== 'all' || searchFields.dateRange.start || searchFields.dateRange.end) {
       
       list = list.filter(cession => {
         if (searchFields.clientId && cession.clientId !== searchFields.clientId) return false;
@@ -1271,6 +1460,13 @@
         if (searchFields.clientNumber && !cession.clientNumber?.toString().includes(searchFields.clientNumber)) return false;
         if (searchFields.amount && !cession.totalLoanAmount?.toString().includes(searchFields.amount)) return false;
         if (searchFields.status !== 'all' && cession.status?.toLowerCase() !== searchFields.status.toLowerCase()) return false;
+        
+        // New completion status filter
+        if (searchFields.completionStatus !== 'all') {
+          const isCompleted = cession.status?.toLowerCase() === 'finished' || cession.status?.toLowerCase() === 'completed';
+          if (searchFields.completionStatus === 'completed' && !isCompleted) return false;
+          if (searchFields.completionStatus === 'incomplete' && isCompleted) return false;
+        }
         
         // Date range check (optimized)
         if (searchFields.dateRange.start || searchFields.dateRange.end) {
@@ -1377,8 +1573,20 @@
           calculateDynamicRanges();
           // Clear filter cache when data changes
           filterCache.clear();
+          
+          // Use tick to ensure DOM updates are complete before applying filters
+          await tick();
           applyAdvancedFilters();
-          generateEnhancedAnalytics();
+          
+          // DISABLED: Defer analytics generation to avoid blocking and freezing
+          // Analytics will only be generated when user switches to analytics view
+          // setTimeout(() => {
+          //   try {
+          //     generateEnhancedAnalytics();
+          //   } catch (error) {
+          //     console.error('Error generating analytics after load:', error);
+          //   }
+          // }, 100);
         }
       }
     } catch (error) {
@@ -1401,6 +1609,7 @@
       clientNumber: '',
       amount: '',
       status: 'all',
+      completionStatus: 'all',
       dateRange: {
         start: '',
         end: ''
@@ -1882,16 +2091,93 @@
     }
   }
   
-  function getTrendIcon(trend) {
-    switch (trend) {
-      case 'positive':
-        return '📈';
-      case 'negative':
-        return '📉';
-      case 'neutral':
-        return '➡️';
-      default:
-        return '❓';
+  // 🎯 Drag and Drop Handlers
+  function handleDragOver(event) {
+    console.log('handleDragOver: Drag over drop zone', {
+      dataTransfer: event.dataTransfer,
+      types: event.dataTransfer?.types,
+      dropEffect: event.dataTransfer?.dropEffect
+    });
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    // Keep drop zone visible (already handled by global listeners)
+  }
+
+  function handleDragLeave(event) {
+    console.log('handleDragLeave: Drag leave drop zone', {
+      currentTarget: event.currentTarget,
+      relatedTarget: event.relatedTarget,
+      contains: event.currentTarget.contains(event.relatedTarget)
+    });
+    // Only hide if we're actually leaving the drop zone (not entering a child element)
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      // Don't hide here - let global dragend handle it
+    }
+  }
+
+  async function handleDrop(event) {
+    console.log('handleDrop: Drop event fired on cessions page', {
+      dataTransfer: event.dataTransfer,
+      types: event.dataTransfer?.types,
+      files: event.dataTransfer?.files,
+      items: event.dataTransfer?.items
+    });
+    event.preventDefault();
+    // Don't set isDragOver = false here - let global dragend handle it
+    
+    try {
+      // Try structured JSON payload first
+      let clientData = null;
+      try {
+        const raw = event.dataTransfer.getData('application/json');
+        console.log('handleDrop: Trying application/json', { raw });
+        if (raw) clientData = JSON.parse(raw);
+      } catch (e) {
+        console.debug('handleDrop: application/json parse failed', e);
+      }
+
+      // Fallback to plain text JSON (some browsers only allow text/plain)
+      if (!clientData) {
+        const rawPlain = event.dataTransfer.getData('text/plain');
+        console.log('handleDrop: Trying text/plain', { rawPlain });
+        if (rawPlain) {
+          try {
+            clientData = JSON.parse(rawPlain);
+          } catch (e) {
+            // If it's not JSON, maybe it's just an id string
+            clientData = { id: rawPlain, fullName: rawPlain };
+          }
+        }
+      }
+
+      // Another fallback (custom type)
+      if (!clientData) {
+        const idOnly = event.dataTransfer.getData('text/client-id');
+        console.log('handleDrop: Trying text/client-id', { idOnly });
+        if (idOnly) clientData = { id: idOnly };
+      }
+
+      console.log('handleDrop: Final extracted clientData', clientData);
+
+      if (clientData && clientData.id) {
+        console.log('handleDrop: Applying filter for client', clientData);
+        // Apply client filter
+        searchFields.clientId = String(clientData.id);
+        searchFields.clientName = clientData.fullName || searchFields.clientName || '';
+        applyAdvancedFilters();
+
+        // Show success message
+        showAlert(`✅ Successfully filtered cessions for client: ${clientData.fullName || clientData.id}`, 'success');
+        
+        // Clear search query to show filtered results clearly
+        searchQuery = '';
+      } else {
+        console.warn('handleDrop: no client id found in dropped data', event.dataTransfer);
+        showAlert('❌ Dropped item does not contain valid client information', 'warning');
+      }
+    } catch (error) {
+      console.error('Error handling drop:', error);
+      showAlert('❌ Failed to filter cessions by client', 'error');
     }
   }
 </script>
@@ -1904,8 +2190,33 @@
 
 <!-- 🌟 Modern Glassmorphism Layout -->
 <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" style="direction: {textDirection}">
+  <!-- 🎯 Full Page Drop Zone Overlay (always active, visible when dragging) -->
+  <div 
+    class="fixed inset-0 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 backdrop-blur-sm border-4 border-dashed border-purple-400 rounded-none flex items-center justify-center z-50 transition-opacity duration-300 {isDragOver ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}"
+    on:drop={(event) => { console.log('Drop zone drop event fired'); handleDrop(event); }}
+    on:dragover={(event) => { console.log('Drop zone dragover event fired'); handleDragOver(event); }}
+    on:dragleave={(event) => { console.log('Drop zone dragleave event fired'); handleDragLeave(event); }}
+    on:dragenter={(event) => { console.log('Drop zone dragenter event fired'); isDragOver = true; }}
+    role="region"
+    aria-label="Drop zone for client filtering - covers entire page"
+  >
+    <div class="text-center">
+      <div class="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+        </svg>
+      </div>
+      <h2 class="text-3xl font-bold text-purple-800 mb-4">Drop Client Here</h2>
+      <p class="text-purple-600 text-lg">Filter cessions for this client</p>
+    </div>
+  </div>
+  
   <!-- 🎯 Glassmorphism Header with Real-time Stats -->
-  <div class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5">
+  <div 
+    class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-white/20 shadow-lg shadow-black/5 relative"
+    role="region"
+    aria-label="Cessions page header"
+  >
     <div class="max-w-7xl mx-auto px-6 py-4">
       <div class="flex items-center justify-between" class:flex-row-reverse={isRTL}>
         <div class="flex items-center space-x-4" class:space-x-reverse={isRTL}>
@@ -2009,6 +2320,13 @@
   <div class="max-w-7xl mx-auto px-6 py-8">
     <!-- 📊 Analytics Dashboard -->
     {#if viewMode === 'analytics'}
+      <!-- Generate analytics ONLY when viewing this tab -->
+      {#if isComponentMounted && analytics.totalCessions === 0}
+        <div style="display: none;">
+          {generateEnhancedAnalytics()}
+        </div>
+      {/if}
+      
       <!-- 📊 Comprehensive Analytics Dashboard -->
       {#if cessions.length === 0}
         <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-12 shadow-xl border border-white/20 text-center">
@@ -3060,6 +3378,20 @@
                   <option value="finished">{$t('cessions.status.finished')}</option>
                   <option value="cancelled">{$t('cessions.status.cancelled')}</option>
                   <option value="pending">{$t('cessions.status.pending')}</option>
+                </select>
+              </div>
+              <div>
+                <label for="completion-filter" class="block text-sm font-medium text-gray-700 mb-2" style="text-align: {textAlign}">Completion Status</label>
+                <select 
+                  id="completion-filter"
+                  bind:value={searchFields.completionStatus} 
+                  on:change={handleSearchInput}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  style="text-align: {textAlign}"
+                >
+                  <option value="all">All Cessions</option>
+                  <option value="completed">Completed Only</option>
+                  <option value="incomplete">Incomplete Only</option>
                 </select>
               </div>
               <div>

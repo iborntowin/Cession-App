@@ -11,6 +11,7 @@
   import { t, currentLanguage } from '$lib/i18n';
   import { browser } from '$app/environment';
   import { emojiSupport } from '$lib/utils/emojiSupport';
+  import { draggedClient } from '$lib/stores';
 
   // Cleanup timeouts and intervals on component destroy
   onDestroy(() => {
@@ -2464,7 +2465,48 @@
               {#each filteredClients as client, index (client.id)}
                 <div 
                   class="group bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
-                  in:fly={{ y: hasSearchQuery ? 0 : 20, delay: hasSearchQuery ? 0 : index * 30, duration: hasSearchQuery ? 0 : 200 }}
+                  draggable="true"
+                  on:dragstart={(e) => {
+                    console.log('dragstart: Starting drag for client', client.id, client.fullName);
+                    try {
+                      // Primary structured payload
+                      e.dataTransfer.setData('application/json', JSON.stringify(client));
+                      console.log('dragstart: Set application/json data', JSON.stringify(client));
+                      // Fallbacks for browsers that restrict custom types when dragging between elements/routes
+                      e.dataTransfer.setData('text/plain', JSON.stringify({ id: client.id, fullName: client.fullName }));
+                      console.log('dragstart: Set text/plain data', JSON.stringify({ id: client.id, fullName: client.fullName }));
+                      e.dataTransfer.setData('text/client-id', String(client.id));
+                      console.log('dragstart: Set text/client-id data', String(client.id));
+                      e.dataTransfer.effectAllowed = 'copy';
+                      console.log('dragstart: Set effectAllowed to copy');
+                      
+                      // Set dragged client in global store for navigation persistence
+                      draggedClient.set(client);
+                      console.log('dragstart: Set draggedClient store', client);
+                    } catch (err) {
+                      console.warn('Dragstart: failed to set multiple dataTransfer types', err);
+                      // Ensure at least a minimal payload
+                      try { 
+                        e.dataTransfer.setData('text/plain', String(client.id)); 
+                        console.log('dragstart: Fallback - set text/plain to client id only', String(client.id));
+                      } catch (e2) { 
+                        console.error('dragstart: Even fallback failed', e2);
+                      }
+                    }
+                    // Add visual feedback
+                    e.currentTarget.style.opacity = '0.5';
+                    e.currentTarget.style.transform = 'scale(0.95)';
+                  }}
+                  on:dragend={(e) => {
+                    console.log('dragend: Drag ended for client (grid view)', client.id, client.fullName, {
+                      eventType: e.type,
+                      dataTransfer: e.dataTransfer,
+                      defaultPrevented: e.defaultPrevented
+                    });
+                    // Reset visual feedback
+                    e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
                   out:fly={{ y: hasSearchQuery ? 0 : -20, duration: hasSearchQuery ? 0 : 150 }}
                   on:click|stopPropagation={async (e) => {
                     e.preventDefault();
@@ -2493,10 +2535,12 @@
                         <p class="text-sm text-gray-500 font-medium">{formatClientNumber(client.clientNumber)}</p>
                       </div>
                     </div>
-                    <!-- Status Indicator -->
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {emojiSupport.getStatusIndicator(true)} {$t('clients.status.active')}
-                    </span>
+                    <!-- Drag Indicator -->
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center">
+                      <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                      </svg>
+                    </div>
                   </div>
 
                   <!-- Client Details -->
@@ -2548,7 +2592,48 @@
               {#each filteredClients as client, index (client.id)}
                 <div 
                   class="group bg-white rounded-xl shadow-lg border border-gray-100 p-4 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
-                  in:fly={{ x: hasSearchQuery ? 0 : -20, delay: hasSearchQuery ? 0 : index * 20, duration: hasSearchQuery ? 0 : 200 }}
+                  draggable="true"
+                  on:dragstart={(e) => {
+                    console.log('dragstart: Starting drag for client (list view)', client.id, client.fullName);
+                    try {
+                      // Primary structured payload
+                      e.dataTransfer.setData('application/json', JSON.stringify(client));
+                      console.log('dragstart: Set application/json data (list view)', JSON.stringify(client));
+                      // Fallbacks for browsers that restrict custom types when dragging between elements/routes
+                      e.dataTransfer.setData('text/plain', JSON.stringify({ id: client.id, fullName: client.fullName }));
+                      console.log('dragstart: Set text/plain data (list view)', JSON.stringify({ id: client.id, fullName: client.fullName }));
+                      e.dataTransfer.setData('text/client-id', String(client.id));
+                      console.log('dragstart: Set text/client-id data (list view)', String(client.id));
+                      e.dataTransfer.effectAllowed = 'copy';
+                      console.log('dragstart: Set effectAllowed to copy (list view)');
+                      
+                      // Set dragged client in global store for navigation persistence
+                      draggedClient.set(client);
+                      console.log('dragstart: Set draggedClient store (list view)', client);
+                    } catch (err) {
+                      console.warn('Dragstart: failed to set multiple dataTransfer types (list view)', err);
+                      // Ensure at least a minimal payload
+                      try { 
+                        e.dataTransfer.setData('text/plain', String(client.id)); 
+                        console.log('dragstart: Fallback - set text/plain to client id only (list view)', String(client.id));
+                      } catch (e2) { 
+                        console.error('dragstart: Even fallback failed (list view)', e2);
+                      }
+                    }
+                    // Add visual feedback
+                    e.currentTarget.style.opacity = '0.5';
+                    e.currentTarget.style.transform = 'scale(0.95)';
+                  }}
+                  on:dragend={(e) => {
+                    console.log('dragend: Drag ended for client (list view)', client.id, client.fullName, {
+                      eventType: e.type,
+                      dataTransfer: e.dataTransfer,
+                      defaultPrevented: e.defaultPrevented
+                    });
+                    // Reset visual feedback
+                    e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
                   out:fly={{ x: hasSearchQuery ? 0 : 20, duration: hasSearchQuery ? 0 : 150 }}
                   on:click|stopPropagation={async (e) => {
                     e.preventDefault();
@@ -2581,6 +2666,12 @@
                       </div>
                     </div>
                     <div class="flex items-center space-x-3">
+                      <!-- Drag Indicator -->
+                      <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                        </svg>
+                      </div>
                       <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         {emojiSupport.getStatusIndicator(true)} {$t('clients.status.active')}
                       </span>

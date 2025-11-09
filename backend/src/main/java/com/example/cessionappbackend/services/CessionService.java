@@ -62,22 +62,58 @@ public class CessionService {
     }
 
     @Transactional(readOnly = true)
-    public List<CessionDTO> getCessionsByClientId(UUID clientId) {
-        logger.debug("CessionService.getCessionsByClientId called with clientId: {}", clientId);
+    public List<CessionDTO> getCessionsByClientFiltered(UUID clientId, String status, String completionStatus) {
+        logger.debug("CessionService.getCessionsByClientFiltered called with clientId: {}, status: {}, completionStatus: {}", clientId, status, completionStatus);
         List<Cession> cessions = cessionRepository.findByClientId(clientId);
         logger.debug("Found {} cessions in repository for clientId: {}", cessions.size(), clientId);
+
+        // Apply status filtering
+        if (status != null && !status.equalsIgnoreCase("all")) {
+            cessions = cessions.stream()
+                .filter(cession -> cession.getStatus() != null && cession.getStatus().equalsIgnoreCase(status))
+                .collect(Collectors.toList());
+        }
+
+        // Apply completion status filtering
+        if (completionStatus != null && !completionStatus.equalsIgnoreCase("all")) {
+            cessions = cessions.stream()
+                .filter(cession -> {
+                    boolean isCompleted = cession.getStatus() != null &&
+                        (cession.getStatus().equalsIgnoreCase("FINISHED") ||
+                         cession.getStatus().equalsIgnoreCase("COMPLETED"));
+
+                    if (completionStatus.equalsIgnoreCase("completed")) {
+                        return isCompleted;
+                    } else if (completionStatus.equalsIgnoreCase("incomplete")) {
+                        return !isCompleted;
+                    }
+                    return true;
+                })
+                .collect(Collectors.toList());
+        }
+
         List<CessionDTO> result = cessions.stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
-        logger.debug("Converted {} cessions to DTOs for clientId: {}", result.size(), clientId);
+        logger.debug("Converted {} filtered cessions to DTOs for clientId: {}", result.size(), clientId);
         return result;
     }
 
     @Transactional(readOnly = true)
-    public List<CessionDTO> searchCessions(String name, String job, String clientNumber, String clientCin, String phoneNumber, String workplace, String address, String workerNumber) {
+    public List<CessionDTO> getCessionsByClientId(UUID clientId) {
+        logger.debug("CessionService.getCessionsByClientId called with clientId: {}", clientId);
+        List<Cession> cessions = cessionRepository.findByClientId(clientId);
+        logger.debug("Found {} cessions for clientId: {}", cessions.size(), clientId);
+        return cessions.stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CessionDTO> searchCessions(String name, String job, String clientNumber, String clientCin, String phoneNumber, String workplace, String address, String workerNumber, String completionStatus) {
         try {
-            logger.debug("Searching cessions with criteria - name: {}, job: {}, clientNumber: {}, clientCin: {}, phoneNumber: {}, workplace: {}, address: {}, workerNumber: {}", 
-                    name, job, clientNumber, clientCin, phoneNumber, workplace, address, workerNumber);
+            logger.debug("Searching cessions with criteria - name: {}, job: {}, clientNumber: {}, clientCin: {}, phoneNumber: {}, workplace: {}, address: {}, workerNumber: {}, completionStatus: {}", 
+                    name, job, clientNumber, clientCin, phoneNumber, workplace, address, workerNumber, completionStatus);
 
             // Validate client number if provided
             if (clientNumber != null && !clientNumber.matches("\\d+")) {
@@ -134,6 +170,17 @@ public class CessionService {
                 }
             }
 
+            // Validate completion status
+            if (completionStatus != null) {
+                completionStatus = completionStatus.trim().toLowerCase();
+                if (!completionStatus.equals("completed") && !completionStatus.equals("incomplete") && !completionStatus.equals("all")) {
+                    throw new IllegalArgumentException("Completion status must be 'completed', 'incomplete', or 'all'");
+                }
+            }
+
+            // Create final variable for lambda use
+            final String finalCompletionStatus = completionStatus;
+
             List<Cession> cessions = cessionRepository.searchCessions(
                 name,
                 job,
@@ -144,6 +191,24 @@ public class CessionService {
                 address,
                 workerNumber
             );
+
+            // Apply completion status filtering after repository query
+            if (finalCompletionStatus != null && !finalCompletionStatus.equals("all")) {
+                cessions = cessions.stream()
+                    .filter(cession -> {
+                        boolean isCompleted = cession.getStatus() != null &&
+                            (cession.getStatus().equalsIgnoreCase("FINISHED") ||
+                             cession.getStatus().equalsIgnoreCase("COMPLETED"));
+
+                        if (finalCompletionStatus.equals("completed")) {
+                            return isCompleted;
+                        } else if (finalCompletionStatus.equals("incomplete")) {
+                            return !isCompleted;
+                        }
+                        return true;
+                    })
+                    .collect(Collectors.toList());
+            }
 
             logger.debug("Found {} cessions matching search criteria", cessions.size());
 
