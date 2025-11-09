@@ -85,7 +85,7 @@ jobs:
   bump-version:
     needs: [test-backend, test-frontend]
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.create_release == 'true' || github.event.inputs.create_release == true)
     outputs:
       new_version: ${{ steps.version.outputs.new_version }}
     steps:
@@ -117,9 +117,15 @@ jobs:
         CURRENT_VERSION=$(node -p "require('./package.json').version")
         echo "📦 Current version: $CURRENT_VERSION"
         
+        # Get version type (default to patch if not provided)
+        VERSION_TYPE="${{ github.event.inputs.version_type }}"
+        if [ -z "$VERSION_TYPE" ]; then
+          VERSION_TYPE="patch"
+        fi
+        echo "⬆️  Bumping $VERSION_TYPE version..."
+        
         # Bump version
-        echo "⬆️  Bumping ${{ github.event.inputs.version_type }} version..."
-        npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
+        npm version $VERSION_TYPE --no-git-tag-version
         
         NEW_VERSION=$(node -p "require('./package.json').version")
         echo "✨ New version: $NEW_VERSION"
@@ -243,7 +249,7 @@ jobs:
   release:
     needs: build-tauri
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.create_release == 'true' || github.event.inputs.create_release == true))
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -293,6 +299,10 @@ jobs:
       if: github.event_name == 'workflow_dispatch'
       run: |
         TAG_NAME="v${{ needs.bump-version.outputs.new_version }}"
+        VERSION_TYPE="${{ github.event.inputs.version_type }}"
+        if [ -z "$VERSION_TYPE" ]; then
+          VERSION_TYPE="patch"
+        fi
         echo "📦 Checking if release exists for $TAG_NAME..."
 
         # Check if release already exists
@@ -308,7 +318,7 @@ This release was automatically created via GitHub Actions CI/CD pipeline.
 
 ### 📋 Details
 - **Version**: ${{ needs.bump-version.outputs.new_version }}
-- **Type**: ${{ github.event.inputs.version_type }} update
+- **Type**: $VERSION_TYPE update
 - **Build**: Automated Windows build
 - **Date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
 
