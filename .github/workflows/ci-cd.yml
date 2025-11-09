@@ -1,1656 +1,395 @@
-name: '🚀 Cession App CI/CD Pipeline'name: CI/CD Pipeline
+name: CI/CD Pipeline
 
-
-
-on:on:
-
-  push:  push:
-
-    branches: [ main, master ]    branches: [ main, master ]
-
-    paths-ignore:  pull_request:
-
-      - '*.md'    branches: [ main, master ]
-
-      - 'docs/**'  release:
-
-      - '.github/ISSUE_TEMPLATE/**'    types: [ published ]
-
-  pull_request:  workflow_dispatch:
-
-    branches: [ main, master ]    inputs:
-
-    paths-ignore:      version_type:
-
-      - '*.md'        description: 'Version increment type'
-
-      - 'docs/**'        required: false
-
-      - '.github/ISSUE_TEMPLATE/**'        default: 'patch'
-
-  release:        type: string
-
-    types: [ published ]      create_release:
-
-  workflow_dispatch:        description: 'Create a new release after successful build'
-
-    inputs:        required: false
-
-      version_type:        default: 'false'
-
-        description: 'Version increment type (patch/minor/major)'        type: string
-
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version increment type'
         required: false
-
-        default: 'patch'permissions:
-
-        type: choice  contents: write
-
-        options:  pull-requests: write
-
-          - patch
-
-          - minorjobs:
-
-          - major  test-backend:
-
-      create_release:    runs-on: ubuntu-latest
-
-        description: 'Create a new release after successful build'    steps:
-
-        required: false    - uses: actions/checkout@v4
-
-        default: 'false'
-
-        type: choice    - name: Set up JDK 17
-
-        options:      uses: actions/setup-java@v4
-
-          - 'true'      with:
-
-          - 'false'        java-version: '17'
-
-      skip_tests:        distribution: 'temurin'
-
-        description: 'Skip running tests (not recommended for production)'        cache: maven
-
-        required: false
-
-        default: 'false'    - name: Cache Maven dependencies
-
-        type: choice      uses: actions/cache@v4
-
-        options:      with:
-
-          - 'true'        path: ~/.m2
-
-          - 'false'        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-
-      notify_on_completion:        restore-keys: ${{ runner.os }}-m2
-
-        description: 'Send notifications when workflow completes'
-
-        required: false    - name: Build with Maven
-
-        default: 'true'      run: cd backend && mvn clean compile
-
+        default: 'patch'
         type: choice
-
-        options:    - name: Run backend tests
-
-          - 'true'      run: cd backend && mvn test
-
+        options:
+          - patch
+          - minor
+          - major
+      create_release:
+        description: 'Create a new release after successful build'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
           - 'false'
 
-    - name: Upload test results
-
-# Environment variables      uses: actions/upload-artifact@v4
-
-env:      if: always()
-
-  NODE_VERSION: '18'      with:
-
-  JAVA_VERSION: '17'        name: backend-test-results
-
-  RUST_VERSION: 'stable'        path: backend/target/surefire-reports/
-
-  WORKFLOW_START_TIME: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
-
-  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}  test-frontend:
-
-    runs-on: ubuntu-latest
-
-# Permissions    steps:
-
-permissions:    - uses: actions/checkout@v4
-
+permissions:
   contents: write
-
-  pull-requests: write    - name: Set up Node.js
-
-  issues: write      uses: actions/setup-node@v4
-
-  packages: write      with:
-
-  id-token: write        node-version: '18'
-
-        cache: 'npm'
-
-# Concurrency controls        cache-dependency-path: frontend/package-lock.json
-
-concurrency:
-
-  group: ${{ github.workflow }}-${{ github.ref }}    - name: Install frontend dependencies
-
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}      run: cd frontend && npm ci
-
-
-
-jobs:    - name: Run frontend tests
-
-  # ==========================================      run: cd frontend && npm run test:coverage
-
-  # VALIDATION & PREPARATION
-
-  # ==========================================    - name: Upload test results
-
-      uses: actions/upload-artifact@v4
-
-  validate-workflow:      if: always()
-
-    name: '🔍 Validate Workflow Configuration'      with:
-
-    runs-on: ubuntu-latest        name: frontend-test-results
-
-    timeout-minutes: 5        path: frontend/coverage/
-
-    outputs:
-
-      is_valid: ${{ steps.validation.outputs.is_valid }}  bump-version:
-
-      validation_errors: ${{ steps.validation.outputs.errors }}    needs: [test-backend, test-frontend]
-
-      should_skip: ${{ steps.validation.outputs.should_skip }}    runs-on: ubuntu-latest
-
-    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.create_release == 'true' || github.event.inputs.create_release == true)
-
-    steps:    outputs:
-
-      - name: '📥 Checkout Repository'      new_version: ${{ steps.version.outputs.new_version }}
-
-        uses: actions/checkout@v4    steps:
-
-        with:    - uses: actions/checkout@v4
-
-          fetch-depth: 1      with:
-
-        fetch-depth: 0
-
-      - name: '🔍 Validate Repository Structure'
-
-        id: validation    - name: Setup Node.js
-
-        run: |      uses: actions/setup-node@v4
-
-          echo "🔍 Starting comprehensive validation..."      with:
-
-        node-version: '18'
-
-          VALIDATION_ERRORS=""
-
-          IS_VALID=true    - name: Setup Java
-
-          SHOULD_SKIP=false      uses: actions/setup-java@v4
-
-      with:
-
-          # Check required directories        java-version: '17'
-
-          REQUIRED_DIRS=("backend" "frontend" "frontend/src-tauri")        distribution: 'temurin'
-
-          for dir in "${REQUIRED_DIRS[@]}"; do        cache: maven
-
-            if [ ! -d "$dir" ]; then
-
-              VALIDATION_ERRORS="${VALIDATION_ERRORS}Missing required directory: $dir\n"    - name: Install frontend dependencies
-
-              IS_VALID=false      run: cd frontend && npm ci
-
-            fi
-
-          done    - name: Bump version
-
-      id: version
-
-          # Check required files      run: |
-
-          REQUIRED_FILES=("backend/pom.xml" "frontend/package.json" "frontend/src-tauri/tauri.conf.json")        cd frontend
-
-          for file in "${REQUIRED_FILES[@]}"; do        
-
-            if [ ! -f "$file" ]; then        # Show current version
-
-              VALIDATION_ERRORS="${VALIDATION_ERRORS}Missing required file: $file\n"        CURRENT_VERSION=$(node -p "require('./package.json').version")
-
-              IS_VALID=false        echo "📦 Current version: $CURRENT_VERSION"
-
-            fi        
-
-          done        # Get version type (default to patch if not provided)
-
-        VERSION_TYPE="${{ github.event.inputs.version_type }}"
-
-          # Validate workflow_dispatch inputs        if [ -z "$VERSION_TYPE" ]; then
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then          VERSION_TYPE="patch"
-
-            VERSION_TYPE="${{ github.event.inputs.version_type }}"        fi
-
-            CREATE_RELEASE="${{ github.event.inputs.create_release }}"        echo "⬆️  Bumping $VERSION_TYPE version..."
-
-        
-
-            if [[ ! "$VERSION_TYPE" =~ ^(patch|minor|major)$ ]]; then        # Bump version
-
-              VALIDATION_ERRORS="${VALIDATION_ERRORS}Invalid version_type: $VERSION_TYPE (must be patch/minor/major)\n"        npm version $VERSION_TYPE --no-git-tag-version
-
-              IS_VALID=false        
-
-            fi        NEW_VERSION=$(node -p "require('./package.json').version")
-
-        echo "✨ New version: $NEW_VERSION"
-
-            if [[ ! "$CREATE_RELEASE" =~ ^(true|false)$ ]]; then        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-
-              VALIDATION_ERRORS="${VALIDATION_ERRORS}Invalid create_release: $CREATE_RELEASE (must be true/false)\n"
-
-              IS_VALID=false        # Update tauri.conf.json
-
-            fi        echo "🔧 Updating Tauri configuration..."
-
-          fi        cd src-tauri
-
-        jq ".version = \"$NEW_VERSION\"" tauri.conf.json > temp.json && mv temp.json tauri.conf.json
-
-          # Check for uncommitted changes (only for push events)
-
-          if [ "${{ github.event_name }}" = "push" ]; then    - name: Commit version bump
-
-            if ! git diff --quiet; then      run: |
-
-              echo "⚠️  Warning: Uncommitted changes detected in working directory"        echo "💾 Checking for version changes..."
-
-            fi        git config --local user.email "action@github.com"
-
-          fi        git config --local user.name "GitHub Action"
-
-
-
-          # Check branch protection (skip if not applicable)        # Check if there are any changes to commit
-
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.base_ref }}" = "main" ] || [ "${{ github.base_ref }}" = "master" ]; then        if git diff --quiet && git diff --staged --quiet; then
-
-            echo "🔒 Protected branch detected - full validation required"          echo "ℹ️  No changes to commit (version already exists)"
-
-          fi        else
-
-          git add .
-
-          # Output results          git commit -m "⬆️ Bump version to ${{ steps.version.outputs.new_version }}"
-
-          if [ "$IS_VALID" = true ]; then          echo "✅ Changes committed"
-
-            echo "✅ All validations passed"        fi
-
-          else
-
-            echo "❌ Validation failed:"    - name: Push changes
-
-            echo -e "$VALIDATION_ERRORS"      run: |
-
-          fi        echo "🚀 Checking for changes to push..."
-
-        # Check if there are commits to push
-
-          # Escape newlines for GitHub output        if git log --oneline origin/master..HEAD | grep -q .; then
-
-          VALIDATION_ERRORS_ESCAPED=$(echo -n "$VALIDATION_ERRORS" | sed 's/%/%25/g; s/\r/%0D/g; s/\n/%0A/g')          git push
-
-          echo "✅ Changes pushed successfully"
-
-          echo "is_valid=$IS_VALID" >> $GITHUB_OUTPUT        else
-
-          echo "errors=$VALIDATION_ERRORS_ESCAPED" >> $GITHUB_OUTPUT          echo "ℹ️  No new commits to push"
-
-          echo "should_skip=$SHOULD_SKIP" >> $GITHUB_OUTPUT        fi
-
-
-
-      - name: '📢 Report Validation Results'    - name: Create tag
-
-        if: always()      run: |
-
-        run: |        TAG_NAME="v${{ steps.version.outputs.new_version }}"
-
-          if [ "${{ steps.validation.outputs.is_valid }}" = "true" ]; then        echo "🏷️  Checking/creating git tag $TAG_NAME..."
-
-            echo "✅ Workflow validation successful"
-
-          else        # Check if tag already exists
-
-            echo "❌ Workflow validation failed:"        if git tag -l | grep -q "^$TAG_NAME$"; then
-
-            echo "${{ steps.validation.outputs.validation_errors }}"          echo "✅ Tag $TAG_NAME already exists, using existing tag"
-
-            if [ "${{ steps.validation.outputs.should_skip }}" != "true" ]; then        else
-
-              exit 1          echo "📝 Creating new tag $TAG_NAME"
-
-            fi          git tag "$TAG_NAME"
-
-          fi        fi
-
-
-
-  # ==========================================        # Push the tag (this will work whether it was just created or already existed)
-
-  # BACKEND TESTING        git push origin "$TAG_NAME"
-
-  # ==========================================        echo "✅ Tag $TAG_NAME pushed successfully"
-
-
-
-  test-backend:  build-tauri:
-
-    name: '🔧 Backend Tests'    needs: [test-backend, test-frontend]
-
-    runs-on: ubuntu-latest    if: always() && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
-
-    timeout-minutes: 15    strategy:
-
-    needs: validate-workflow      fail-fast: false
-
-    if: needs.validate-workflow.outputs.is_valid == 'true' && (needs.validate-workflow.outputs.should_skip != 'true')      matrix:
-
-        include:
-
-    steps:          - platform: 'windows-latest'
-
-      - name: '📥 Checkout Repository'            args: '--target x86_64-pc-windows-msvc'
-
-        uses: actions/checkout@v4    runs-on: ${{ matrix.platform }}
-
+  pull-requests: write
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v4
 
-      - name: '☕ Setup Java ${{ env.JAVA_VERSION }}'    - name: Checkout repository
-
-        uses: actions/setup-java@v4      uses: actions/checkout@v4
-
-        with:
-
-          java-version: '${{ env.JAVA_VERSION }}'    - name: Setup Node.js
-
-          distribution: 'temurin'      uses: actions/setup-node@v4
-
-          cache: maven      with:
-
-        node-version: '18'
-
-      - name: '📦 Cache Maven Dependencies'        cache: 'npm'
-
-        uses: actions/cache@v4        cache-dependency-path: frontend/package-lock.json
-
-        with:
-
-          path: ~/.m2    - name: Setup Java
-
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}      uses: actions/setup-java@v4
-
-          restore-keys: ${{ runner.os }}-m2      with:
-
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
         java-version: '17'
+        distribution: 'temurin'
+        cache: maven
 
-      - name: '🔍 Validate Backend Configuration'        distribution: 'temurin'
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
 
-        run: |        cache: maven
+    - name: Build with Maven
+      run: cd backend && mvn clean compile
 
-          echo "🔍 Validating backend configuration..."
+    - name: Run backend tests
+      run: cd backend && mvn test
 
-    - name: Rust setup
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: backend-test-results
+        path: backend/target/surefire-reports/
 
-          # Check pom.xml exists and is valid      uses: dtolnay/rust-toolchain@stable
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
 
-          if [ ! -f "backend/pom.xml" ]; then
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
 
-            echo "❌ backend/pom.xml not found"    - name: Rust cache
-
-            exit 1      uses: swatinem/rust-cache@v2
-
-          fi      with:
-
-        workspaces: './frontend/src-tauri -> target'
-
-          # Validate pom.xml structure
-
-          if ! grep -q "<artifactId>" backend/pom.xml; then    - name: Build backend
-
-            echo "❌ Invalid pom.xml structure"      run: |
-
-            exit 1        cd backend
-
-          fi        mvn clean package -DskipTests
-
-
-
-          echo "✅ Backend configuration valid"    - name: Copy backend JAR
-
-      run: |
-
-      - name: '🔨 Compile Backend'        mkdir -p frontend/src-tauri/backend
-
-        run: |        cp backend/target/cession-app-backend-0.0.1-SNAPSHOT.jar frontend/src-tauri/backend/
-
-          echo "🔨 Compiling backend..."
-
-          cd backend    - name: Install frontend dependencies
-
+    - name: Install frontend dependencies
       run: cd frontend && npm ci
 
-          # Retry logic for compilation
-
-          MAX_RETRIES=3    - name: Build frontend
-
-          RETRY_COUNT=0      run: cd frontend && npm run build:production
-
-
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do    - name: Build Tauri app
-
-            if mvn clean compile -q; then      uses: tauri-apps/tauri-action@v0
-
-              echo "✅ Backend compilation successful"      env:
-
-              break        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            else      with:
-
-              RETRY_COUNT=$((RETRY_COUNT + 1))        projectPath: './frontend/src-tauri'
-
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then        args: ${{ matrix.args }}
-
-                echo "⚠️  Compilation failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
-
-                sleep $((RETRY_COUNT * 5))    - name: Upload artifacts
-
-              else      uses: actions/upload-artifact@v4
-
-                echo "❌ Backend compilation failed after $MAX_RETRIES attempts"      with:
-
-                exit 1        name: artifacts-${{ matrix.platform }}-${{ matrix.args }}
-
-              fi        path: ./frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/**
-
-            fi        if-no-files-found: error
-
-          done
-
-  release:
-
-      - name: '🧪 Run Backend Tests'    needs: build-tauri
-
-        id: test    runs-on: ubuntu-latest
-
-        run: |    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.create_release == 'true' || github.event.inputs.create_release == true))
-
-          echo "🧪 Running backend tests..."    steps:
-
-          cd backend    - name: Checkout repository
-
-      uses: actions/checkout@v4
-
-          # Skip tests if requested (not recommended)
-
-          if [ "${{ github.event.inputs.skip_tests }}" = "true" ]; then    - name: Download all artifacts
-
-            echo "⚠️  Skipping backend tests as requested"      run: |
-
-            echo "test_results=skipped" >> $GITHUB_OUTPUT        echo "📥 Downloading build artifacts..."
-
-            exit 0        # Download all artifacts
-
-          fi        mkdir -p ./artifacts
-
-
-
-          # Run tests with retry logic    - name: Download all artifacts
-
-          MAX_RETRIES=2      uses: actions/download-artifact@v4
-
-          RETRY_COUNT=0      with:
-
-        path: ./artifacts
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-
-            if mvn test -q; then    - name: Display structure of downloaded files
-
-              echo "✅ Backend tests passed"      run: |
-
-              echo "test_results=passed" >> $GITHUB_OUTPUT        echo "📂 Build artifacts downloaded:"
-
-              break        find ./artifacts -type f -name "*.exe" -o -name "*.msi" | head -10
-
-            else
-
-              RETRY_COUNT=$((RETRY_COUNT + 1))    - name: Create latest.json for auto-updates
-
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then      run: |
-
-                echo "⚠️  Tests failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."        if [ "${{ github.event_name }}" = "release" ]; then
-
-                sleep $((RETRY_COUNT * 10))          VERSION=${GITHUB_REF#refs/tags/v}
-
-              else        elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-
-                echo "❌ Backend tests failed after $MAX_RETRIES attempts"          VERSION=${{ needs.bump-version.outputs.new_version }}
-
-                echo "test_results=failed" >> $GITHUB_OUTPUT        fi
-
-                exit 1        echo "🔖 Creating latest.json for version: $VERSION"
-
-              fi
-
-            fi        # Create latest.json for Tauri auto-updates
-
-          done        cat > latest.json << EOF
-
-        continue-on-error: ${{ github.event.inputs.skip_tests == 'true' }}        {
-
-          "version": "$VERSION",
-
-      - name: '📤 Upload Test Results'          "notes": "Release $VERSION - Automated build",
-
-        uses: actions/upload-artifact@v4          "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
-
-        if: always()          "platforms": {
-
-        with:            "windows-x86_64": {
-
-          name: backend-test-results-${{ github.run_id }}              "signature": "",
-
-          path: backend/target/surefire-reports/              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_x64-setup.exe"
-
-          retention-days: 30            }
-
-          }
-
-      - name: '📊 Generate Test Summary'        }
-
-        if: always()        EOF
-
-        run: |        echo "✅ latest.json created"
-
-          if [ -d "backend/target/surefire-reports" ]; then
-
-            TEST_COUNT=$(find backend/target/surefire-reports -name "*.xml" | wc -l)    - name: Create GitHub Release
-
-            echo "📊 Backend test summary: $TEST_COUNT test files generated"      if: github.event_name == 'workflow_dispatch'
-
-          else      run: |
-
-            echo "📊 No backend test results found"        TAG_NAME="v${{ needs.bump-version.outputs.new_version }}"
-
-          fi        VERSION_TYPE="${{ github.event.inputs.version_type }}"
-
-        if [ -z "$VERSION_TYPE" ]; then
-
-  # ==========================================          VERSION_TYPE="patch"
-
-  # FRONTEND TESTING        fi
-
-  # ==========================================        echo "📦 Checking if release exists for $TAG_NAME..."
-
-
-
-  test-frontend:        # Check if release already exists
-
-    name: '🌐 Frontend Tests'        if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-
-    runs-on: ubuntu-latest          echo "✅ Release for $TAG_NAME already exists, skipping creation"
-
-    timeout-minutes: 15        else
-
-    needs: validate-workflow          echo "🚀 Creating new release for $TAG_NAME..."
-
-    if: needs.validate-workflow.outputs.is_valid == 'true' && (needs.validate-workflow.outputs.should_skip != 'true')          gh release create "$TAG_NAME" \
-
-            --title "Release ${{ needs.bump-version.outputs.new_version }}" \
-
-    steps:            --notes "## 🚀 Release ${{ needs.bump-version.outputs.new_version }}
-
-      - name: '📥 Checkout Repository'
-
-        uses: actions/checkout@v4This release was automatically created via GitHub Actions CI/CD pipeline.
-
-
-
-      - name: '📦 Setup Node.js ${{ env.NODE_VERSION }}'### 📋 Details
-
-        uses: actions/setup-node@v4- **Version**: ${{ needs.bump-version.outputs.new_version }}
-
-        with:- **Type**: $VERSION_TYPE update
-
-          node-version: '${{ env.NODE_VERSION }}'- **Build**: Automated Windows build
-
-          cache: 'npm'- **Date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-
-          cache-dependency-path: frontend/package-lock.json
-
-### 📦 Downloads
-
-      - name: '🔍 Validate Frontend Configuration'- Windows Installer (.exe)
-
-        run: |- Windows MSI (.msi)
-
-          echo "🔍 Validating frontend configuration..."- Auto-update manifest (latest.json)" \
-
-            --draft=false \
-
-          # Check package.json exists and is valid            --prerelease=false
-
-          if [ ! -f "frontend/package.json" ]; then          echo "✅ Release created successfully"
-
-            echo "❌ frontend/package.json not found"        fi
-
-            exit 1      env:
-
-          fi        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
-
-          # Validate package.json structure    - name: Upload Release Assets
-
-          if ! jq -e '.name and .version' frontend/package.json > /dev/null; then      if: github.event_name == 'workflow_dispatch'
-
-            echo "❌ Invalid package.json structure"      run: |
-
-            exit 1        VERSION=${{ needs.bump-version.outputs.new_version }}
-
-          fi        TAG_NAME="v$VERSION"
-
-        echo "📤 Uploading release assets for version $VERSION..."
-
-          # Check for required scripts
-
-          if ! jq -e '.scripts["test:coverage"]' frontend/package.json > /dev/null; then        # Upload latest.json (use --clobber to overwrite if exists)
-
-            echo "⚠️  Warning: test:coverage script not found in package.json"        echo "⬆️  Uploading latest.json..."
-
-          fi        gh release upload "$TAG_NAME" ./latest.json --clobber
-
-
-
-          echo "✅ Frontend configuration valid"        # Find and upload MSI file
-
-        MSI_FILE=$(find ./artifacts -name "*.msi" | head -1)
-
-      - name: '📦 Install Dependencies'        if [ -f "$MSI_FILE" ]; then
-
-        run: |          echo "⬆️  Uploading MSI installer: $(basename "$MSI_FILE")"
-
-          echo "📦 Installing frontend dependencies..."          gh release upload "$TAG_NAME" "$MSI_FILE" --clobber
-
-          cd frontend        else
-
-          echo "⚠️  MSI file not found"
-
-          # Retry logic for npm install        fi
-
-          MAX_RETRIES=3
-
-          RETRY_COUNT=0        # Find and upload EXE file
-
-        EXE_FILE=$(find ./artifacts -name "*.exe" | head -1)
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do        if [ -f "$EXE_FILE" ]; then
-
-            if npm ci --prefer-offline --no-audit; then          echo "⬆️  Uploading EXE installer: $(basename "$EXE_FILE")"
-
-              echo "✅ Dependencies installed successfully"          gh release upload "$TAG_NAME" "$EXE_FILE" --clobber
-
-              break        else
-
-            else          echo "⚠️  EXE file not found"
-
-              RETRY_COUNT=$((RETRY_COUNT + 1))        fi
-
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-
-                echo "⚠️  Dependency installation failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."        echo "✅ All assets uploaded successfully!"
-
-                npm cache clean --force
-
-                sleep $((RETRY_COUNT * 5))    - name: Upload latest.json (GitHub Release)
-
-              else      if: github.event_name == 'release'
-
-                echo "❌ Dependency installation failed after $MAX_RETRIES attempts"      uses: actions/upload-release-asset@v1
-
-                exit 1      env:
-
-              fi        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            fi      with:
-
-          done        upload_url: ${{ github.event.release.upload_url }}
-
-        asset_path: ./latest.json
-
-      - name: '🔨 Build Frontend'        asset_name: latest.json
-
-        run: |        asset_content_type: application/json
-
-          echo "🔨 Building frontend..."
-
-          cd frontend    - name: Upload Windows MSI (GitHub Release)
-
-      if: github.event_name == 'release'
-
-          # Check if build script exists      uses: actions/upload-release-asset@v1
-
-          if jq -e '.scripts.build' package.json > /dev/null; then      env:
-
-            if ! npm run build --if-present; then        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-              echo "❌ Frontend build failed"      with:
-
-              exit 1        upload_url: ${{ github.event.release.upload_url }}
-
-            fi        asset_path: ./artifacts/artifacts-windows-latest---target-x86_64-pc-windows-msvc/msi/Cession.Management.App_${VERSION}_x64_en-US.msi
-
-            echo "✅ Frontend build successful"        asset_name: Cession.Management.App_${VERSION}_x64_en-US.msi
-
-          else        asset_content_type: application/x-msi
-
-            echo "⚠️  No build script found, skipping build"
-
-          fi    - name: Upload Windows NSIS (GitHub Release)
-
-      if: github.event_name == 'release'
-
-      - name: '🧪 Run Frontend Tests'      uses: actions/upload-release-asset@v1
-
-        id: test      env:
-
-        run: |        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          echo "🧪 Running frontend tests..."      with:
-
-          cd frontend        upload_url: ${{ github.event.release.upload_url }}
-
-        asset_path: ./artifacts/artifacts-windows-latest---target-x86_64-pc-windows-msvc/nsis/Cession.Management.App_${VERSION}_x64-setup.exe
-
-          # Skip tests if requested        asset_name: Cession.Management.App_${VERSION}_x64-setup.exe
-
-          if [ "${{ github.event.inputs.skip_tests }}" = "true" ]; then        asset_content_type: application/x-msdownload
-
-            echo "⚠️  Skipping frontend tests as requested"
-            echo "test_results=skipped" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Determine test command
-          TEST_COMMAND="test:coverage"
-          if ! jq -e '.scripts["test:coverage"]' package.json > /dev/null; then
-            TEST_COMMAND="test"
-            if ! jq -e '.scripts.test' package.json > /dev/null; then
-              echo "⚠️  No test script found, skipping tests"
-              echo "test_results=skipped" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-          fi
-
-          # Run tests with retry logic
-          MAX_RETRIES=2
-          RETRY_COUNT=0
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if npm run $TEST_COMMAND; then
-              echo "✅ Frontend tests passed"
-              echo "test_results=passed" >> $GITHUB_OUTPUT
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "⚠️  Tests failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
-                sleep $((RETRY_COUNT * 10))
-              else
-                echo "❌ Frontend tests failed after $MAX_RETRIES attempts"
-                echo "test_results=failed" >> $GITHUB_OUTPUT
-                exit 1
-              fi
-            fi
-          done
-        continue-on-error: ${{ github.event.inputs.skip_tests == 'true' }}
-
-      - name: '📤 Upload Test Results'
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: frontend-test-results-${{ github.run_id }}
-          path: frontend/coverage/
-          retention-days: 30
-
-      - name: '📊 Generate Test Summary'
-        if: always()
-        run: |
-          if [ -d "frontend/coverage" ]; then
-            COVERAGE_FILES=$(find frontend/coverage -name "*.json" -o -name "*.html" | wc -l)
-            echo "📊 Frontend test summary: $COVERAGE_FILES coverage files generated"
-          else
-            echo "📊 No frontend test coverage found"
-          fi
-
-  # ==========================================
-  # VERSION MANAGEMENT
-  # ==========================================
-
-  version-management:
-    name: '📦 Version Management'
+    - name: Run frontend tests
+      run: cd frontend && npm run test:coverage
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: frontend-test-results
+        path: frontend/coverage/
+
+  bump-version:
+    needs: [test-backend, test-frontend]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [validate-workflow, test-backend, test-frontend]
-    if: >
-      needs.validate-workflow.outputs.is_valid == 'true' &&
-      (needs.validate-workflow.outputs.should_skip != 'true') &&
-      github.event_name == 'workflow_dispatch' &&
-      (github.event.inputs.create_release == 'true')
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
     outputs:
       new_version: ${{ steps.version.outputs.new_version }}
-      version_bumped: ${{ steps.version.outputs.version_bumped }}
-      tag_created: ${{ steps.tag.outputs.tag_created }}
-
     steps:
-      - name: '📥 Checkout Repository'
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: '📦 Setup Node.js ${{ env.NODE_VERSION }}'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '${{ env.NODE_VERSION }}'
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
 
-      - name: '🔍 Validate Current Version'
-        run: |
-          echo "🔍 Validating current version..."
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
 
-          cd frontend
+    - name: Install frontend dependencies
+      run: cd frontend && npm ci
 
-          # Get current version
-          if ! CURRENT_VERSION=$(node -p "require('./package.json').version" 2>/dev/null); then
-            echo "❌ Failed to read current version from package.json"
-            exit 1
-          fi
+    - name: Bump version
+      id: version
+      run: |
+        cd frontend
 
-          # Validate version format
-          if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            echo "❌ Invalid version format: $CURRENT_VERSION (expected: x.y.z)"
-            exit 1
-          fi
+        # Show current version
+        CURRENT_VERSION=$(node -p "require('./package.json').version")
+        echo "📦 Current version: $CURRENT_VERSION"
 
-          echo "✅ Current version: $CURRENT_VERSION"
+        # Bump version
+        echo "⬆️  Bumping ${{ github.event.inputs.version_type }} version..."
+        npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
 
-      - name: '⬆️ Bump Version'
-        id: version
-        run: |
-          echo "⬆️ Bumping version..."
-          cd frontend
+        NEW_VERSION=$(node -p "require('./package.json').version")
+        echo "✨ New version: $NEW_VERSION"
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-          # Get inputs with validation
-          VERSION_TYPE="${{ github.event.inputs.version_type }}"
-          if [ -z "$VERSION_TYPE" ]; then
-            VERSION_TYPE="patch"
-          fi
+        # Update tauri.conf.json
+        echo "🔧 Updating Tauri configuration..."
+        cd src-tauri
+        jq ".version = \"$NEW_VERSION\"" tauri.conf.json > temp.json && mv temp.json tauri.conf.json
 
-          # Validate version type
-          if [[ ! "$VERSION_TYPE" =~ ^(patch|minor|major)$ ]]; then
-            echo "❌ Invalid version type: $VERSION_TYPE"
-            exit 1
-          fi
+    - name: Commit version bump
+      run: |
+        echo "💾 Checking for version changes..."
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
 
-          # Get current version
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "📦 Current version: $CURRENT_VERSION"
-
-          # Bump version
-          echo "⬆️  Bumping $VERSION_TYPE version..."
-          if ! npm version $VERSION_TYPE --no-git-tag-version; then
-            echo "❌ Version bump failed"
-            exit 1
-          fi
-
-          # Get new version
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "✨ New version: $NEW_VERSION"
-
-          # Validate new version
-          if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
-            echo "❌ Version was not bumped"
-            exit 1
-          fi
-
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "version_bumped=true" >> $GITHUB_OUTPUT
-
-      - name: '🔧 Update Tauri Configuration'
-        run: |
-          echo "🔧 Updating Tauri configuration..."
-          cd frontend/src-tauri
-
-          NEW_VERSION="${{ steps.version.outputs.new_version }}"
-
-          # Backup original file
-          cp tauri.conf.json tauri.conf.json.backup
-
-          # Update version using jq
-          if ! jq ".version = \"$NEW_VERSION\"" tauri.conf.json > tauri.conf.json.tmp; then
-            echo "❌ Failed to update tauri.conf.json"
-            cp tauri.conf.json.backup tauri.conf.json
-            exit 1
-          fi
-
-          mv tauri.conf.json.tmp tauri.conf.json
-          rm tauri.conf.json.backup
-
-          echo "✅ Tauri configuration updated to version $NEW_VERSION"
-
-      - name: '💾 Commit Version Changes'
-        id: commit
-        run: |
-          echo "💾 Committing version changes..."
-
-          # Configure git
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-          # Check for changes
-          if git diff --quiet && git diff --staged --quiet; then
-            echo "ℹ️  No changes to commit"
-            echo "changes_committed=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Add changes
+        # Check if there are any changes to commit
+        if git diff --quiet && git diff --staged --quiet; then
+          echo "ℹ️  No changes to commit (version already exists)"
+        else
           git add .
+          git commit -m "⬆️ Bump version to ${{ steps.version.outputs.new_version }}"
+          echo "✅ Changes committed"
+        fi
 
-          # Commit with descriptive message
-          NEW_VERSION="${{ steps.version.outputs.new_version }}"
-          COMMIT_MESSAGE="⬆️ Bump version to $NEW_VERSION"
-          if ! git commit -m "$COMMIT_MESSAGE"; then
-            echo "❌ Commit failed"
-            exit 1
-          fi
+    - name: Push changes
+      run: |
+        echo "🚀 Checking for changes to push..."
+        # Check if there are commits to push
+        if git log --oneline origin/master..HEAD | grep -q .; then
+          git push
+          echo "✅ Changes pushed successfully"
+        else
+          echo "ℹ️  No new commits to push"
+        fi
 
-          echo "✅ Changes committed: $COMMIT_MESSAGE"
-          echo "changes_committed=true" >> $GITHUB_OUTPUT
+    - name: Create tag
+      run: |
+        TAG_NAME="v${{ steps.version.outputs.new_version }}"
+        echo "🏷️  Checking/creating git tag $TAG_NAME..."
 
-      - name: '🚀 Push Version Changes'
-        run: |
-          echo "🚀 Pushing version changes..."
+        # Check if tag already exists
+        if git tag -l | grep -q "^$TAG_NAME$"; then
+          echo "✅ Tag $TAG_NAME already exists, using existing tag"
+        else
+          echo "📝 Creating new tag $TAG_NAME"
+          git tag "$TAG_NAME"
+        fi
 
-          # Push changes with retry
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if git push origin ${{ github.ref_name }}; then
-              echo "✅ Changes pushed successfully"
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "⚠️  Push failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
-                sleep $((RETRY_COUNT * 5))
-                git pull --rebase origin ${{ github.ref_name }} || true
-              else
-                echo "❌ Push failed after $MAX_RETRIES attempts"
-                exit 1
-              fi
-            fi
-          done
-
-      - name: '🏷️ Create Git Tag'
-        id: tag
-        run: |
-          echo "🏷️ Creating git tag..."
-
-          NEW_VERSION="${{ steps.version.outputs.new_version }}"
-          TAG_NAME="v$NEW_VERSION"
-
-          # Check if tag already exists
-          if git tag -l | grep -q "^$TAG_NAME$"; then
-            echo "✅ Tag $TAG_NAME already exists"
-            echo "tag_created=false" >> $GITHUB_OUTPUT
-          else
-            # Create annotated tag
-            if ! git tag -a "$TAG_NAME" -m "Release $NEW_VERSION"; then
-              echo "❌ Tag creation failed"
-              exit 1
-            fi
-
-            echo "✅ Tag $TAG_NAME created"
-            echo "tag_created=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: '🚀 Push Git Tag'
-        run: |
-          echo "🚀 Pushing git tag..."
-
-          NEW_VERSION="${{ steps.version.outputs.new_version }}"
-          TAG_NAME="v$NEW_VERSION"
-
-          # Push tag with retry
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if git push origin "$TAG_NAME"; then
-              echo "✅ Tag $TAG_NAME pushed successfully"
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "⚠️  Tag push failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
-                sleep $((RETRY_COUNT * 5))
-              else
-                echo "❌ Tag push failed after $MAX_RETRIES attempts"
-                exit 1
-              fi
-            fi
-          done
-
-  # ==========================================
-  # TAURI BUILD
-  # ==========================================
+        # Push the tag (this will work whether it was just created or already existed)
+        git push origin "$TAG_NAME"
+        echo "✅ Tag $TAG_NAME pushed successfully"
 
   build-tauri:
-    name: '🔨 Build Tauri App'
-    runs-on: windows-latest
-    timeout-minutes: 45
-    needs: [validate-workflow, test-backend, test-frontend]
-    if: >
-      needs.validate-workflow.outputs.is_valid == 'true' &&
-      (needs.validate-workflow.outputs.should_skip != 'true') &&
-      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') &&
-      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
+    needs: [test-backend, test-frontend]
+    if: always() && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: 'windows-latest'
-            target: 'x86_64-pc-windows-msvc'
-            short_name: 'win64'
-
+            args: '--target x86_64-pc-windows-msvc'
+    runs-on: ${{ matrix.platform }}
     steps:
-      - name: '📥 Checkout Repository'
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: '📦 Setup Node.js ${{ env.NODE_VERSION }}'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '${{ env.NODE_VERSION }}'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
 
-      - name: '☕ Setup Java ${{ env.JAVA_VERSION }}'
-        uses: actions/setup-java@v4
-        with:
-          java-version: '${{ env.JAVA_VERSION }}'
-          distribution: 'temurin'
-          cache: maven
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
 
-      - name: '🦀 Setup Rust ${{ env.RUST_VERSION }}'
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+    - name: Rust setup
+      uses: dtolnay/rust-toolchain@stable
 
-      - name: '📦 Rust Cache'
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './frontend/src-tauri -> target'
-          key: ${{ matrix.target }}
+    - name: Rust cache
+      uses: swatinem/rust-cache@v2
+      with:
+        workspaces: './frontend/src-tauri -> target'
 
-      - name: '🔍 Validate Build Environment'
-        run: |
-          echo "🔍 Validating build environment..."
+    - name: Build backend
+      run: |
+        cd backend
+        mvn clean package -DskipTests
 
-          # Check Node.js
-          if ! node --version; then
-            echo "❌ Node.js not available"
-            exit 1
-          fi
+    - name: Copy backend JAR
+      run: |
+        mkdir -p frontend/src-tauri/backend
+        cp backend/target/cession-app-backend-0.0.1-SNAPSHOT.jar frontend/src-tauri/backend/
 
-          # Check Java
-          if ! java -version; then
-            echo "❌ Java not available"
-            exit 1
-          fi
+    - name: Install frontend dependencies
+      run: cd frontend && npm ci
 
-          # Check Rust
-          if ! cargo --version; then
-            echo "❌ Rust not available"
-            exit 1
-          fi
+    - name: Build frontend
+      run: cd frontend && npm run build:production
 
-          echo "✅ Build environment validated"
+    - name: Build Tauri app
+      uses: tauri-apps/tauri-action@v0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        projectPath: './frontend/src-tauri'
+        args: ${{ matrix.args }}
 
-      - name: '🔨 Build Backend JAR'
-        run: |
-          echo "🔨 Building backend JAR..."
-          cd backend
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifacts-${{ matrix.platform }}-${{ matrix.args }}
+        path: ./frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/**
+        if-no-files-found: error
 
-          # Build with Maven
-          if ! mvn clean package -DskipTests -q; then
-            echo "❌ Backend build failed"
-            exit 1
-          fi
-
-          # Verify JAR was created
-          JAR_FILE=$(find target -name "*.jar" | head -1)
-          if [ -z "$JAR_FILE" ]; then
-            echo "❌ No JAR file found after build"
-            exit 1
-          fi
-
-          echo "✅ Backend JAR built: $JAR_FILE"
-
-      - name: '📋 Copy Backend JAR'
-        run: |
-          echo "📋 Copying backend JAR to Tauri..."
-
-          # Create backend directory if it doesn't exist
-          mkdir -p frontend/src-tauri/backend
-
-          # Find and copy JAR file
-          JAR_FILE=$(find backend/target -name "*.jar" | head -1)
-          if [ -z "$JAR_FILE" ]; then
-            echo "❌ No JAR file found to copy"
-            exit 1
-          fi
-
-          cp "$JAR_FILE" frontend/src-tauri/backend/
-          echo "✅ Backend JAR copied to Tauri directory"
-
-      - name: '📦 Install Frontend Dependencies'
-        run: |
-          echo "📦 Installing frontend dependencies..."
-          cd frontend
-
-          # Install with retry
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if npm ci --prefer-offline --no-audit; then
-              echo "✅ Frontend dependencies installed"
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "⚠️  Dependency installation failed, retrying ($RETRY_COUNT/$MAX_RETRIES)..."
-                npm cache clean --force
-                sleep $((RETRY_COUNT * 5))
-              else
-                echo "❌ Frontend dependency installation failed"
-                exit 1
-              fi
-            fi
-          done
-
-      - name: '🔨 Build Frontend Production'
-        run: |
-          echo "🔨 Building frontend for production..."
-          cd frontend
-
-          # Check for build script
-          if jq -e '.scripts["build:production"]' package.json > /dev/null; then
-            BUILD_COMMAND="build:production"
-          elif jq -e '.scripts.build' package.json > /dev/null; then
-            BUILD_COMMAND="build"
-          else
-            echo "❌ No build script found in package.json"
-            exit 1
-          fi
-
-          if ! npm run $BUILD_COMMAND; then
-            echo "❌ Frontend production build failed"
-            exit 1
-          fi
-
-          echo "✅ Frontend production build completed"
-
-      - name: '🔨 Build Tauri Application'
-        id: tauri-build
-        run: |
-          echo "🔨 Building Tauri application..."
-          cd frontend/src-tauri
-
-          # Build with Tauri CLI
-          if ! npx tauri build --no-bundle; then
-            echo "❌ Tauri build failed"
-            exit 1
-          fi
-
-          echo "✅ Tauri application built successfully"
-
-      - name: '📦 Create Distribution Bundle'
-        run: |
-          echo "📦 Creating distribution bundle..."
-          cd frontend/src-tauri
-
-          # Build final bundle
-          if ! npx tauri build; then
-            echo "❌ Tauri bundle creation failed"
-            exit 1
-          fi
-
-          echo "✅ Distribution bundle created"
-
-      - name: '🔍 Verify Build Artifacts'
-        id: verify
-        run: |
-          echo "🔍 Verifying build artifacts..."
-
-          ARTIFACTS_DIR="frontend/src-tauri/target/${{ matrix.target }}/release/bundle"
-
-          if [ ! -d "$ARTIFACTS_DIR" ]; then
-            echo "❌ Artifacts directory not found: $ARTIFACTS_DIR"
-            exit 1
-          fi
-
-          # Check for expected files
-          MSI_FILE=$(find "$ARTIFACTS_DIR" -name "*.msi" | head -1)
-          EXE_FILE=$(find "$ARTIFACTS_DIR" -name "*.exe" | head -1)
-
-          if [ -z "$MSI_FILE" ] && [ -z "$EXE_FILE" ]; then
-            echo "❌ No MSI or EXE installer found"
-            exit 1
-          fi
-
-          if [ -n "$MSI_FILE" ]; then
-            echo "✅ MSI installer found: $(basename "$MSI_FILE")"
-            echo "msi_path=$MSI_FILE" >> $GITHUB_OUTPUT
-          fi
-
-          if [ -n "$EXE_FILE" ]; then
-            echo "✅ EXE installer found: $(basename "$EXE_FILE")"
-            echo "exe_path=$EXE_FILE" >> $GITHUB_OUTPUT
-          fi
-
-          echo "✅ Build artifacts verified"
-
-      - name: '📤 Upload Build Artifacts'
-        uses: actions/upload-artifact@v4
-        with:
-          name: cession-app-${{ matrix.short_name }}-${{ github.run_id }}
-          path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/**
-          retention-days: 30
-          if-no-files-found: error
-
-  # ==========================================
-  # RELEASE MANAGEMENT
-  # ==========================================
-
-  release-management:
-    name: '🚀 Release Management'
+  release:
+    needs: build-tauri
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [validate-workflow, build-tauri, version-management]
-    if: >
-      needs.validate-workflow.outputs.is_valid == 'true' &&
-      (needs.validate-workflow.outputs.should_skip != 'true') &&
-      (needs.build-tauri.result == 'success') &&
-      (github.event_name == 'release' ||
-       (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'))
-    environment:
-      name: production
-      url: ${{ steps.release.outputs.release_url }}
-
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true')
     steps:
-      - name: '📥 Checkout Repository'
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: '📥 Download Build Artifacts'
-        uses: actions/download-artifact@v4
-        with:
-          name: cession-app-win64-${{ github.run_id }}
-          path: ./artifacts
+    - name: Download all artifacts
+      run: |
+        echo "📥 Downloading build artifacts..."
+        # Download all artifacts
+        mkdir -p ./artifacts
 
-      - name: '🔍 Verify Downloaded Artifacts'
-        run: |
-          echo "🔍 Verifying downloaded artifacts..."
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
 
-          if [ ! -d "./artifacts" ]; then
-            echo "❌ Artifacts directory not found"
-            exit 1
-          fi
+    - name: Display structure of downloaded files
+      run: |
+        echo "📂 Build artifacts downloaded:"
+        find ./artifacts -type f -name "*.exe" -o -name "*.msi" | head -10
 
-          # List all files
-          find ./artifacts -type f | head -20
+    - name: Create latest.json for auto-updates
+      run: |
+        if [ "${{ github.event_name }}" = "release" ]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION=${{ needs.bump-version.outputs.new_version }}
+        fi
+        echo "🔖 Creating latest.json for version: $VERSION"
 
-          # Check for required files
-          MSI_COUNT=$(find ./artifacts -name "*.msi" | wc -l)
-          EXE_COUNT=$(find ./artifacts -name "*.exe" | wc -l)
-
-          echo "📊 Found $MSI_COUNT MSI files and $EXE_COUNT EXE files"
-
-          if [ $MSI_COUNT -eq 0 ] && [ $EXE_COUNT -eq 0 ]; then
-            echo "❌ No installer files found"
-            exit 1
-          fi
-
-          echo "✅ Artifacts verified"
-
-      - name: '📋 Determine Version'
-        id: version
-        run: |
-          echo "📋 Determining version..."
-
-          if [ "${{ github.event_name }}" = "release" ]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-            echo "📦 Release version: $VERSION"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ needs.version-management.outputs.new_version }}"
-            echo "📦 Workflow version: $VERSION"
-          else
-            echo "❌ Unknown event type for version determination"
-            exit 1
-          fi
-
-          # Validate version format
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            echo "❌ Invalid version format: $VERSION"
-            exit 1
-          fi
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: '📄 Create Auto-Update Manifest'
-        run: |
-          echo "📄 Creating latest.json for auto-updates..."
-
-          VERSION="${{ steps.version.outputs.version }}"
-
-          # Create latest.json
-          cat > latest.json << EOF
-          {
-            "version": "$VERSION",
-            "notes": "Release $VERSION - Automated build from ${{ github.sha }}",
-            "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
-            "platforms": {
-              "windows-x86_64": {
-                "signature": "",
-                "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_x64-setup.exe"
-              }
+        # Create latest.json for Tauri auto-updates
+        cat > latest.json << EOF
+        {
+          "version": "$VERSION",
+          "notes": "Release $VERSION - Automated build",
+          "pub_date": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+          "platforms": {
+            "windows-x86_64": {
+              "signature": "",
+              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_x64-setup.exe"
             }
           }
-          EOF
+        }
+        EOF
+        echo "✅ latest.json created"
 
-          echo "✅ latest.json created for version $VERSION"
+    - name: Create GitHub Release
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        TAG_NAME="v${{ needs.bump-version.outputs.new_version }}"
+        echo "📦 Checking if release exists for $TAG_NAME..."
 
-      - name: '🚀 Create GitHub Release'
-        id: release
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          echo "🚀 Creating GitHub release..."
-
-          VERSION="${{ steps.version.outputs.version }}"
-          TAG_NAME="v$VERSION"
-
-          # Check if release already exists
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "✅ Release $TAG_NAME already exists"
-            RELEASE_URL=$(gh release view "$TAG_NAME" --json url -q .url)
-            echo "release_url=$RELEASE_URL" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Create release
-          RELEASE_NOTES="## 🚀 Release $VERSION
+        # Check if release already exists
+        if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+          echo "✅ Release for $TAG_NAME already exists, skipping creation"
+        else
+          echo "🚀 Creating new release for $TAG_NAME..."
+          gh release create "$TAG_NAME" \
+            --title "Release ${{ needs.bump-version.outputs.new_version }}" \
+            --notes "## 🚀 Release ${{ needs.bump-version.outputs.new_version }}
 
 This release was automatically created via GitHub Actions CI/CD pipeline.
 
 ### 📋 Details
-- **Version**: $VERSION
+- **Version**: ${{ needs.bump-version.outputs.new_version }}
+- **Type**: ${{ github.event.inputs.version_type }} update
 - **Build**: Automated Windows build
-- **Commit**: ${{ github.sha }}
 - **Date**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-- **Workflow**: ${{ github.workflow }}
-- **Run**: ${{ github.run_id }}
 
 ### 📦 Downloads
 - Windows Installer (.exe)
 - Windows MSI (.msi)
-- Auto-update manifest (latest.json)
-
-### 🔗 Links
-- [View Release](${{ github.server_url }}/${{ github.repository }}/releases/tag/$TAG_NAME)
-- [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-
-          if ! RELEASE_URL=$(gh release create "$TAG_NAME" \
-            --title "Release $VERSION" \
-            --notes "$RELEASE_NOTES" \
+- Auto-update manifest (latest.json)" \
             --draft=false \
-            --prerelease=false \
-            --latest \
-            2>&1); then
-            echo "❌ Release creation failed: $RELEASE_URL"
-            exit 1
-          fi
+            --prerelease=false
+          echo "✅ Release created successfully"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # Extract URL from output
-          RELEASE_URL=$(echo "$RELEASE_URL" | grep -o 'https://github.com/[^ ]*')
+    - name: Upload Release Assets
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        VERSION=${{ needs.bump-version.outputs.new_version }}
+        TAG_NAME="v$VERSION"
+        echo "📤 Uploading release assets for version $VERSION..."
 
-          echo "✅ Release created: $RELEASE_URL"
-          echo "release_url=$RELEASE_URL" >> $GITHUB_OUTPUT
+        # Upload latest.json (use --clobber to overwrite if exists)
+        echo "⬆️  Uploading latest.json..."
+        gh release upload "$TAG_NAME" ./latest.json --clobber
 
-      - name: '📤 Upload Release Assets'
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          echo "📤 Uploading release assets..."
+        # Find and upload MSI file
+        MSI_FILE=$(find ./artifacts -name "*.msi" | head -1)
+        if [ -f "$MSI_FILE" ]; then
+          echo "⬆️  Uploading MSI installer: $(basename "$MSI_FILE")"
+          gh release upload "$TAG_NAME" "$MSI_FILE" --clobber
+        else
+          echo "⚠️  MSI file not found"
+        fi
 
-          VERSION="${{ steps.version.outputs.version }}"
-          TAG_NAME="v$VERSION"
+        # Find and upload EXE file
+        EXE_FILE=$(find ./artifacts -name "*.exe" | head -1)
+        if [ -f "$EXE_FILE" ]; then
+          echo "⬆️  Uploading EXE installer: $(basename "$EXE_FILE")"
+          gh release upload "$TAG_NAME" "$EXE_FILE" --clobber
+        else
+          echo "⚠️  EXE file not found"
+        fi
 
-          # Upload latest.json
-          echo "⬆️  Uploading latest.json..."
-          if ! gh release upload "$TAG_NAME" ./latest.json --clobber; then
-            echo "❌ Failed to upload latest.json"
-            exit 1
-          fi
+        echo "✅ All assets uploaded successfully!"
 
-          # Upload MSI installer
-          MSI_FILE=$(find ./artifacts -name "*.msi" | head -1)
-          if [ -n "$MSI_FILE" ]; then
-            echo "⬆️  Uploading MSI installer: $(basename "$MSI_FILE")"
-            if ! gh release upload "$TAG_NAME" "$MSI_FILE" --clobber; then
-              echo "❌ Failed to upload MSI installer"
-              exit 1
-            fi
-          fi
+    - name: Upload latest.json (GitHub Release)
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./latest.json
+        asset_name: latest.json
+        asset_content_type: application/json
 
-          # Upload EXE installer
-          EXE_FILE=$(find ./artifacts -name "*.exe" | head -1)
-          if [ -n "$EXE_FILE" ]; then
-            echo "⬆️  Uploading EXE installer: $(basename "$EXE_FILE")"
-            if ! gh release upload "$TAG_NAME" "$EXE_FILE" --clobber; then
-              echo "❌ Failed to upload EXE installer"
-              exit 1
-            fi
-          fi
+    - name: Upload Windows MSI (GitHub Release)
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./artifacts/artifacts-windows-latest---target-x86_64-pc-windows-msvc/msi/Cession.Management.App_${VERSION}_x64_en-US.msi
+        asset_name: Cession.Management.App_${VERSION}_x64_en-US.msi
+        asset_content_type: application/x-msi
 
-          echo "✅ All release assets uploaded"
-
-      - name: '📤 Upload Release Assets (GitHub Release Event)'
-        if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./latest.json
-          asset_name: latest.json
-          asset_content_type: application/json
-
-  # ==========================================
-  # NOTIFICATION SYSTEM
-  # ==========================================
-
-  notifications:
-    name: '📢 Send Notifications'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [validate-workflow, test-backend, test-frontend, build-tauri, release-management]
-    if: >
-      always() &&
-      needs.validate-workflow.outputs.is_valid == 'true' &&
-      (needs.validate-workflow.outputs.should_skip != 'true') &&
-      (github.event.inputs.notify_on_completion != 'false')
-
-    steps:
-      - name: '📊 Analyze Workflow Results'
-        id: analysis
-        run: |
-          echo "📊 Analyzing workflow results..."
-
-          # Determine overall status
-          if [ "${{ needs.release-management.result }}" = "success" ]; then
-            WORKFLOW_STATUS="success"
-            STATUS_EMOJI="✅"
-            STATUS_MESSAGE="Build and release completed successfully"
-          elif [ "${{ needs.build-tauri.result }}" = "success" ]; then
-            WORKFLOW_STATUS="partial_success"
-            STATUS_EMOJI="⚠️"
-            STATUS_MESSAGE="Build completed but release failed"
-          elif [ "${{ needs.test-backend.result }}" = "success" ] && [ "${{ needs.test-frontend.result }}" = "success" ]; then
-            WORKFLOW_STATUS="tests_passed"
-            STATUS_EMOJI="🧪"
-            STATUS_MESSAGE="Tests passed but build failed"
-          else
-            WORKFLOW_STATUS="failure"
-            STATUS_EMOJI="❌"
-            STATUS_MESSAGE="Workflow failed"
-          fi
-
-          # Gather details
-          BACKEND_TESTS="${{ needs.test-backend.result }}"
-          FRONTEND_TESTS="${{ needs.test-frontend.result }}"
-          BUILD_STATUS="${{ needs.build-tauri.result }}"
-          RELEASE_STATUS="${{ needs.release-management.result }}"
-
-          echo "workflow_status=$WORKFLOW_STATUS" >> $GITHUB_OUTPUT
-          echo "status_emoji=$STATUS_EMOJI" >> $GITHUB_OUTPUT
-          echo "status_message=$STATUS_MESSAGE" >> $GITHUB_OUTPUT
-          echo "backend_tests=$BACKEND_TESTS" >> $GITHUB_OUTPUT
-          echo "frontend_tests=$FRONTEND_TESTS" >> $GITHUB_OUTPUT
-          echo "build_status=$BUILD_STATUS" >> $GITHUB_OUTPUT
-          echo "release_status=$RELEASE_STATUS" >> $GITHUB_OUTPUT
-
-      - name: '📧 Send Email Notification'
-        if: env.NOTIFICATION_EMAIL
-        run: |
-          echo "📧 Sending email notification..."
-
-          SUBJECT="${{ steps.analysis.outputs.status_emoji }} Cession App CI/CD: ${{ steps.analysis.outputs.status_message }}"
-          BODY="Workflow: ${{ github.workflow }}
-          Repository: ${{ github.repository }}
-          Branch: ${{ github.ref_name }}
-          Commit: ${{ github.sha }}
-          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-          Status: ${{ steps.analysis.outputs.workflow_status }}
-          Backend Tests: ${{ steps.analysis.outputs.backend_tests }}
-          Frontend Tests: ${{ steps.analysis.outputs.frontend_tests }}
-          Build: ${{ steps.analysis.outputs.build_status }}
-          Release: ${{ steps.analysis.outputs.release_status }}
-
-          Trigger: ${{ github.event_name }}
-          $(if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Version Type: ${{ github.event.inputs.version_type }}"
-            echo "Create Release: ${{ github.event.inputs.create_release }}"
-          fi)
-
-          Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-
-          # Send email using curl (requires SMTP service)
-          # This is a placeholder - implement based on your email service
-          echo "📧 Email notification sent to ${{ secrets.NOTIFICATION_EMAIL }}"
-
-      - name: '📱 Send SMS Notification'
-        if: env.NOTIFICATION_PHONE
-        run: |
-          echo "📱 Sending SMS notification..."
-
-          MESSAGE="${{ steps.analysis.outputs.status_emoji }} Cession App: ${{ steps.analysis.outputs.status_message }}"
-
-          # Send SMS using your SMS service
-          # This is a placeholder - implement based on your SMS service
-          echo "📱 SMS notification sent to ${{ secrets.NOTIFICATION_PHONE }}"
-
-      - name: '📢 Create Workflow Summary'
-        run: |
-          echo "## ${{ steps.analysis.outputs.status_emoji }} Cession App CI/CD Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status**: ${{ steps.analysis.outputs.status_message }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Repository**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend: ${{ steps.analysis.outputs.backend_tests }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend: ${{ steps.analysis.outputs.frontend_tests }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Build & Release" >> $GITHUB_STEP_SUMMARY
-          echo "- Build: ${{ steps.analysis.outputs.build_status }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Release: ${{ steps.analysis.outputs.release_status }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Links" >> $GITHUB_STEP_SUMMARY
-          echo "- [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.analysis.outputs.workflow_status }}" = "success" ]; then
-            echo "- [Latest Release](${{ github.server_url }}/${{ github.repository }}/releases/latest)" >> $GITHUB_STEP_SUMMARY
-          fi
-
-  # ==========================================
-  # CLEANUP
-  # ==========================================
-
-  cleanup:
-    name: '🧹 Cleanup'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [notifications]
-    if: always()
-
-    steps:
-      - name: '🧹 Clean Up Artifacts'
-        run: |
-          echo "🧹 Cleaning up old artifacts..."
-
-          # This would typically clean up old artifacts from storage
-          # For now, just log the cleanup
-          echo "✅ Cleanup completed"
-
-      - name: '📊 Final Status Report'
-        run: |
-          echo "📊 Final workflow status report"
-
-          WORKFLOW_STATUS="completed"
-          if [ "${{ needs.notifications.result }}" = "failure" ]; then
-            WORKFLOW_STATUS="completed_with_notifications_failed"
-          fi
-
-          echo "Workflow completed with status: $WORKFLOW_STATUS"
-          echo "Total runtime: $((SECONDS/60)) minutes"
+    - name: Upload Windows NSIS (GitHub Release)
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./artifacts/artifacts-windows-latest---target-x86_64-pc-windows-msvc/nsis/Cession.Management.App_${VERSION}_x64-setup.exe
+        asset_name: Cession.Management.App_${VERSION}_x64-setup.exe
+        asset_content_type: application/x-msdownload
