@@ -10,19 +10,13 @@ on:
   workflow_dispatch:
     inputs:
       version_type:
-        description: 'Version increment type (only used for releases)'
-        required: false
+        description: 'Version increment type (patch/minor/major)'
+        required: true
         default: 'patch'
-        type: choice
-        options:
-        - patch
-        - minor
-        - major
       create_release:
         description: 'Create a new release after successful build?'
-        required: false
-        default: false
-        type: boolean
+        required: true
+        default: 'false'
 
 permissions:
   contents: write
