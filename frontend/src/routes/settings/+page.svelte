@@ -5,6 +5,7 @@
   import { browser } from '$app/environment';
   import ExportStatusCard from '$lib/components/ExportStatusCard.svelte';
   import UpdateStatusCard from '$lib/components/UpdateStatusCard.svelte';
+  import DatabaseSyncCard from '$lib/components/DatabaseSyncCard.svelte';
   import { fade, fly, scale, slide } from 'svelte/transition';
   import { checkForUpdates, getCurrentVersion } from '$lib/updater';
 
@@ -371,6 +372,11 @@
           <!-- Mobile Data Export & Sync Card -->
           <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden" in:scale={{ duration: 500, delay: 600, start: 0.95 }}>
             <ExportStatusCard />
+          </div>
+
+          <!-- Database Sync Card -->
+          <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden" in:scale={{ duration: 500, delay: 650, start: 0.95 }}>
+            <DatabaseSyncCard />
           </div>
 
           <!-- Software Updates Card -->

@@ -8,7 +8,14 @@ function isTauri() {
 // Use environment variable for backend URL
 export const config = {
     backendUrl: 'http://127.0.0.1:8082',
-    apiPrefix: '' // Prefix is now included in the env variable
+    apiPrefix: '', // Prefix is now included in the env variable
+
+    // Supabase configuration for database sync
+    supabase: {
+        url: 'https://your-project.supabase.co', // Replace with your Supabase project URL
+        anonKey: 'your-anon-key', // Replace with your Supabase anon key
+        storageBucket: 'database-sync' // Bucket name for database files
+    }
 };
 
 export function getBackendUrl() {

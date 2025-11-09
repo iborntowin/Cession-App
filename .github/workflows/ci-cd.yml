@@ -72,24 +72,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin'
-          - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
-          - platform: 'ubuntu-22.04'
-            args: '--target x86_64-unknown-linux-gnu'
           - platform: 'windows-latest'
             args: '--target x86_64-pc-windows-msvc'
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-
-    - name: Install dependencies (ubuntu only)
-      if: matrix.platform == 'ubuntu-22.04'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -107,8 +95,6 @@ jobs:
 
     - name: Rust setup
       uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
     - name: Rust cache
       uses: swatinem/rust-cache@v2
@@ -143,8 +129,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: artifacts-${{ matrix.platform }}-${{ matrix.args }}
-        path: |
-          ./frontend/src-tauri/target/${{ matrix.args == '--target x86_64-pc-windows-msvc' && 'x86_64-pc-windows-msvc/release/bundle' || matrix.args == '--target x86_64-unknown-linux-gnu' && 'x86_64-unknown-linux-gnu/release/bundle' || 'universal-apple-darwin/release/bundle' }}/**
+        path: ./frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/**
         if-no-files-found: error
 
   release:
@@ -175,18 +160,6 @@ jobs:
             "windows-x86_64": {
               "signature": "",
               "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_x64-setup.exe"
-            },
-            "darwin-x86_64": {
-              "signature": "",
-              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_x64.dmg"
-            },
-            "darwin-aarch64": {
-              "signature": "",
-              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/Cession.Management.App_$VERSION_aarch64.dmg"
-            },
-            "linux-x86_64": {
-              "signature": "",
-              "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/cession-management-app_$VERSION_amd64.AppImage"
             }
           }
         }
@@ -221,43 +194,3 @@ jobs:
         asset_path: ./artifacts/artifacts-windows-latest---target-x86_64-pc-windows-msvc/nsis/Cession.Management.App_${VERSION}_x64-setup.exe
         asset_name: Cession.Management.App_${VERSION}_x64-setup.exe
         asset_content_type: application/x-msdownload
-
-    - name: Upload macOS x86_64 DMG
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./artifacts/artifacts-macos-latest---target-x86_64-apple-darwin/dmg/Cession.Management.App_${VERSION}_x64.dmg
-        asset_name: Cession.Management.App_${VERSION}_x64.dmg
-        asset_content_type: application/x-apple-diskimage
-
-    - name: Upload macOS ARM64 DMG
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./artifacts/artifacts-macos-latest---target-aarch64-apple-darwin/dmg/Cession.Management.App_${VERSION}_aarch64.dmg
-        asset_name: Cession.Management.App_${VERSION}_aarch64.dmg
-        asset_content_type: application/x-apple-diskimage
-
-    - name: Upload Linux AppImage
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./artifacts/artifacts-ubuntu-22.04---target-x86_64-unknown-linux-gnu/appimage/cession-management-app_${VERSION}_amd64.AppImage
-        asset_name: cession-management-app_${VERSION}_amd64.AppImage
-        asset_content_type: application/x-executable
-
-    - name: Upload Linux DEB
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./artifacts/artifacts-ubuntu-22.04---target-x86_64-unknown-linux-gnu/deb/cession-management-app_${VERSION}_amd64.deb
-        asset_name: cession-management-app_${VERSION}_amd64.deb
-        asset_content_type: application/vnd.debian.binary-package

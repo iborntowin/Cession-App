@@ -29,7 +29,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "dmg", "appimage"],
     "publisher": "Nassim Maaoui ©",
     "icon": [
       "icons/32x32.png",
@@ -45,7 +45,7 @@
     "copyright": "Copyright © 2025 Nassim Maaoui. All rights reserved.",
     "category": "Business",
     "shortDescription": "Professional cession management application",
-    "longDescription": "A comprehensive desktop application for managing financial cessions with integrated backend services, real-time monitoring, and advanced error recovery.",
+    "longDescription": "A comprehensive desktop and mobile application for managing financial cessions with integrated backend services, real-time monitoring, and advanced error recovery.",
     "windows": {
       "wix": {
         "language": [

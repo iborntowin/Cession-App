@@ -708,7 +708,510 @@ async fn log_structured_message(
     Ok("Message logged successfully".to_string())
 }
 
-fn get_directory_info(dir_path: &PathBuf) -> Result<(u64, u64), String> {
+// Database Export and Sync Commands
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatabaseSyncConfig {
+    pub supabase_url: String,
+    pub supabase_key: String,
+    pub bucket_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatabaseInfo {
+    pub version: String,
+    pub last_modified: String,
+    pub size_bytes: u64,
+    pub record_count: u64,
+}
+
+#[tauri::command]
+async fn get_platform_info() -> Result<serde_json::Value, String> {
+    let platform = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+    
+    let mut info = serde_json::Map::new();
+    info.insert("platform".to_string(), serde_json::Value::String(platform.to_string()));
+    info.insert("architecture".to_string(), serde_json::Value::String(arch.to_string()));
+    info.insert("is_desktop".to_string(), serde_json::Value::Bool(matches!(platform, "windows" | "macos" | "linux")));
+    info.insert("is_mobile".to_string(), serde_json::Value::Bool(matches!(platform, "ios" | "android")));
+    
+    Ok(serde_json::Value::Object(info))
+}
+
+#[tauri::command]
+async fn export_database_to_sqlite(app_handle: tauri::AppHandle) -> Result<String, String> {
+    log::info!("Starting database export to SQLite format");
+    
+    let data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get data directory: {}", e))?;
+    
+    let h2_db_path = data_dir.join("data").join("db.mv.db");
+    let sqlite_db_path = data_dir.join("exports").join("database.sqlite");
+    
+    // Create exports directory
+    std::fs::create_dir_all(sqlite_db_path.parent().unwrap())
+        .map_err(|e| format!("Failed to create exports directory: {}", e))?;
+    
+    if !h2_db_path.exists() {
+        return Err("H2 database file not found".to_string());
+    }
+    
+    // Use blocking operation for database work
+    let sqlite_path_clone = sqlite_db_path.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        create_and_populate_sqlite_from_backend_blocking(&sqlite_path_clone)
+    }).await;
+    
+    match result {
+        Ok(Ok(_)) => {
+            log::info!("Database export completed successfully");
+            Ok(sqlite_db_path.display().to_string())
+        }
+        Ok(Err(e)) => {
+            log::error!("Database export failed: {}", e);
+            Err(e)
+        }
+        Err(e) => {
+            let error_msg = format!("Database export task panicked: {}", e);
+            log::error!("{}", error_msg);
+            Err(error_msg)
+        }
+    }
+}
+
+#[tauri::command]
+async fn upload_database_to_supabase(
+    _app_handle: tauri::AppHandle,
+    local_db_path: String
+) -> Result<String, String> {
+    log::info!("Starting database upload to Supabase");
+    
+    // Load config internally
+    let config = load_supabase_config()?;
+    
+    let db_path = PathBuf::from(local_db_path);
+    if !db_path.exists() {
+        return Err("Database file not found".to_string());
+    }
+    
+    // Read the database file
+    let db_data = tokio::fs::read(&db_path).await
+        .map_err(|e| format!("Failed to read database file: {}", e))?;
+    
+    // Generate filename with timestamp
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let filename = format!("database_backup_{}.sqlite", timestamp);
+    
+    // Upload to Supabase Storage
+    let client = reqwest::Client::new();
+    let upload_url = format!("{}/storage/v1/object/{}/{}", 
+        config.supabase_url, config.bucket_name, filename);
+    
+    let response = client
+        .post(&upload_url)
+        .header("Authorization", format!("Bearer {}", config.supabase_key))
+        .header("Content-Type", "application/octet-stream")
+        .body(db_data)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to upload to Supabase: {}", e))?;
+    
+    if response.status().is_success() {
+        log::info!("Database uploaded successfully to Supabase");
+        Ok(filename)
+    } else {
+        let error_text = response.text().await.unwrap_or_default();
+        Err(format!("Supabase upload failed: {}", error_text))
+    }
+}
+
+#[tauri::command]
+async fn download_database_from_supabase(
+    app_handle: tauri::AppHandle,
+    filename: String
+) -> Result<String, String> {
+    log::info!("Starting database download from Supabase");
+    
+    // Load config internally
+    let config = load_supabase_config()?;
+    
+    let data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get data directory: {}", e))?;
+    
+    let local_db_path = data_dir.join("sync").join("database.sqlite");
+    
+    // Create sync directory
+    std::fs::create_dir_all(local_db_path.parent().unwrap())
+        .map_err(|e| format!("Failed to create sync directory: {}", e))?;
+    
+    // Download from Supabase Storage
+    let client = reqwest::Client::new();
+    let download_url = format!("{}/storage/v1/object/public/{}/{}", 
+        config.supabase_url, config.bucket_name, filename);
+    
+    let response = client
+        .get(&download_url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download from Supabase: {}", e))?;
+    
+    if response.status().is_success() {
+        let db_data = response.bytes().await
+            .map_err(|e| format!("Failed to read response data: {}", e))?;
+        
+        tokio::fs::write(&local_db_path, db_data).await
+            .map_err(|e| format!("Failed to write database file: {}", e))?;
+        
+        log::info!("Database downloaded successfully from Supabase");
+        Ok(local_db_path.display().to_string())
+    } else {
+        Err(format!("Supabase download failed with status: {}", response.status()))
+    }
+}
+
+#[tauri::command]
+async fn get_latest_database_info() -> Result<DatabaseInfo, String> {
+    log::info!("Fetching latest database info from Supabase");
+    
+    // Load config internally
+    let _config = load_supabase_config()?;
+    
+    // This would typically query Supabase for the latest database file metadata
+    // For now, return a placeholder
+    Ok(DatabaseInfo {
+        version: "1.0.0".to_string(),
+        last_modified: chrono::Utc::now().to_rfc3339(),
+        size_bytes: 0,
+        record_count: 0,
+    })
+}
+
+async fn create_sqlite_from_backend_data(app_handle: &AppHandle, sqlite_path: &PathBuf) -> Result<(), String> {
+    // Create SQLite database with schema
+    let conn = rusqlite::Connection::open(sqlite_path)
+        .map_err(|e| format!("Failed to create SQLite database: {}", e))?;
+    
+    // Create tables based on your schema
+    conn.execute_batch(r#"
+        CREATE TABLE IF NOT EXISTS clients (
+            id TEXT PRIMARY KEY,
+            full_name TEXT NOT NULL,
+            cin TEXT UNIQUE NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            worker_number TEXT UNIQUE
+        );
+        
+        CREATE TABLE IF NOT EXISTS documents (
+            id TEXT PRIMARY KEY,
+            client_id TEXT REFERENCES clients(id) ON DELETE CASCADE,
+            cession_id TEXT,
+            document_type TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            storage_path TEXT NOT NULL UNIQUE,
+            mime_type TEXT DEFAULT 'application/pdf',
+            uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS cessions (
+            id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+            contract_document_id TEXT UNIQUE REFERENCES documents(id) ON DELETE SET NULL,
+            total_loan_amount REAL NOT NULL,
+            monthly_deduction REAL NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT,
+            expected_payoff_date TEXT,
+            remaining_balance REAL,
+            bank_or_agency TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX idx_clients_cin ON clients(cin);
+        CREATE INDEX idx_documents_client_id ON documents(client_id);
+        CREATE INDEX idx_documents_cession_id ON documents(cession_id);
+        CREATE INDEX idx_cessions_client_id ON cessions(client_id);
+        CREATE INDEX idx_cessions_status ON cessions(status);
+    "#).map_err(|e| format!("Failed to create SQLite schema: {}", e))?;
+    
+    // Fetch data from backend and populate database
+    populate_sqlite_from_backend(&conn, app_handle).await?;
+    
+    log::info!("SQLite database created and populated with data from backend");
+    Ok(())
+}
+
+async fn populate_sqlite_from_backend(conn: &rusqlite::Connection, _app_handle: &AppHandle) -> Result<(), String> {
+    let client = reqwest::Client::new();
+    
+    // Fetch clients from backend
+    let clients_url = "http://127.0.0.1:8082/api/v1/clients";
+    let clients_response = client
+        .get(clients_url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch clients: {}", e))?;
+    
+    if !clients_response.status().is_success() {
+        return Err(format!("Failed to fetch clients: HTTP {}", clients_response.status()));
+    }
+    
+    let clients: Vec<serde_json::Value> = clients_response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse clients JSON: {}", e))?;
+    
+    // Insert clients into SQLite
+    let mut client_stmt = conn.prepare(r#"
+        INSERT INTO clients (id, full_name, cin, created_at, updated_at, worker_number)
+        VALUES (?, ?, ?, ?, ?, ?)
+    "#).map_err(|e| format!("Failed to prepare client insert statement: {}", e))?;
+    
+    for client in &clients {
+        let id = client["id"].as_str().unwrap_or("");
+        let full_name = client["fullName"].as_str().unwrap_or("");
+        let cin = client["cin"].as_str().unwrap_or("");
+        let worker_number = client["workerNumber"].as_str();
+        
+        client_stmt.execute([
+            id,
+            full_name,
+            cin,
+            &chrono::Utc::now().to_rfc3339(),
+            &chrono::Utc::now().to_rfc3339(),
+            worker_number.unwrap_or(""),
+        ]).map_err(|e| format!("Failed to insert client {}: {}", id, e))?;
+    }
+    
+    // Fetch cessions from backend
+    let cessions_url = "http://127.0.0.1:8082/api/v1/cessions";
+    let cessions_response = client
+        .get(cessions_url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch cessions: {}", e))?;
+    
+    if !cessions_response.status().is_success() {
+        return Err(format!("Failed to fetch cessions: HTTP {}", cessions_response.status()));
+    }
+    
+    let cessions: Vec<serde_json::Value> = cessions_response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse cessions JSON: {}", e))?;
+    
+    // Insert cessions into SQLite
+    let mut cession_stmt = conn.prepare(r#"
+        INSERT INTO cessions (id, client_id, total_loan_amount, monthly_deduction, start_date, end_date, expected_payoff_date, remaining_balance, bank_or_agency, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    "#).map_err(|e| format!("Failed to prepare cession insert statement: {}", e))?;
+    
+    for cession in &cessions {
+        let id = cession["id"].as_str().unwrap_or("");
+        let client_id = cession["clientId"].as_str().unwrap_or("");
+        let total_loan_amount = cession["totalLoanAmount"].as_f64().unwrap_or(0.0);
+        let monthly_deduction = cession["monthlyDeduction"].as_f64().unwrap_or(0.0);
+        let start_date = cession["startDate"].as_str().unwrap_or("");
+        let end_date = cession["endDate"].as_str();
+        let expected_payoff_date = cession["expectedPayoffDate"].as_str();
+        let remaining_balance = cession["remainingBalance"].as_f64();
+        let bank_or_agency = cession["bankOrAgency"].as_str().unwrap_or("");
+        let status = cession["status"].as_str().unwrap_or("ACTIVE");
+        
+        cession_stmt.execute([
+            id,
+            client_id,
+            &total_loan_amount.to_string(),
+            &monthly_deduction.to_string(),
+            start_date,
+            end_date.unwrap_or(""),
+            expected_payoff_date.unwrap_or(""),
+            &remaining_balance.unwrap_or(0.0).to_string(),
+            bank_or_agency,
+            status,
+            &chrono::Utc::now().to_rfc3339(),
+            &chrono::Utc::now().to_rfc3339(),
+        ]).map_err(|e| format!("Failed to insert cession {}: {}", id, e))?;
+    }
+    
+    log::info!("Successfully populated SQLite database with {} clients and {} cessions", 
+               clients.len(), cessions.len());
+    Ok(())
+}
+
+fn create_and_populate_sqlite_from_backend_blocking(sqlite_path: &PathBuf) -> Result<(), String> {
+    // Create SQLite database with schema
+    let conn = rusqlite::Connection::open(sqlite_path)
+        .map_err(|e| format!("Failed to create SQLite database: {}", e))?;
+    
+    // Create tables based on your schema
+    conn.execute_batch(r#"
+        CREATE TABLE IF NOT EXISTS clients (
+            id TEXT PRIMARY KEY,
+            full_name TEXT NOT NULL,
+            cin TEXT UNIQUE NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            worker_number TEXT UNIQUE
+        );
+        
+        CREATE TABLE IF NOT EXISTS documents (
+            id TEXT PRIMARY KEY,
+            client_id TEXT REFERENCES clients(id) ON DELETE CASCADE,
+            cession_id TEXT,
+            document_type TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            storage_path TEXT NOT NULL UNIQUE,
+            mime_type TEXT DEFAULT 'application/pdf',
+            uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS cessions (
+            id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+            contract_document_id TEXT UNIQUE REFERENCES documents(id) ON DELETE SET NULL,
+            total_loan_amount REAL NOT NULL,
+            monthly_deduction REAL NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT,
+            expected_payoff_date TEXT,
+            remaining_balance REAL,
+            bank_or_agency TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX idx_clients_cin ON clients(cin);
+        CREATE INDEX idx_documents_client_id ON documents(client_id);
+        CREATE INDEX idx_documents_cession_id ON documents(cession_id);
+        CREATE INDEX idx_cessions_client_id ON cessions(client_id);
+        CREATE INDEX idx_cessions_status ON cessions(status);
+    "#).map_err(|e| format!("Failed to create SQLite schema: {}", e))?;
+    
+    // Fetch data from backend and populate database
+    populate_sqlite_from_backend_blocking(&conn)?;
+    
+    log::info!("SQLite database created and populated with data from backend");
+    Ok(())
+}
+
+fn populate_sqlite_from_backend_blocking(conn: &rusqlite::Connection) -> Result<(), String> {
+    // Create a blocking reqwest client
+    let client = reqwest::blocking::Client::new();
+    
+    // Fetch clients from backend
+    let clients_url = "http://127.0.0.1:8082/api/v1/clients";
+    let clients_response = client
+        .get(clients_url)
+        .send()
+        .map_err(|e| format!("Failed to fetch clients: {}", e))?;
+    
+    if !clients_response.status().is_success() {
+        return Err(format!("Failed to fetch clients: HTTP {}", clients_response.status()));
+    }
+    
+    let clients: Vec<serde_json::Value> = clients_response
+        .json()
+        .map_err(|e| format!("Failed to parse clients JSON: {}", e))?;
+    
+    // Insert clients into SQLite
+    let mut client_stmt = conn.prepare(r#"
+        INSERT INTO clients (id, full_name, cin, created_at, updated_at, worker_number)
+        VALUES (?, ?, ?, ?, ?, ?)
+    "#).map_err(|e| format!("Failed to prepare client insert statement: {}", e))?;
+    
+    for client in &clients {
+        let id = client["id"].as_str().unwrap_or("");
+        let full_name = client["fullName"].as_str().unwrap_or("");
+        let cin = client["cin"].as_str().unwrap_or("");
+        let worker_number = client["workerNumber"].as_str();
+        
+        client_stmt.execute([
+            id,
+            full_name,
+            cin,
+            &chrono::Utc::now().to_rfc3339(),
+            &chrono::Utc::now().to_rfc3339(),
+            worker_number.unwrap_or(""),
+        ]).map_err(|e| format!("Failed to insert client {}: {}", id, e))?;
+    }
+    
+    // Fetch cessions from backend
+    let cessions_url = "http://127.0.0.1:8082/api/v1/cessions";
+    let cessions_response = client
+        .get(cessions_url)
+        .send()
+        .map_err(|e| format!("Failed to fetch cessions: {}", e))?;
+    
+    if !cessions_response.status().is_success() {
+        return Err(format!("Failed to fetch cessions: HTTP {}", cessions_response.status()));
+    }
+    
+    let cessions: Vec<serde_json::Value> = cessions_response
+        .json()
+        .map_err(|e| format!("Failed to parse cessions JSON: {}", e))?;
+    
+    // Insert cessions into SQLite
+    let mut cession_stmt = conn.prepare(r#"
+        INSERT INTO cessions (id, client_id, total_loan_amount, monthly_deduction, start_date, end_date, expected_payoff_date, remaining_balance, bank_or_agency, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    "#).map_err(|e| format!("Failed to prepare cession insert statement: {}", e))?;
+    
+    for cession in &cessions {
+        let id = cession["id"].as_str().unwrap_or("");
+        let client_id = cession["clientId"].as_str().unwrap_or("");
+        let total_loan_amount = cession["totalLoanAmount"].as_f64().unwrap_or(0.0);
+        let monthly_deduction = cession["monthlyDeduction"].as_f64().unwrap_or(0.0);
+        let start_date = cession["startDate"].as_str().unwrap_or("");
+        let end_date = cession["endDate"].as_str();
+        let expected_payoff_date = cession["expectedPayoffDate"].as_str();
+        let remaining_balance = cession["remainingBalance"].as_f64();
+        let bank_or_agency = cession["bankOrAgency"].as_str().unwrap_or("");
+        let status = cession["status"].as_str().unwrap_or("ACTIVE");
+        
+        cession_stmt.execute([
+            id,
+            client_id,
+            &total_loan_amount.to_string(),
+            &monthly_deduction.to_string(),
+            start_date,
+            end_date.unwrap_or(""),
+            expected_payoff_date.unwrap_or(""),
+            &remaining_balance.unwrap_or(0.0).to_string(),
+            bank_or_agency,
+            status,
+            &chrono::Utc::now().to_rfc3339(),
+            &chrono::Utc::now().to_rfc3339(),
+        ]).map_err(|e| format!("Failed to insert cession {}: {}", id, e))?;
+    }
+    
+    log::info!("Successfully populated SQLite database with {} clients and {} cessions", 
+               clients.len(), cessions.len());
+    Ok(())
+}
+
+fn load_supabase_config() -> Result<DatabaseSyncConfig, String> {
+    // Load Supabase configuration from environment variables or use defaults
+    let supabase_url = std::env::var("SUPABASE_URL")
+        .unwrap_or_else(|_| "https://ahqtluebfvzvddyjlbqf.supabase.co".to_string());
+    let supabase_key = std::env::var("SUPABASE_ANON_KEY")
+        .unwrap_or_else(|_| "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFocXRsdWViZnZ6dmRkeWpsYnFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NDMxMjcsImV4cCI6MjA2NDUxOTEyN30.rHPnnD85Tmq1iyBPkprqyqqdIVsrywmSE4_C7PljIpk".to_string());
+    let bucket_name = std::env::var("SUPABASE_BUCKET")
+        .unwrap_or_else(|_| "database-sync".to_string());
+
+    Ok(DatabaseSyncConfig {
+        supabase_url,
+        supabase_key,
+        bucket_name,
+    })
+}fn get_directory_info(dir_path: &PathBuf) -> Result<(u64, u64), String> {
     let mut total_size = 0u64;
     let mut file_count = 0u64;
     
@@ -2165,6 +2668,11 @@ fn main() {
             export_logs,
             clear_logs,
             log_structured_message,
+            get_platform_info,
+            export_database_to_sqlite,
+            upload_database_to_supabase,
+            download_database_from_supabase,
+            get_latest_database_info,
             updater::check_for_updates,
             updater::download_and_install_update
         ])

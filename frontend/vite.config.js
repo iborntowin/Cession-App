@@ -8,8 +8,11 @@ export default defineConfig(({ mode }) => {
 		plugins: [sveltekit()],
 		optimizeDeps: {
 			include: [
-				'chart.js/auto',
-				'@tauri-apps/api'
+				'chart.js/auto'
+			],
+			exclude: [
+				'@tauri-apps/api',
+				'@tauri-apps/api/tauri'
 			]
 		},
 		server: {
