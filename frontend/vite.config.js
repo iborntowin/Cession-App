@@ -31,7 +31,16 @@ export default defineConfig(({ mode }) => {
 			minify: isProduction ? 'esbuild' : false,
 			sourcemap: !isProduction,
 			chunkSizeWarningLimit: 1000,
-			assetsInlineLimit: 4096
+			assetsInlineLimit: 4096,
+			rollupOptions: {
+				output: {
+					manualChunks: (id) => {
+						if (id.includes('pdfGenerator')) {
+							return 'pdf-generator';
+						}
+					}
+				}
+			}
 		},
 		define: {
 			__APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),

@@ -12,7 +12,7 @@
   import { goto } from '$app/navigation';
   import { format } from 'date-fns';
   import { ar } from 'date-fns/locale';
-  import { openPDF, downloadPDF } from '$lib/pdfGenerator';
+  // import { openPDF, downloadPDF } from '$lib/pdfGenerator'; // Converted to dynamic import
   import { showAlert, loading } from '$lib/stores';
   import * as api from '$lib/api';
   import PaymentSection from '$lib/components/PaymentSection.svelte';
@@ -305,6 +305,7 @@
     console.log('Cession clientNumber:', cession ? cession.clientNumber : 'no cession');
     console.log('Cession clientName:', cession ? cession.clientName : 'no cession');
     
+    const { openPDF } = await import('$lib/pdfGenerator');
     await openPDF(pdfData);
     } catch (error) {
       console.error('Error previewing document:', error);
@@ -367,6 +368,7 @@
     console.log('Client worker number:', client ? client.workerNumber : 'no client');
     console.log('Client ID being sent:', client ? client.id : data.clientId);
     
+    const { downloadPDF } = await import('$lib/pdfGenerator');
     await downloadPDF(pdfData, `salary_assignment_${cession.id}.pdf`);
     } catch (error) {
       console.error('Error downloading document:', error);

@@ -4,6 +4,7 @@
       "title": "Gestion des Cessions",
       "name": "Application de Cessions"
     },
+    
     "actions": {
       "view": "Voir",
       "create": "Créer",
@@ -42,6 +43,7 @@
     "navigation": {
       "dashboard": "Tableau de bord",
       "clients": "Clients",
+      "forward":" Avancer",
       "cessions": "Cessions",
       "inventory": "Inventaire",
       "selling": "Ventes",
@@ -128,7 +130,7 @@
       "warning": "Avertissement",
       "info": "Information"
     },
-    "loading": "Chargement...",
+    "loading": {"updating":"Mise à jour en cours..."},
     "confirm": "Êtes-vous sûr ?",
     "language": {
       "select": "Sélectionner la Langue",
@@ -917,6 +919,7 @@
     }
   },
   "inventory": {
+    
     "sort": {
       "name": "Trier par nom",
       "price": "Trier par prix",
@@ -927,9 +930,7 @@
     "subtitle": "Gérez votre stock",
     "add_product": "Ajouter un produit",
     "manage_categories": "Gérer les catégories",
-    "search": {
-      "placeholder": "Rechercher des produits..."
-    },
+    
     "filters": {
       "title": "Filtres",
       "all_categories": "Toutes les catégories",
@@ -1004,6 +1005,12 @@
       "subtitle": "Commencez par ajouter votre premier produit",
       "add_first": "Ajouter votre premier produit"
     },
+    "empty":{
+      "no_products_found": "Aucun produit trouvé",
+      "start_building_inventory":"Commencez à construire votre inventaire en ajoutant votre premier produit",
+      "add_first_product":"Ajouter Votre Premier Produit"
+    },
+    
     "delete": {
       "confirm": "Êtes-vous sûr de vouloir supprimer ce produit ?",
       "success": "Produit supprimé avec succès",
@@ -1069,6 +1076,9 @@
         "reorder_point_invalid": "Le seuil de réapprovisionnement doit être 0 ou plus"
       }
     },
+    "search":{"loading":"Chargement de recherche",
+    "placeholder_advanced":"rechercher"
+  },
     "actions": {
       "restock": "Réapprovisionner",
       "edit": "Modifier",
@@ -1206,6 +1216,10 @@
       "no_urgent_alerts": "Aucune alerte urgente pour le moment"
     },
     "analytics": {
+      "product_count":" Nombre de Produits",
+      "category_count":" Nombre de Catégories",
+      "percent_of_inventory":" % de l'Inventaire",
+      "high_profit_products":" Produits à Haut Profit",
       "title": "Tableau de Bord Analytique",
       "total_inventory_value": "Valeur Totale de l'Inventaire",
       "total_products": "Total des Produits",
@@ -1285,6 +1299,7 @@
       "no_products_found": "Aucun produit trouvé",
       "try_adjust_filters": "Essayez d'ajuster vos critères de recherche ou les filtres"
     },
+    "search_placeholder": "Rechercher des ventes...",
     "product_card": {
       "stock_label": "Stock:",
       "category_label": "Catégorie:",

@@ -949,6 +949,11 @@
     }
   },
   "inventory": {
+    "empty": {
+      "no_products_found":"No Products Found",
+      "start_building_inventory":"Start building your inventory by adding your first product",
+      "add_first_product": "Add Product"
+    },
     "title": "Inventory",
     "subtitle": "Manage your inventory",
     "add_product": "Add Product",
@@ -1065,8 +1070,17 @@
       "low_stock": "Low stock: {quantity} remaining (threshold: {reorder_point})",
       "overstock": "Potential overstock: {quantity} units"
     },
+    
     "analytics": {
       "title": "Analytics Dashboard",
+      "product_count": "Product Count",
+      "category_count": "Category Count",
+      "invested_across_products": "Invested Across Products",
+      "no_categories_yet": "No categories yet",
+      "create_categories_message": "Create categories to better organize your inventory",
+      "excellent_margins":"excellent margins ",
+      "percent_of_inventory":"% of inventory",
+      "high_profit_products":"High Profit Products",
       "total_inventory_value": "Total Inventory Value",
       "total_products": "Total Products",
       "low_stock_items": "Low Stock Items",
@@ -1282,6 +1296,8 @@
     "title": "Selling",
     "subtitle": "Manage your sales",
     "new": "New Sale",
+    "all_categories": "All Categories",
+    "search_placeholder": "Search products, categories...",
     "count": "{count} {count, plural, one=sale other=sales}",
     "results": {
       "products_found": "{count} Products Found",

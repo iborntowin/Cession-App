@@ -7,7 +7,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
   import PaymentSection from '$lib/components/PaymentSection.svelte';
-  import { openPDF, downloadPDF } from '$lib/pdfGenerator';
+  // import { openPDF, downloadPDF } from '$lib/pdfGenerator'; // Converted to dynamic import
   import { format, addMonths } from 'date-fns';
   import { ar } from 'date-fns/locale';
   import { t } from '$lib/i18n';
@@ -318,6 +318,7 @@
     console.log('Worker number source:', clientData && clientData.workerNumber ? 'client data' : 'cession data (fallback)');
 
     try {
+      const { openPDF } = await import('$lib/pdfGenerator');
       await openPDF(pdfData);
       showAlert('PDF document generated successfully', 'success');
     } catch (error) {

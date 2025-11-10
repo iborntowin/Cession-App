@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   import { showAlert, loading } from '$lib/stores';
   import { cessionsApi, clientsApi } from '$lib/api';
-  import { openPDF } from '$lib/pdfGenerator';
+  // import { openPDF } from '$lib/pdfGenerator'; // Converted to dynamic import
   import { format, addMonths } from 'date-fns';
   import { ar } from 'date-fns/locale';
   import { page } from '$app/stores';
@@ -499,6 +499,7 @@
     console.log('Worker number source:', clientData && clientData.workerNumber ? 'client data' : 'cession data (fallback)');
     
     try {
+      const { openPDF } = await import('$lib/pdfGenerator');
       await openPDF(pdfData);
       showAlert($t('cessions.create.pdf_generation_success'), 'success');
     } catch (error) {

@@ -9,7 +9,7 @@
   export let unstartedClients = [];
   export let workplaces = [];
   export let jobs = [];
-  export let dataLoaded = false;
+  export const dataLoaded = false;
   export let onRefresh = () => {};
   export let selectedSeverity = 'all'; // New prop for filtering
 

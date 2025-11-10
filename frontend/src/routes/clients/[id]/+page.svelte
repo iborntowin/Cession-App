@@ -17,7 +17,7 @@
   import { format } from 'date-fns';
   import { config } from '$lib/config';
   import { token } from '$lib/stores';
-  import { openPDF } from '$lib/pdfGenerator';
+  // import { openPDF } from '$lib/pdfGenerator'; // Converted to dynamic import
   import ClientAnalytics from '$lib/components/ClientAnalytics.svelte';
 
   // Check if we came from salary cessions page

@@ -1257,7 +1257,7 @@ const HEALTH_CONFIG = {
   backoffMultiplier: 2
 };
 
-// Enhanced health check with comprehensive monitoring
+// Enhanced health check with REAL loading progress from backend
 export async function checkBackendHealth() {
   try {
     const controller = new AbortController();
@@ -1370,6 +1370,64 @@ export async function checkBackendHealth() {
   }
 }
 
+// Get REAL loading progress metrics from backend
+export async function getLoadingProgress() {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+    const response = await fetch(`${BACKEND_URL}/api/v1/system/loading-progress`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const progressData = await response.json();
+      return {
+        success: true,
+        overallProgress: progressData.overallProgress || 0,
+        components: progressData.components || {},
+        message: progressData.message || 'Loading...',
+        estimatedTimeRemaining: progressData.estimatedTimeRemaining || 0,
+        timestamp: progressData.timestamp || new Date().toISOString()
+      };
+    } else {
+      // Fallback to basic health check if loading progress endpoint doesn't exist
+      const healthResult = await checkBackendHealth();
+      return {
+        success: healthResult.success,
+        overallProgress: healthResult.success ? 100 : 0,
+        components: {
+          backend: { progress: healthResult.backend.reachable ? 100 : 0, status: healthResult.backend.reachable ? 'ready' : 'failed' },
+          database: { progress: healthResult.database.connected ? 100 : 0, status: healthResult.database.connected ? 'ready' : 'failed' }
+        },
+        message: healthResult.success ? 'System ready' : 'System initializing...',
+        estimatedTimeRemaining: 0,
+        timestamp: new Date().toISOString()
+      };
+    }
+  } catch (error) {
+    // Return basic progress if endpoint fails
+    return {
+      success: false,
+      overallProgress: 0,
+      components: {
+        backend: { progress: 0, status: 'unknown' },
+        database: { progress: 0, status: 'unknown' }
+      },
+      message: 'Connecting to backend...',
+      estimatedTimeRemaining: 30,
+      timestamp: new Date().toISOString(),
+      error: error.message
+    };
+  }
+}
+
 // Legacy function for backward compatibility - removed duplicate
 
 // Get current connection status
@@ -1413,6 +1471,7 @@ export const healthApi = {
   checkBackendHealth,
   checkDbHealth, // Legacy compatibility
   getConnectionStatus,
+  getLoadingProgress, // NEW: Get real loading progress from backend
 
   // Start continuous health monitoring
   startHealthMonitoring: (callback, interval = 30000) => {
