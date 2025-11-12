@@ -389,7 +389,6 @@
       </h3>
       
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Records Count -->
         <div class="bg-white/80 rounded-lg p-4">
           <div class="text-2xl font-bold text-emerald-600">{exportStatus.recordCount || 0}</div>
           <div class="text-sm text-gray-600">Clients Exported</div>
@@ -400,13 +399,20 @@
           <div class="text-sm text-gray-600">Cessions Exported</div>
         </div>
 
-        <!-- File Size -->
-        {#if exportStatus.fileSizeBytes}
-          <div class="bg-white/80 rounded-lg p-4">
-            <div class="text-2xl font-bold text-purple-600">{(exportStatus.fileSizeBytes / 1024).toFixed(1)} KB</div>
-            <div class="text-sm text-gray-600">File Size</div>
-          </div>
-        {/if}
+        <div class="bg-white/80 rounded-lg p-4">
+          <div class="text-2xl font-bold text-purple-600">{exportStatus.paymentCount || 0}</div>
+          <div class="text-sm text-gray-600">Payments Exported</div>
+        </div>
+
+        <div class="bg-white/80 rounded-lg p-4">
+          <div class="text-2xl font-bold text-orange-600">{exportStatus.workplaceCount || 0}</div>
+          <div class="text-sm text-gray-600">Workplaces Exported</div>
+        </div>
+
+        <div class="bg-white/80 rounded-lg p-4">
+          <div class="text-2xl font-bold text-indigo-600">{exportStatus.jobCount || 0}</div>
+          <div class="text-sm text-gray-600">Jobs Exported</div>
+        </div>
       </div>
 
       <!-- Supabase URL -->

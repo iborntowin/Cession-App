@@ -121,5 +121,43 @@
     "failed_to_load": "Échec du chargement des données",
     "connection_failed": "Échec de la connexion",
     "sync_failed": "Échec de la synchronisation"
+  },
+  "analytics": {
+    "client_analytics": "Analyses Client",
+    "financial_health": "Santé Financière",
+    "payment_timeline": "Chronologie des Paiements",
+    "cession_progress": "Progression des Cessions",
+    "payment_heatmap": "Carte Thermique des Paiements",
+    "detailed_metrics": "Métriques Détaillées",
+    "total_paid": "Total Payé",
+    "payment_regularity": "Régularité des Paiements",
+    "risk_score": "Score de Risque",
+    "total_cessions": "Total des Cessions",
+    "active_cessions": "Cessions Actives",
+    "completed_cessions": "Cessions Terminées",
+    "total_loan_amount": "Montant Total du Prêt",
+    "monthly_payment": "Paiement Mensuel",
+    "no_data": "Aucune donnée d'analyse disponible",
+    "health": {
+      "excellent": "Excellent",
+      "good": "Bon",
+      "needs_attention": "Nécessite Attention"
+    }
+  },
+  "dashboard": {
+    "title": "Tableau de Bord",
+    "subtitle": "Aperçu d'Affaires",
+    "overview": {
+      "title": "Aperçu",
+      "subtitle": "Informations en temps réel"
+    },
+    "metrics": {
+      "total_clients": "Total Clients",
+      "active_partnerships": "Partenariats Actifs",
+      "active_cessions": "Cessions Actives",
+      "monthly_revenue": "Revenus Mensuels",
+      "success_rate": "Taux de Réussite",
+      "avg_per_client": "Moyenne par Client"
+    }
   }
 }

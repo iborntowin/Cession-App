@@ -52,6 +52,13 @@ class GlobalErrorHandler {
    */
   handleGlobalError(error, context = {}) {
     try {
+      // Skip logging timeout errors as they're handled gracefully in offline mode
+      if (error?.message?.includes('Request timeout') || 
+          error?.message?.includes('timeout') ||
+          error?.code === 'ECONNABORTED') {
+        return; // Don't log timeout errors
+      }
+
       // Add to error queue
       const errorEntry = {
         error,

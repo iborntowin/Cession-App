@@ -151,6 +151,47 @@ export const validateCession = (cession) => {
 };
 
 /**
+ * Validate payment data structure
+ */
+export const validatePayment = (payment) => {
+  const errors = [];
+
+  if (!payment || typeof payment !== 'object') {
+    errors.push('Payment must be an object');
+    return { isValid: false, errors };
+  }
+
+  // Required fields
+  if (!payment.id) {
+    errors.push('Payment ID is required');
+  }
+
+  if (!payment.cessionId) {
+    errors.push('Cession ID is required');
+  }
+
+  if (typeof payment.amount !== 'number' || payment.amount < 0) {
+    errors.push('Amount must be a positive number');
+  }
+
+  if (!payment.paymentDate) {
+    errors.push('Payment date is required');
+  } else if (!isValidDateString(payment.paymentDate)) {
+    errors.push('Payment date must be a valid date string');
+  }
+
+  // Optional fields
+  if (payment.notes && typeof payment.notes !== 'string') {
+    errors.push('Notes must be a string');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+/**
  * Validate export data structure
  */
 export const validateExportData = (data) => {
@@ -179,6 +220,18 @@ export const validateExportData = (data) => {
       const clientValidation = validateClient(client);
       if (!clientValidation.isValid) {
         errors.push(`Client ${index + 1}: ${clientValidation.errors.join(', ')}`);
+      }
+    });
+  }
+
+  // Validate payments array (optional for backward compatibility)
+  if (data.payments !== undefined && !Array.isArray(data.payments)) {
+    errors.push('Payments must be an array if present');
+  } else if (Array.isArray(data.payments)) {
+    data.payments.forEach((payment, index) => {
+      const paymentValidation = validatePayment(payment);
+      if (!paymentValidation.isValid) {
+        errors.push(`Payment ${index + 1}: ${paymentValidation.errors.join(', ')}`);
       }
     });
   }
@@ -221,6 +274,11 @@ export const validateMetadata = (metadata) => {
       }
       if (typeof metadata.recordCount.cessions !== 'number' || metadata.recordCount.cessions < 0) {
         errors.push('Cession count must be a non-negative number');
+      }
+      // Payments count is optional for backward compatibility
+      if (metadata.recordCount.payments !== undefined && 
+          (typeof metadata.recordCount.payments !== 'number' || metadata.recordCount.payments < 0)) {
+        errors.push('Payment count must be a non-negative number if present');
       }
     }
   }

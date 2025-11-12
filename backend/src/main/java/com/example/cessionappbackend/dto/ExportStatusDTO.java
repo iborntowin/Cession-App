@@ -17,6 +17,9 @@ public class ExportStatusDTO {
     private String fileName;
     private Integer recordCount;
     private Integer cessionCount;
+    private Integer paymentCount;
+    private Integer workplaceCount;
+    private Integer jobCount;
     private String errorMessage;
     private Long fileSizeBytes;
     
@@ -35,6 +38,9 @@ public class ExportStatusDTO {
         this.fileName = exportStatus.getFileName();
         this.recordCount = exportStatus.getRecordCount();
         this.cessionCount = exportStatus.getCessionCount();
+        this.paymentCount = exportStatus.getPaymentCount();
+        this.workplaceCount = exportStatus.getWorkplaceCount();
+        this.jobCount = exportStatus.getJobCount();
         this.errorMessage = exportStatus.getErrorMessage();
         this.fileSizeBytes = exportStatus.getFileSizeBytes();
         this.createdAt = exportStatus.getCreatedAt();
@@ -43,6 +49,7 @@ public class ExportStatusDTO {
     // Full constructor
     public ExportStatusDTO(UUID id, LocalDateTime exportTimestamp, ExportStatus.ExportStatusEnum status,
                           String supabaseUrl, String fileName, Integer recordCount, Integer cessionCount,
+                          Integer paymentCount, Integer workplaceCount, Integer jobCount, 
                           String errorMessage, Long fileSizeBytes, LocalDateTime createdAt) {
         this.id = id;
         this.exportTimestamp = exportTimestamp;
@@ -51,6 +58,9 @@ public class ExportStatusDTO {
         this.fileName = fileName;
         this.recordCount = recordCount;
         this.cessionCount = cessionCount;
+        this.paymentCount = paymentCount;
+        this.workplaceCount = workplaceCount;
+        this.jobCount = jobCount;
         this.errorMessage = errorMessage;
         this.fileSizeBytes = fileSizeBytes;
         this.createdAt = createdAt;
@@ -111,6 +121,30 @@ public class ExportStatusDTO {
 
     public void setCessionCount(Integer cessionCount) {
         this.cessionCount = cessionCount;
+    }
+
+    public Integer getPaymentCount() {
+        return paymentCount;
+    }
+
+    public void setPaymentCount(Integer paymentCount) {
+        this.paymentCount = paymentCount;
+    }
+
+    public Integer getWorkplaceCount() {
+        return workplaceCount;
+    }
+
+    public void setWorkplaceCount(Integer workplaceCount) {
+        this.workplaceCount = workplaceCount;
+    }
+
+    public Integer getJobCount() {
+        return jobCount;
+    }
+
+    public void setJobCount(Integer jobCount) {
+        this.jobCount = jobCount;
     }
 
     public String getErrorMessage() {

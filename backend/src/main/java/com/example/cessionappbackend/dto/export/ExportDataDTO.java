@@ -15,11 +15,42 @@ public class ExportDataDTO {
     @JsonProperty("clients")
     private List<ExportClientDTO> clients;
     
+    @JsonProperty("payments")
+    private List<ExportPaymentDTO> payments;
+    
+    @JsonProperty("workplaces")
+    private List<ExportWorkplaceDTO> workplaces;
+    
+    @JsonProperty("jobs")
+    private List<ExportJobDTO> jobs;
+    
     public ExportDataDTO() {}
     
     public ExportDataDTO(ExportMetadataDTO metadata, List<ExportClientDTO> clients) {
         this.metadata = metadata;
         this.clients = clients;
+        this.payments = List.of();
+        this.workplaces = List.of();
+        this.jobs = List.of();
+    }
+    
+    public ExportDataDTO(ExportMetadataDTO metadata, List<ExportClientDTO> clients,
+                        List<ExportPaymentDTO> payments) {
+        this.metadata = metadata;
+        this.clients = clients;
+        this.payments = payments;
+        this.workplaces = List.of();
+        this.jobs = List.of();
+    }
+    
+    public ExportDataDTO(ExportMetadataDTO metadata, List<ExportClientDTO> clients,
+                        List<ExportPaymentDTO> payments, List<ExportWorkplaceDTO> workplaces,
+                        List<ExportJobDTO> jobs) {
+        this.metadata = metadata;
+        this.clients = clients;
+        this.payments = payments;
+        this.workplaces = workplaces;
+        this.jobs = jobs;
     }
     
     // Getters and Setters
@@ -37,5 +68,29 @@ public class ExportDataDTO {
     
     public void setClients(List<ExportClientDTO> clients) {
         this.clients = clients;
+    }
+    
+    public List<ExportPaymentDTO> getPayments() {
+        return payments;
+    }
+    
+    public void setPayments(List<ExportPaymentDTO> payments) {
+        this.payments = payments;
+    }
+    
+    public List<ExportWorkplaceDTO> getWorkplaces() {
+        return workplaces;
+    }
+    
+    public void setWorkplaces(List<ExportWorkplaceDTO> workplaces) {
+        this.workplaces = workplaces;
+    }
+    
+    public List<ExportJobDTO> getJobs() {
+        return jobs;
+    }
+    
+    public void setJobs(List<ExportJobDTO> jobs) {
+        this.jobs = jobs;
     }
 }

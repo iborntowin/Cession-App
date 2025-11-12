@@ -101,23 +101,21 @@ const ClientCard = ({ client, onPress }) => {
 
       {client.cessions && client.cessions.length > 0 && (
         <View style={styles.cessionInfo}>
-          <View style={styles.cessionSummary}>
-            <View style={styles.cessionStats}>
-              <Text style={[styles.cessionCount, { textAlign: getTextAlign() }]}>
-                {t('client.cessions_count', { count: client.cessions.length })}
-              </Text>
-              {activeCessions.length > 0 && (
-                <Text style={styles.activeCessions}>
-                  {activeCessions.length} {t('summary.active').toLowerCase()}
-                </Text>
-              )}
-            </View>
-            {totalBalance > 0 && (
-              <Text style={[styles.totalBalance, { textAlign: isRTL() ? 'left' : 'right' }]}>
-                {formatCurrency(totalBalance)} {t('cession.remaining_balance').toLowerCase()}
+          <View style={styles.cessionRow}>
+            <Text style={styles.cessionCount} numberOfLines={1}>
+              Cessions ({client.cessions.length})
+            </Text>
+            {activeCessions.length > 0 && (
+              <Text style={styles.activeBadge} numberOfLines={1}>
+                {activeCessions.length} active
               </Text>
             )}
           </View>
+          {totalBalance > 0 && (
+            <Text style={styles.balanceText} numberOfLines={1}>
+              Balance: {formatCurrency(totalBalance)}
+            </Text>
+          )}
         </View>
       )}
     </TouchableOpacity>
@@ -208,41 +206,30 @@ const styles = StyleSheet.create({
     paddingTop: hp(1),
     marginTop: hp(1),
   },
-  cessionSummary: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  cessionStats: {
+  cessionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    flexWrap: 'wrap',
+    marginBottom: hp(0.5),
   },
   cessionCount: {
-    fontSize: RESPONSIVE_STYLES.body.fontSize,
-    color: '#007AFF',
-    fontWeight: '500',
+    fontSize: rf(13),
+    color: '#6366f1',
+    fontWeight: '600',
     marginRight: wp(2),
   },
-  activeCessions: {
-    fontSize: RESPONSIVE_STYLES.caption.fontSize,
-    color: '#4CAF50',
-    fontWeight: '500',
-    backgroundColor: '#E8F5E8',
-    paddingHorizontal: wp(1.5),
-    paddingVertical: hp(0.3),
-    borderRadius: wp(2.5),
-    marginTop: hp(0.5),
-  },
-  totalBalance: {
-    fontSize: RESPONSIVE_STYLES.body.fontSize,
-    color: '#FF9800',
+  activeBadge: {
+    fontSize: rf(11),
+    color: '#10b981',
     fontWeight: '600',
-    textAlign: 'right',
-    flexShrink: 0,
-    marginTop: hp(0.5),
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: wp(2),
+    paddingVertical: hp(0.3),
+    borderRadius: wp(2),
+  },
+  balanceText: {
+    fontSize: rf(13),
+    color: '#f59e0b',
+    fontWeight: '600',
   },
 });
 

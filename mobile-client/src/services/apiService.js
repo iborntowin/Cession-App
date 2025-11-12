@@ -7,7 +7,7 @@ const API_BASE_URL = __DEV__
   ? 'http://10.0.2.2:8082/api/v1' // Android emulator localhost (backend runs on 8082)
   : 'https://your-production-api.com/api/v1';
 
-const TIMEOUT = 10000; // 10 seconds
+const TIMEOUT = 30000; // 30 seconds (increased from 10)
 
 class ApiService {
   constructor() {
@@ -42,6 +42,12 @@ class ApiService {
           await AsyncStorage.removeItem('auth_token');
           // You might want to navigate to login screen here
         }
+        
+        // For timeouts and network errors, don't throw - let calling code handle gracefully
+        if (error.code === 'ECONNABORTED' || !error.response) {
+          return Promise.reject(error); // Still reject but don't log via handleError
+        }
+        
         return Promise.reject(this.handleError(error));
       }
     );

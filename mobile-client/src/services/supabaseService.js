@@ -39,8 +39,8 @@ class SupabaseService {
    * Check connection to Supabase and update status
    */
   async checkConnection() {
+    const startTime = Date.now();
     try {
-      const startTime = Date.now();
 
       // Use direct Supabase access only (no backend dependency)
       let latestFile = null;
@@ -268,6 +268,7 @@ class SupabaseService {
           transformedData = {
             clients: data.clients || [],
             cessions: this.extractCessionsFromClients(data.clients || []),
+            payments: data.payments || [],
             exportTimestamp: data.metadata.exportTimestamp || new Date().toISOString(),
             recordCount: data.metadata.recordCount || {}
           };
@@ -364,6 +365,8 @@ class SupabaseService {
     }
   }
 
+  
+
   /**
    * Get data freshness information
    */
@@ -415,7 +418,7 @@ class SupabaseService {
   /**
    * Add listener for connection status changes
    */
-  addStatusListener(listener) {
+  addStatusListener(listener = () => {}) {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
@@ -580,6 +583,9 @@ class SupabaseService {
           transformedData = {
             clients: data.clients || [],
             cessions: this.extractCessionsFromClients(data.clients || []),
+            payments: data.payments || [],
+            workplaces: data.workplaces || [],
+            jobs: data.jobs || [],
             exportTimestamp: data.metadata.exportTimestamp || data.metadata.exportTime || new Date().toISOString(),
             recordCount: data.metadata.recordCount || {},
             fileName: fileName
@@ -589,6 +595,9 @@ class SupabaseService {
           transformedData = {
             clients: data.clients || [],
             cessions: this.extractCessionsFromClients(data.clients || []),
+            payments: data.payments || [],
+            workplaces: data.workplaces || [],
+            jobs: data.jobs || [],
             exportTimestamp: data.exportTimestamp || data.exportTime || new Date().toISOString(),
             fileName: fileName
           };
@@ -597,6 +606,9 @@ class SupabaseService {
           transformedData = {
             clients: Array.isArray(data) ? data : [],
             cessions: [],
+            payments: [],
+            workplaces: [],
+            jobs: [],
             exportTimestamp: new Date().toISOString(),
             fileName: fileName
           };
@@ -627,6 +639,20 @@ class SupabaseService {
    */
   async getCurrentData() {
     try {
+      // Always try to load local test data first for debugging
+      console.log('Attempting to load local test data...');
+      try {
+        const localData = await this.loadLocalTestData();
+        if (localData && localData.cessions && localData.cessions.length > 0) {
+          console.log(`Successfully loaded local test data with ${localData.cessions.length} cessions`);
+          return localData;
+        } else {
+          console.log('Local test data loaded but no cessions found:', localData?.cessions?.length || 0);
+        }
+      } catch (localError) {
+        console.log('Local test data loading failed:', localError.message);
+      }
+
       const selectedFile = this.getSelectedFile();
 
       if (!selectedFile) {
@@ -697,98 +723,63 @@ class SupabaseService {
   }
 
   /**
-   * Debug method to test direct file access
+   * Load local test data for development
    */
-  async testDirectFileAccess(fileName) {
+  async loadLocalTestData() {
     try {
-      const testUrl = `${this.supabaseUrl}/storage/v1/object/public/${this.bucketName}/${fileName}`;
-      console.log(`Testing direct access to: ${testUrl}`);
-
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.serviceRoleKey}`,
-          'apikey': this.serviceRoleKey
-        },
-        timeout: 5000
-      });
-
-      console.log(`Response status: ${response.status}`);
-      console.log(`Response headers:`, Object.fromEntries(response.headers.entries()));
-
-      if (response.ok) {
-        const text = await response.text();
-        console.log(`File content preview (first 200 chars):`, text.substring(0, 200));
-        return { success: true, content: text };
-      } else {
-        const errorText = await response.text();
-        console.log(`Error response:`, errorText);
-        return { success: false, error: errorText, status: response.status };
+      console.log('Loading local test data...');
+      // Try to load local test data dynamically
+      let localData = null;
+      try {
+        console.log('Trying dynamic import...');
+        // Use dynamic import for the JSON file
+        const module = await import('../../data_exemple/mobile-export_2025-11-11_08-16-27.json');
+        localData = module.default || module;
+        console.log('Dynamic import successful');
+      } catch (importError) {
+        console.log('Dynamic import failed, trying require:', importError.message);
+        try {
+          localData = require('../../data_exemple/mobile-export_2025-11-11_08-16-27.json');
+          console.log('Require successful');
+        } catch (requireError) {
+          console.log('Require also failed:', requireError.message);
+          return null;
+        }
       }
-    } catch (error) {
-      console.log(`Direct file access error:`, error);
-      return { success: false, error: error.message };
-    }
-  }
 
-  /**
-   * Debug method to list all files in the bucket
-   */
-  async debugListAllFiles() {
-    try {
-      const listUrl = `${this.supabaseUrl}/storage/v1/object/list/${this.bucketName}`;
-      console.log(`Listing files at: ${listUrl}`);
-
-      const response = await fetch(listUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.serviceRoleKey}`,
-          'Content-Type': 'application/json',
-          'apikey': this.serviceRoleKey
-        },
-        body: JSON.stringify({
-          limit: 100,
-          prefix: '',
-          sortBy: { column: 'created_at', order: 'desc' }
-        }),
-        timeout: 10000
-      });
-
-      console.log(`List response status: ${response.status}`);
-
-      if (response.ok) {
-        const files = await response.json();
-        console.log(`Found ${files.length} files in bucket:`, files.map(f => f.name));
-        return files;
-      } else {
-        const errorText = await response.text();
-        console.log(`List error response:`, errorText);
-        return [];
+      if (!localData) {
+        console.log('Local test data is null/undefined');
+        return null;
       }
+
+      console.log('Local data loaded, checking structure...');
+      console.log('Local data keys:', Object.keys(localData));
+      console.log('Local data has payments:', !!localData.payments);
+      console.log('Local data payments count:', localData.payments ? localData.payments.length : 0);
+
+      console.log('Local data loaded, extracting cessions...');
+      const extractedCessions = this.extractCessionsFromClients(localData.clients || []);
+      console.log(`Extracted ${extractedCessions.length} cessions from ${localData.clients?.length || 0} clients`);
+
+      // Transform the data to match expected format
+      const transformedData = {
+        clients: localData.clients || [],
+        cessions: extractedCessions,
+        payments: localData.payments || [],
+        workplaces: localData.workplaces || [],
+        jobs: localData.jobs || [],
+        exportTimestamp: localData.metadata?.exportTimestamp || new Date().toISOString(),
+        recordCount: localData.metadata?.recordCount || {},
+        fileName: 'local-test-data.json',
+        isFromLocalFile: true
+      };
+
+      console.log(`Final data: ${transformedData.clients.length} clients, ${transformedData.cessions.length} cessions, ${transformedData.payments.length} payments`);
+      return transformedData;
     } catch (error) {
-      console.log(`List files error:`, error);
-      return [];
+      console.log('Failed to load local test data:', error.message);
+      return null;
     }
-  }
-
-  /**
-   * Get formatted connection info for display
-   */
-  getConnectionInfo() {
-    const status = this.connectionStatus;
-
-    return {
-      status: status.isConnected ? 'Connected' : 'Disconnected',
-      statusColor: status.isConnected ? '#4CAF50' : '#FF5722',
-      lastChecked: status.lastChecked ? new Date(status.lastChecked).toLocaleString() : 'Never',
-      lastDataUpdate: status.lastDataUpdate ? new Date(status.lastDataUpdate).toLocaleString() : 'Unknown',
-      responseTime: status.responseTime ? `${status.responseTime}ms` : 'N/A',
-      filesCount: status.filesCount || 0,
-      error: status.error,
-      mode: status.mode || 'automatic',
-      selectedFile: status.selectedFile,
-      availableFiles: status.availableFiles || []
-    };
   }
 }
 

@@ -12,6 +12,10 @@ import ClientDetailScreen from '../screens/ClientDetailScreen';
 import CessionListScreen from '../screens/CessionListScreen';
 import CessionDetailScreen from '../screens/CessionDetailScreen';
 import ExportScreen from '../screens/ExportScreen';
+import DashboardScreen from '../screens/DashboardScreen';
+import PaymentsScreen from '../screens/PaymentsScreen';
+import ReportsScreen from '../screens/ReportsScreen';
+import WorkplacesScreen from '../screens/WorkplacesScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -77,6 +81,16 @@ const MainTabNavigator = () => {
       }}
     >
       <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="📊" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Clients"
         component={ClientListScreen}
         options={{
@@ -93,6 +107,36 @@ const MainTabNavigator = () => {
           title: 'Cessions',
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="📋" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Payments"
+        component={PaymentsScreen}
+        options={{
+          title: 'Payments',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="💰" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Reports"
+        component={ReportsScreen}
+        options={{
+          title: 'Reports',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="📈" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Workplaces"
+        component={WorkplacesScreen}
+        options={{
+          title: 'Workplaces',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="🏢" color={color} size={size} />
           ),
         }}
       />

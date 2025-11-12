@@ -66,11 +66,39 @@ public class ExportMetadataDTO {
         @JsonProperty("cessions")
         private int cessions;
         
+        @JsonProperty("payments")
+        private int payments;
+        
+        @JsonProperty("workplaces")
+        private int workplaces;
+        
+        @JsonProperty("jobs")
+        private int jobs;
+        
         public RecordCountDTO() {}
         
         public RecordCountDTO(int clients, int cessions) {
             this.clients = clients;
             this.cessions = cessions;
+            this.payments = 0;
+            this.workplaces = 0;
+            this.jobs = 0;
+        }
+        
+        public RecordCountDTO(int clients, int cessions, int payments) {
+            this.clients = clients;
+            this.cessions = cessions;
+            this.payments = payments;
+            this.workplaces = 0;
+            this.jobs = 0;
+        }
+        
+        public RecordCountDTO(int clients, int cessions, int payments, int workplaces, int jobs) {
+            this.clients = clients;
+            this.cessions = cessions;
+            this.payments = payments;
+            this.workplaces = workplaces;
+            this.jobs = jobs;
         }
         
         public int getClients() {
@@ -87,6 +115,30 @@ public class ExportMetadataDTO {
         
         public void setCessions(int cessions) {
             this.cessions = cessions;
+        }
+        
+        public int getPayments() {
+            return payments;
+        }
+        
+        public void setPayments(int payments) {
+            this.payments = payments;
+        }
+        
+        public int getWorkplaces() {
+            return workplaces;
+        }
+        
+        public void setWorkplaces(int workplaces) {
+            this.workplaces = workplaces;
+        }
+        
+        public int getJobs() {
+            return jobs;
+        }
+        
+        public void setJobs(int jobs) {
+            this.jobs = jobs;
         }
     }
 }

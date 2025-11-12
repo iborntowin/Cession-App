@@ -121,5 +121,43 @@
     "failed_to_load": "فشل في تحميل البيانات",
     "connection_failed": "فشل الاتصال",
     "sync_failed": "فشل في المزامنة"
+  },
+  "analytics": {
+    "client_analytics": "تحليلات العميل",
+    "financial_health": "الصحة المالية",
+    "payment_timeline": "جدولة الدفعات",
+    "cession_progress": "تقدم الإحالات",
+    "payment_heatmap": "خريطة الدفعات",
+    "detailed_metrics": "المقاييس التفصيلية",
+    "total_paid": "إجمالي المدفوع",
+    "payment_regularity": "انتظام الدفع",
+    "risk_score": "درجة المخاطر",
+    "total_cessions": "إجمالي الإحالات",
+    "active_cessions": "الإحالات النشطة",
+    "completed_cessions": "الإحالات المكتملة",
+    "total_loan_amount": "إجمالي مبلغ القرض",
+    "monthly_payment": "الدفعة الشهرية",
+    "no_data": "لا توجد بيانات تحليلية متاحة",
+    "health": {
+      "excellent": "ممتاز",
+      "good": "جيد",
+      "needs_attention": "يحتاج إلى انتباه"
+    }
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "subtitle": "نظرة عامة على الأعمال",
+    "overview": {
+      "title": "نظرة عامة",
+      "subtitle": "رؤى في الوقت الفعلي"
+    },
+    "metrics": {
+      "total_clients": "إجمالي العملاء",
+      "active_partnerships": "الشراكات النشطة",
+      "active_cessions": "الإحالات النشطة",
+      "monthly_revenue": "الإيرادات الشهرية",
+      "success_rate": "معدل النجاح",
+      "avg_per_client": "متوسط لكل عميل"
+    }
   }
 }

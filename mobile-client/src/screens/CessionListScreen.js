@@ -5,18 +5,22 @@ import {
   StyleSheet, 
   RefreshControl, 
   Text,
-  TouchableOpacity 
+  TouchableOpacity,
+  Dimensions,
+  StatusBar 
 } from 'react-native';
-import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { wp, hp } from '../utils/responsive';
 import CessionCard from '../components/CessionCard';
 import SearchBar from '../components/SearchBar';
-import FilterModal from '../components/FilterModal';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import ConnectivityIndicator from '../components/ConnectivityIndicator';
 
 import { cessionService } from '../services/cessionService';
 import { clientService } from '../services/clientService';
+
+const { width, height } = Dimensions.get('window');
 
 const CessionListScreen = ({ navigation }) => {
   const [cessions, setCessions] = useState([]);
@@ -26,13 +30,6 @@ const CessionListScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-
-  const [filters, setFilters] = useState({
-    status: 'ALL',
-    sortBy: 'id',
-    sortOrder: 'desc'
-  });
 
   // Helper function to determine if a cession is completed
   const isCessionCompleted = (cession) => {
@@ -59,8 +56,8 @@ const CessionListScreen = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    filterAndSortCessions();
-  }, [cessions, clients, searchQuery, filters]);
+    filterCessions();
+  }, [cessions, clients, searchQuery]);
 
   const loadData = async () => {
     try {
@@ -99,14 +96,13 @@ const CessionListScreen = ({ navigation }) => {
     }
   };
 
-  const filterAndSortCessions = () => {
+  const filterCessions = () => {
     let filtered = [...cessions];
 
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(cession => {
-        // Find the client for this cession
         const client = clients.find(c => c.id === cession.clientId);
         
         return (
@@ -114,91 +110,15 @@ const CessionListScreen = ({ navigation }) => {
           cession.bankOrAgency?.toLowerCase().includes(query) ||
           cession.status?.toLowerCase().includes(query) ||
           client?.fullName?.toLowerCase().includes(query) ||
-          client?.cin?.toLowerCase().includes(query) ||
-          client?.clientNumber?.toString().includes(query)
+          client?.cin?.toLowerCase().includes(query)
         );
       });
     }
 
-    // Apply status filter with improved logic
-    if (filters.status !== 'ALL') {
-      filtered = filtered.filter(cession => {
-        const filterStatus = filters.status?.toUpperCase();
-        
-        switch (filterStatus) {
-          case 'COMPLETED':
-            return isCessionCompleted(cession);
-          case 'FINISHED': // Handle FINISHED as completed
-            return isCessionCompleted(cession);
-          case 'ACTIVE':
-            return isCessionActive(cession);
-          case 'OVERDUE':
-            return isCessionOverdue(cession);
-          case 'SUSPENDED':
-            const status = cession.status?.toUpperCase();
-            return status === 'SUSPENDED' || status === 'SUSPENDU' || status === 'PAUSE';
-          case 'CANCELLED':
-            const cancelStatus = cession.status?.toUpperCase();
-            return cancelStatus === 'CANCELLED' || cancelStatus === 'ANNULE' || cancelStatus === 'CANCEL';
-          default:
-            return cession.status?.toUpperCase() === filterStatus;
-        }
-      });
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (filters.sortBy) {
-        case 'id':
-          aValue = a.id || 0;
-          bValue = b.id || 0;
-          break;
-        case 'clientName':
-          const clientA = clients.find(c => c.id === a.clientId);
-          const clientB = clients.find(c => c.id === b.clientId);
-          aValue = clientA?.fullName?.toLowerCase() || '';
-          bValue = clientB?.fullName?.toLowerCase() || '';
-          break;
-        case 'monthlyPayment':
-          aValue = a.monthlyPayment || 0;
-          bValue = b.monthlyPayment || 0;
-          break;
-        case 'remainingBalance':
-          aValue = a.remainingBalance || 0;
-          bValue = b.remainingBalance || 0;
-          break;
-        case 'progress':
-          aValue = a.currentProgress || 0;
-          bValue = b.currentProgress || 0;
-          break;
-        case 'status':
-          aValue = a.status?.toLowerCase() || '';
-          bValue = b.status?.toLowerCase() || '';
-          break;
-        default:
-          aValue = a.id || 0;
-          bValue = b.id || 0;
-      }
-
-      if (typeof aValue === 'string') {
-        const comparison = aValue.localeCompare(bValue);
-        return filters.sortOrder === 'asc' ? comparison : -comparison;
-      } else {
-        return filters.sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-    });
+    // Sort by ID descending
+    filtered.sort((a, b) => (b.id || 0) - (a.id || 0));
 
     setFilteredCessions(filtered);
-  };
-
-  const handleApplyFilters = (newFilters) => {
-    setFilters(newFilters);
-  };
-
-  const handleShowFilters = () => {
-    setShowFilterModal(true);
   };
 
   const handleRefresh = () => {
@@ -216,7 +136,6 @@ const CessionListScreen = ({ navigation }) => {
 
 
   const renderCession = ({ item }) => {
-    // Find the client for this cession
     const client = clients.find(c => c.id === item.clientId);
     
     return (
@@ -228,192 +147,281 @@ const CessionListScreen = ({ navigation }) => {
     );
   };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Text style={styles.emptyText}>
-        {searchQuery ? 'No cessions found matching your search' : 'No cessions available'}
-      </Text>
-    </View>
-  );
-
-  const renderHeader = () => (
-    <>
-      <ConnectivityIndicator />
-      
-      <View style={styles.searchContainer}>
-        <SearchBar
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search cessions, clients, banks..."
-          onFilterPress={handleShowFilters}
-          hasActiveFilters={filters.status !== 'ALL' || filters.sortBy !== 'id' || filters.sortOrder !== 'desc'}
-        />
-      </View>
-      
-      {/* Active filters indicator */}
-      {(filters.status !== 'ALL' || filters.sortBy !== 'id' || filters.sortOrder !== 'desc') && (
-        <View style={styles.activeFiltersContainer}>
-          <Text style={styles.activeFiltersText}>
-            {`Filters: ${filters.status !== 'ALL' ? `Status: ${filters.status || 'Unknown'}` : ''}${filters.sortBy !== 'id' ? ` | Sort: ${filters.sortBy || 'Unknown'}` : ''}${filters.sortOrder !== 'desc' ? ` (${filters.sortOrder || 'Unknown'})` : ''}`}
-          </Text>
-          <TouchableOpacity 
-            onPress={() => handleApplyFilters({ status: 'ALL', sortBy: 'id', sortOrder: 'desc' })}
-            style={styles.clearFiltersButton}
-          >
-            <Text style={styles.clearFiltersText}>Clear</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Statistics */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{String(filteredCessions.length || 0)}</Text>
-          <Text style={styles.statLabel}>Total</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>
-            {String(filteredCessions.filter(isCessionActive).length || 0)}
-          </Text>
-          <Text style={styles.statLabel}>Active</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>
-            {String(filteredCessions.filter(isCessionCompleted).length || 0)}
-          </Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>
-            {String(filteredCessions.filter(isCessionOverdue).length || 0)}
-          </Text>
-          <Text style={styles.statLabel}>Overdue</Text>
-        </View>
-      </View>
-    </>
-  );
-
   if (loading) {
-    return <LoadingSpinner text="Loading cessions..." />;
+    return (
+      <View style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <LoadingSpinner text="Loading cessions..." />
+      </View>
+    );
   }
 
   if (error) {
     return (
-      <ErrorMessage 
-        message={error} 
-        onRetry={loadData}
-      />
+      <View style={styles.errorContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <ErrorMessage 
+          message={error} 
+          onRetry={loadData}
+        />
+      </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={filteredCessions}
-        renderItem={renderCession}
-        keyExtractor={(item) => item.id.toString()}
-        ListHeaderComponent={renderHeader}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={['#007AFF']}
-          />
-        }
-        ListEmptyComponent={renderEmptyState}
-        contentContainerStyle={filteredCessions.length === 0 ? styles.emptyContainer : null}
-      />
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
-      <FilterModal
-        visible={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        filters={filters}
-        onApplyFilters={handleApplyFilters}
-        cessionMode={true}
-      />
+      {/* Premium Background */}
+      <View style={styles.backgroundContainer}>
+        <View style={styles.meshGradient1} />
+        <View style={styles.meshGradient2} />
+        <View style={styles.meshGradient3} />
+        <View style={styles.glowOrb1} />
+        <View style={styles.glowOrb2} />
+      </View>
+
+      <SafeAreaView style={styles.container} edges={['right', 'left']}>
+        <ConnectivityIndicator />
+        
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Cessions</Text>
+            <Text style={styles.headerSubtitle}>{filteredCessions.length} total</Text>
+          </View>
+        </View>
+
+        {/* Stats Bar */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{filteredCessions.filter(isCessionActive).length}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{filteredCessions.filter(isCessionCompleted).length}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{filteredCessions.filter(isCessionOverdue).length}</Text>
+            <Text style={styles.statLabel}>Overdue</Text>
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchSection}>
+          <SearchBar
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search cessions, clients, banks..."
+          />
+        </View>
+
+        <FlatList
+          data={filteredCessions}
+          renderItem={renderCession}
+          keyExtractor={(item) => item.id.toString()}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#6366f1"
+              colors={['#6366f1', '#8b5cf6']}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'No cessions found' : 'No cessions available'}
+              </Text>
+            </View>
+          }
+          contentContainerStyle={filteredCessions.length === 0 ? styles.emptyContainer : styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </SafeAreaView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  // ==================== MAIN CONTAINERS ====================
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#fafbfd',
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  searchContainer: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
 
-  activeFiltersContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1),
-    backgroundColor: '#e3f2fd',
+  // ==================== PREMIUM $200 SAAS BACKGROUND ====================
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+    backgroundColor: '#fafbfd',
+  },
+  meshGradient1: {
+    position: 'absolute',
+    top: -height * 0.25,
+    right: -width * 0.25,
+    width: width * 1.2,
+    height: width * 1.2,
+    backgroundColor: '#6366f1',
+    opacity: 0.06,
+    borderRadius: width * 0.6,
+    transform: [{ scale: 1.2 }],
+  },
+  meshGradient2: {
+    position: 'absolute',
+    top: height * 0.15,
+    left: -width * 0.4,
+    width: width * 1.4,
+    height: width * 1.4,
+    backgroundColor: '#8b5cf6',
+    opacity: 0.04,
+    borderRadius: width * 0.7,
+    transform: [{ scale: 1.1 }],
+  },
+  meshGradient3: {
+    position: 'absolute',
+    bottom: -height * 0.2,
+    right: -width * 0.3,
+    width: width * 1.3,
+    height: width * 1.3,
+    backgroundColor: '#10b981',
+    opacity: 0.03,
+    borderRadius: width * 0.65,
+    transform: [{ scale: 1.15 }],
+  },
+  glowOrb1: {
+    position: 'absolute',
+    top: height * 0.4,
+    left: width * 0.15,
+    width: wp(60),
+    height: wp(60),
+    backgroundColor: '#c7d2fe',
+    opacity: 0.08,
+    borderRadius: wp(30),
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.15,
+    shadowRadius: 40,
+    elevation: 5,
+  },
+  glowOrb2: {
+    position: 'absolute',
+    bottom: height * 0.3,
+    right: width * 0.1,
+    width: wp(50),
+    height: wp(50),
+    backgroundColor: '#fae8ff',
+    opacity: 0.08,
+    borderRadius: wp(25),
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.12,
+    shadowRadius: 35,
+    elevation: 4,
+  },
+
+  // ==================== HEADER ====================
+  header: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backdropFilter: 'blur(30px)',
     borderBottomWidth: 1,
-    borderBottomColor: '#bbdefb',
-    flexWrap: 'wrap',
+    borderBottomColor: 'rgba(226, 232, 240, 0.6)',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  activeFiltersText: {
-    fontSize: RESPONSIVE_STYLES.body.fontSize,
-    color: '#1976d2',
-    flex: 1,
-    minWidth: wp(60),
+  headerContent: {
+    paddingHorizontal: wp(6),
+    paddingVertical: hp(2),
   },
-  clearFiltersButton: {
-    paddingHorizontal: wp(2),
-    paddingVertical: hp(0.5),
-    marginLeft: wp(2),
+  headerTitle: {
+    fontSize: wp(7),
+    fontWeight: '900',
+    color: '#0f172a',
+    letterSpacing: -1,
+    marginBottom: hp(0.3),
   },
-  clearFiltersText: {
-    fontSize: RESPONSIVE_STYLES.body.fontSize,
-    color: '#1976d2',
+  headerSubtitle: {
+    fontSize: wp(3.8),
+    color: '#64748b',
     fontWeight: '600',
   },
-  statsContainer: {
+
+  // ==================== STATS BAR ====================
+  statsBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingVertical: hp(2),
-    paddingHorizontal: wp(4),
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingVertical: hp(1.5),
+    paddingHorizontal: wp(6),
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: 'rgba(226, 232, 240, 0.6)',
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
-    minWidth: wp(20),
   },
-  statNumber: {
-    fontSize: rf(18),
-    fontWeight: 'bold',
-    color: '#333',
+  statValue: {
+    fontSize: wp(5.5),
+    fontWeight: '800',
+    color: '#6366f1',
+    marginBottom: hp(0.3),
   },
   statLabel: {
-    fontSize: RESPONSIVE_STYLES.caption.fontSize,
-    color: '#666',
-    marginTop: hp(0.5),
-    textAlign: 'center',
+    fontSize: wp(3),
+    color: '#64748b',
+    fontWeight: '600',
+  },
+
+  // ==================== SEARCH SECTION ====================
+  searchSection: {
+    paddingHorizontal: wp(6),
+    paddingVertical: hp(1.5),
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+
+  // ==================== LIST ====================
+  listContent: {
+    paddingHorizontal: wp(6),
+    paddingTop: hp(1),
+    paddingBottom: hp(3),
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: wp(6),
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: wp(5),
-    paddingVertical: hp(5),
+    paddingVertical: hp(10),
   },
   emptyText: {
-    fontSize: RESPONSIVE_STYLES.subtitle.fontSize,
-    color: '#666',
+    fontSize: wp(4.5),
+    color: '#64748b',
     textAlign: 'center',
-    lineHeight: hp(3),
+    fontWeight: '600',
   },
 });
 

@@ -133,6 +133,9 @@ public class ExportController {
                 "export-error-" + System.currentTimeMillis() + ".json", // fileName
                 0, // recordCount
                 0, // cessionCount
+                0, // paymentCount
+                0, // workplaceCount
+                0, // jobCount
                 "Export failed: " + e.getMessage(), // errorMessage
                 0L, // fileSizeBytes
                 java.time.LocalDateTime.now() // createdAt

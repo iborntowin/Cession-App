@@ -7,6 +7,9 @@ import com.example.cessionappbackend.exceptions.ExportException;
 import com.example.cessionappbackend.repositories.ExportStatusRepository;
 import com.example.cessionappbackend.repositories.ClientRepository;
 import com.example.cessionappbackend.repositories.CessionRepository;
+import com.example.cessionappbackend.repositories.PaymentRepository;
+import com.example.cessionappbackend.repositories.WorkplaceRepository;
+import com.example.cessionappbackend.repositories.JobRepository;
 import com.example.cessionappbackend.utils.ErrorLogger;
 import com.example.cessionappbackend.utils.RetryHandler;
 import org.slf4j.Logger;
@@ -41,6 +44,15 @@ public class ExportStatusService {
 
     @Autowired
     private CessionRepository cessionRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
+
+    @Autowired
+    private WorkplaceRepository workplaceRepository;
+
+    @Autowired
+    private JobRepository jobRepository;
 
     /**
      * Get the latest export status
@@ -91,9 +103,10 @@ public class ExportStatusService {
      */
     public ExportStatusDTO recordSuccessfulExport(String fileName, String supabaseUrl, 
                                                  Integer recordCount, Integer cessionCount, 
-                                                 Long fileSizeBytes) {
-        logger.info("Recording successful export: fileName={}, recordCount={}, cessionCount={}", 
-                   fileName, recordCount, cessionCount);
+                                                 Integer paymentCount, Integer workplaceCount, 
+                                                 Integer jobCount, Long fileSizeBytes) {
+        logger.info("Recording successful export: fileName={}, recordCount={}, cessionCount={}, paymentCount={}, workplaceCount={}, jobCount={}", 
+                   fileName, recordCount, cessionCount, paymentCount, workplaceCount, jobCount);
         
         ExportStatus exportStatus = new ExportStatus(
                 LocalDateTime.now(),
@@ -101,6 +114,9 @@ public class ExportStatusService {
                 fileName,
                 recordCount,
                 cessionCount,
+                paymentCount,
+                workplaceCount,
+                jobCount,
                 fileSizeBytes
         );
         
@@ -203,10 +219,16 @@ public class ExportStatusService {
                     // Get record counts with error handling
                     int recordCount = 0;
                     int cessionCount = 0;
+                    int paymentCount = 0;
+                    int workplaceCount = 0;
+                    int jobCount = 0;
                     
                     try {
                         recordCount = (int) clientRepository.count();
                         cessionCount = (int) cessionRepository.count();
+                        paymentCount = (int) paymentRepository.count();
+                        workplaceCount = (int) workplaceRepository.count();
+                        jobCount = (int) jobRepository.count();
                     } catch (Exception e) {
                         ErrorLogger.logWarning("forceManualExport", "Could not get record counts from database", 
                             ErrorLogger.context()
@@ -219,6 +241,9 @@ public class ExportStatusService {
                             recordCount = jsonData.split("\"clients\":\\[").length > 1 ? 
                                          jsonData.split("\"fullName\"").length - 1 : 0;
                             cessionCount = jsonData.split("\"monthlyPayment\"").length - 1;
+                            paymentCount = jsonData.split("\"amount\"").length - 1;
+                            workplaceCount = jsonData.split("\"workplace\":").length - 1;
+                            jobCount = jsonData.split("\"job\":").length - 1;
                         } catch (Exception parseEx) {
                             ErrorLogger.logWarning("forceManualExport", "Could not parse record counts from JSON", 
                                 ErrorLogger.context()
@@ -234,6 +259,9 @@ public class ExportStatusService {
                             .add("fileName", fileName)
                             .add("recordCount", recordCount)
                             .add("cessionCount", cessionCount)
+                            .add("paymentCount", paymentCount)
+                            .add("workplaceCount", workplaceCount)
+                            .add("jobCount", jobCount)
                             .add("fileSizeBytes", jsonBytes.length)
                             .add("durationMs", duration)
                             .add("publicUrl", uploadResult.getPublicUrl())
@@ -245,6 +273,9 @@ public class ExportStatusService {
                             uploadResult.getPublicUrl(),
                             recordCount,
                             cessionCount,
+                            paymentCount,
+                            workplaceCount,
+                            jobCount,
                             (long) jsonBytes.length
                     );
                 } else {
@@ -293,6 +324,9 @@ public class ExportStatusService {
                     fileName, // fileName
                     0, // recordCount
                     0, // cessionCount
+                    0, // paymentCount
+                    0, // workplaceCount
+                    0, // jobCount
                     "Failed to export and record failure: " + e.getMessage(), // errorMessage
                     0L, // fileSizeBytes
                     LocalDateTime.now() // createdAt

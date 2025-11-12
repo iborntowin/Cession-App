@@ -3,8 +3,14 @@ package com.example.cessionappbackend.services;
 import com.example.cessionappbackend.dto.export.*;
 import com.example.cessionappbackend.entities.Client;
 import com.example.cessionappbackend.entities.Cession;
+import com.example.cessionappbackend.entities.Payment;
+import com.example.cessionappbackend.entities.Workplace;
+import com.example.cessionappbackend.entities.Job;
 import com.example.cessionappbackend.exceptions.ExportException;
 import com.example.cessionappbackend.repositories.ClientRepository;
+import com.example.cessionappbackend.repositories.PaymentRepository;
+import com.example.cessionappbackend.repositories.WorkplaceRepository;
+import com.example.cessionappbackend.repositories.JobRepository;
 import com.example.cessionappbackend.utils.ErrorLogger;
 import com.example.cessionappbackend.utils.RetryHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +36,15 @@ public class DataExportService {
     
     @Autowired
     private ClientRepository clientRepository;
+    
+    @Autowired
+    private PaymentRepository paymentRepository;
+    
+    @Autowired
+    private WorkplaceRepository workplaceRepository;
+    
+    @Autowired
+    private JobRepository jobRepository;
     
     private final ObjectMapper objectMapper;
     
@@ -69,6 +84,45 @@ public class DataExportService {
                     throw ExportException.dataGenerationFailed("Failed to fetch clients from database", e);
                 }
                 
+                // Fetch all payments
+                List<Payment> payments;
+                try {
+                    payments = paymentRepository.findAll();
+                    if (payments == null) {
+                        payments = List.of(); // Use empty list as fallback
+                    }
+                    logger.debug("Found {} payments for export", payments.size());
+                } catch (Exception e) {
+                    logger.warn("Failed to fetch payments from database, using empty list", e);
+                    payments = List.of();
+                }
+                
+                // Fetch all workplaces
+                List<Workplace> workplaces;
+                try {
+                    workplaces = workplaceRepository.findAll();
+                    if (workplaces == null) {
+                        workplaces = List.of(); // Use empty list as fallback
+                    }
+                    logger.debug("Found {} workplaces for export", workplaces.size());
+                } catch (Exception e) {
+                    logger.warn("Failed to fetch workplaces from database, using empty list", e);
+                    workplaces = List.of();
+                }
+                
+                // Fetch all jobs
+                List<Job> jobs;
+                try {
+                    jobs = jobRepository.findAll();
+                    if (jobs == null) {
+                        jobs = List.of(); // Use empty list as fallback
+                    }
+                    logger.debug("Found {} jobs for export", jobs.size());
+                } catch (Exception e) {
+                    logger.warn("Failed to fetch jobs from database, using empty list", e);
+                    jobs = List.of();
+                }
+                
                 // Convert to export DTOs with error handling
                 List<ExportClientDTO> exportClients;
                 try {
@@ -80,6 +134,36 @@ public class DataExportService {
                     throw ExportException.dataGenerationFailed("Failed to convert clients to export DTOs", e);
                 }
                 
+                // Convert payments to export DTOs
+                List<ExportPaymentDTO> exportPayments;
+                try {
+                    exportPayments = payments.stream()
+                            .map(this::convertToExportPaymentDTO)
+                            .collect(Collectors.toList());
+                } catch (Exception e) {
+                    throw ExportException.dataGenerationFailed("Failed to convert payments to export DTOs", e);
+                }
+                
+                // Convert workplaces to export DTOs
+                List<ExportWorkplaceDTO> exportWorkplaces;
+                try {
+                    exportWorkplaces = workplaces.stream()
+                            .map(this::convertToExportWorkplaceDTO)
+                            .collect(Collectors.toList());
+                } catch (Exception e) {
+                    throw ExportException.dataGenerationFailed("Failed to convert workplaces to export DTOs", e);
+                }
+                
+                // Convert jobs to export DTOs
+                List<ExportJobDTO> exportJobs;
+                try {
+                    exportJobs = jobs.stream()
+                            .map(this::convertToExportJobDTO)
+                            .collect(Collectors.toList());
+                } catch (Exception e) {
+                    throw ExportException.dataGenerationFailed("Failed to convert jobs to export DTOs", e);
+                }
+                
                 // Calculate total cession count
                 int totalCessions = exportClients.stream()
                         .mapToInt(client -> client.getCessions() != null ? client.getCessions().size() : 0)
@@ -87,12 +171,12 @@ public class DataExportService {
                 
                 // Create metadata
                 ExportMetadataDTO.RecordCountDTO recordCount = new ExportMetadataDTO.RecordCountDTO(
-                        exportClients.size(), totalCessions);
+                        exportClients.size(), totalCessions, exportPayments.size(), exportWorkplaces.size(), exportJobs.size());
                 ExportMetadataDTO metadata = new ExportMetadataDTO(
                         OffsetDateTime.now(), "1.0", recordCount);
                 
                 // Create main export object
-                ExportDataDTO exportData = new ExportDataDTO(metadata, exportClients);
+                ExportDataDTO exportData = new ExportDataDTO(metadata, exportClients, exportPayments, exportWorkplaces, exportJobs);
                 
                 // Convert to JSON with error handling
                 String jsonResult;
@@ -170,6 +254,45 @@ public class DataExportService {
                     throw ExportException.dataGenerationFailed("Failed to fetch clients from database", e);
                 }
                 
+                // Fetch all payments
+                List<Payment> payments;
+                try {
+                    payments = paymentRepository.findAll();
+                    if (payments == null) {
+                        payments = List.of(); // Use empty list as fallback
+                    }
+                    logger.debug("Found {} payments for minified export", payments.size());
+                } catch (Exception e) {
+                    logger.warn("Failed to fetch payments from database, using empty list", e);
+                    payments = List.of();
+                }
+                
+                // Fetch all workplaces
+                List<Workplace> workplaces;
+                try {
+                    workplaces = workplaceRepository.findAll();
+                    if (workplaces == null) {
+                        workplaces = List.of(); // Use empty list as fallback
+                    }
+                    logger.debug("Found {} workplaces for minified export", workplaces.size());
+                } catch (Exception e) {
+                    logger.warn("Failed to fetch workplaces from database, using empty list", e);
+                    workplaces = List.of();
+                }
+                
+                // Fetch all jobs
+                List<Job> jobs;
+                try {
+                    jobs = jobRepository.findAll();
+                    if (jobs == null) {
+                        jobs = List.of(); // Use empty list as fallback
+                    }
+                    logger.debug("Found {} jobs for minified export", jobs.size());
+                } catch (Exception e) {
+                    logger.warn("Failed to fetch jobs from database, using empty list", e);
+                    jobs = List.of();
+                }
+                
                 // Convert to export DTOs with error handling
                 List<ExportClientDTO> exportClients;
                 try {
@@ -181,6 +304,36 @@ public class DataExportService {
                     throw ExportException.dataGenerationFailed("Failed to convert clients to export DTOs", e);
                 }
                 
+                // Convert payments to export DTOs
+                List<ExportPaymentDTO> exportPayments;
+                try {
+                    exportPayments = payments.stream()
+                            .map(this::convertToExportPaymentDTO)
+                            .collect(Collectors.toList());
+                } catch (Exception e) {
+                    throw ExportException.dataGenerationFailed("Failed to convert payments to export DTOs", e);
+                }
+                
+                // Convert workplaces to export DTOs
+                List<ExportWorkplaceDTO> exportWorkplaces;
+                try {
+                    exportWorkplaces = workplaces.stream()
+                            .map(this::convertToExportWorkplaceDTO)
+                            .collect(Collectors.toList());
+                } catch (Exception e) {
+                    throw ExportException.dataGenerationFailed("Failed to convert workplaces to export DTOs", e);
+                }
+                
+                // Convert jobs to export DTOs
+                List<ExportJobDTO> exportJobs;
+                try {
+                    exportJobs = jobs.stream()
+                            .map(this::convertToExportJobDTO)
+                            .collect(Collectors.toList());
+                } catch (Exception e) {
+                    throw ExportException.dataGenerationFailed("Failed to convert jobs to export DTOs", e);
+                }
+                
                 // Calculate total cession count
                 int totalCessions = exportClients.stream()
                         .mapToInt(client -> client.getCessions() != null ? client.getCessions().size() : 0)
@@ -188,12 +341,12 @@ public class DataExportService {
                 
                 // Create metadata
                 ExportMetadataDTO.RecordCountDTO recordCount = new ExportMetadataDTO.RecordCountDTO(
-                        exportClients.size(), totalCessions);
+                        exportClients.size(), totalCessions, exportPayments.size(), exportWorkplaces.size(), exportJobs.size());
                 ExportMetadataDTO metadata = new ExportMetadataDTO(
                         OffsetDateTime.now(), "1.0", recordCount);
                 
                 // Create main export object
-                ExportDataDTO exportData = new ExportDataDTO(metadata, exportClients);
+                ExportDataDTO exportData = new ExportDataDTO(metadata, exportClients, exportPayments, exportWorkplaces, exportJobs);
                 
                 // Convert to minified JSON with error handling
                 String jsonResult;
@@ -233,6 +386,19 @@ public class DataExportService {
                 throw (ExportException) e;
             }
             throw ExportException.dataGenerationFailed("Failed to generate minified JSON export", e);
+        }
+    }
+    
+    /**
+     * Convert Client entity to ExportClientDTO with error handling
+     */
+    private ExportClientDTO convertToExportClientDTOSafely(Client client) {
+        try {
+            return convertToExportClientDTO(client);
+        } catch (Exception e) {
+            logger.warn("Failed to convert client {} to export DTO: {}", 
+                       client != null ? client.getId() : "null", e.getMessage());
+            return null; // Return null to be filtered out
         }
     }
     
@@ -300,28 +466,38 @@ public class DataExportService {
     }
     
     /**
-     * Safely convert Client entity to ExportClientDTO with error handling
+     * Convert Payment entity to ExportPaymentDTO
      */
-    private ExportClientDTO convertToExportClientDTOSafely(Client client) {
-        try {
-            if (client == null) {
-                ErrorLogger.logWarning("convertToExportClientDTO", "Null client encountered", null);
-                return null;
-            }
-            
-            return convertToExportClientDTO(client);
-            
-        } catch (Exception e) {
-            ErrorLogger.logError("convertToExportClientDTO", e, 
-                ErrorLogger.context()
-                    .add("clientId", client != null ? client.getId() : "null")
-                    .add("clientNumber", client != null ? client.getClientNumber() : "null")
-                    .build());
-            
-            // Return null to filter out this client from the export
-            // This allows the export to continue even if one client has issues
-            return null;
-        }
+    private ExportPaymentDTO convertToExportPaymentDTO(Payment payment) {
+        return new ExportPaymentDTO(
+                payment.getId(),
+                payment.getCession().getId(),
+                payment.getAmount(),
+                payment.getPaymentDate(),
+                payment.getNotes(),
+                payment.getCreatedAt()
+        );
+    }
+    
+    /**
+     * Convert Workplace entity to ExportWorkplaceDTO
+     */
+    private ExportWorkplaceDTO convertToExportWorkplaceDTO(Workplace workplace) {
+        return new ExportWorkplaceDTO(
+                workplace.getId(),
+                workplace.getName()
+        );
+    }
+    
+    /**
+     * Convert Job entity to ExportJobDTO
+     */
+    private ExportJobDTO convertToExportJobDTO(Job job) {
+        return new ExportJobDTO(
+                job.getId(),
+                job.getName(),
+                job.getWorkplace() != null ? job.getWorkplace().getId() : null
+        );
     }
     
     /**

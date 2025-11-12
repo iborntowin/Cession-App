@@ -75,6 +75,24 @@
       "pending": "Pending"
     }
   },
+  "payment": {
+    "title": "Payments",
+    "search_placeholder": "Search payments...",
+    "no_payments": "No payments found",
+    "no_payments_search": "No payments found matching your search",
+    "no_payments_available": "No payments available",
+    "stats": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "success": "Success"
+    },
+    "details": {
+      "due": "Due:",
+      "created": "Created:",
+      "overdue": "(Overdue)"
+    }
+  },
   "payment_tracker": {
     "title": "18-Month Payment Tracker",
     "months_paid": "{{count}} / 18 months paid",
@@ -124,5 +142,43 @@
     "failed_to_load": "Failed to load data",
     "connection_failed": "Connection failed",
     "sync_failed": "Synchronization failed"
+  },
+  "analytics": {
+    "client_analytics": "Client Analytics",
+    "financial_health": "Financial Health",
+    "payment_timeline": "Payment Timeline",
+    "cession_progress": "Cession Progress",
+    "payment_heatmap": "Payment Heatmap",
+    "detailed_metrics": "Detailed Metrics",
+    "total_paid": "Total Paid",
+    "payment_regularity": "Payment Regularity",
+    "risk_score": "Risk Score",
+    "total_cessions": "Total Cessions",
+    "active_cessions": "Active Cessions",
+    "completed_cessions": "Completed Cessions",
+    "total_loan_amount": "Total Loan Amount",
+    "monthly_payment": "Monthly Payment",
+    "no_data": "No analytics data available",
+    "health": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "needs_attention": "Needs Attention"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Business Overview",
+    "overview": {
+      "title": "Overview",
+      "subtitle": "Real-time insights"
+    },
+    "metrics": {
+      "total_clients": "Total Clients",
+      "active_partnerships": "Active Partnerships",
+      "active_cessions": "Active Cessions",
+      "monthly_revenue": "Monthly Revenue",
+      "success_rate": "Success Rate",
+      "avg_per_client": "Avg per Client"
+    }
   }
 }

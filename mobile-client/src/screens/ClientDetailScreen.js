@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { wp, hp, rf, RESPONSIVE_STYLES } from '../utils/responsive';
 import CessionCard from '../components/CessionCard';
+import ClientAnalytics from '../components/ClientAnalytics';
 import StatusIndicator from '../components/StatusIndicator';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -143,32 +144,69 @@ const ClientDetailScreen = ({ route, navigation }) => {
       {client.cessions && client.cessions.length > 0 && (
         <View style={styles.summaryCard}>
           <Text style={[styles.summaryTitle, { textAlign: getTextAlign() }]}>{t('summary.overview')}</Text>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>{client.cessions.length}</Text>
-              <Text style={[styles.summaryLabel, { textAlign: 'center' }]}>{t('summary.total_cessions')}</Text>
+
+          {/* Summary Stats Grid */}
+          <View style={styles.summaryStatsContainer}>
+            <View style={styles.summaryStatsRow}>
+              <View style={styles.summaryStatCard}>
+                <View style={styles.statIconContainer}>
+                  <Text style={styles.statIcon}>📊</Text>
+                </View>
+                <View style={styles.statContent}>
+                  <Text style={styles.statNumber}>{client.cessions.length}</Text>
+                  <Text style={[styles.statLabel, { textAlign: getTextAlign() }]}>{t('summary.total_cessions')}</Text>
+                </View>
+              </View>
+
+              <View style={styles.summaryStatCard}>
+                <View style={styles.statIconContainer}>
+                  <Text style={styles.statIcon}>🔄</Text>
+                </View>
+                <View style={styles.statContent}>
+                  <Text style={styles.statNumber}>
+                    {client.cessions.filter(c => c.status === 'ACTIVE').length}
+                  </Text>
+                  <Text style={[styles.statLabel, { textAlign: getTextAlign() }]}>{t('summary.active')}</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>
-                {client.cessions.filter(c => c.status === 'ACTIVE').length}
-              </Text>
-              <Text style={[styles.summaryLabel, { textAlign: 'center' }]}>{t('summary.active')}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>
-                {client.cessions.filter(c => c.status === 'COMPLETED').length}
-              </Text>
-              <Text style={[styles.summaryLabel, { textAlign: 'center' }]}>{t('summary.completed')}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryNumber}>
-                {formatCurrency(client.cessions.reduce((sum, c) => sum + (c.monthlyPayment || 0), 0))}
-              </Text>
-              <Text style={[styles.summaryLabel, { textAlign: 'center' }]}>{t('summary.total_monthly')}</Text>
+
+            <View style={styles.summaryStatsRow}>
+              <View style={styles.summaryStatCard}>
+                <View style={styles.statIconContainer}>
+                  <Text style={styles.statIcon}>✅</Text>
+                </View>
+                <View style={styles.statContent}>
+                  <Text style={styles.statNumber}>
+                    {client.cessions.filter(c => c.status === 'COMPLETED').length}
+                  </Text>
+                  <Text style={[styles.statLabel, { textAlign: getTextAlign() }]}>{t('summary.completed')}</Text>
+                </View>
+              </View>
+
+              <View style={styles.summaryStatCard}>
+                <View style={styles.statIconContainer}>
+                  <Text style={styles.statIcon}>💰</Text>
+                </View>
+                <View style={styles.statContent}>
+                  <Text style={styles.statNumber}>
+                    {formatCurrency(client.cessions.reduce((sum, c) => sum + (c.monthlyPayment || 0), 0))}
+                  </Text>
+                  <Text style={[styles.statLabel, { textAlign: getTextAlign() }]}>{t('summary.total_monthly')}</Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
       )}
+
+      {/* Client Analytics */}
+      <View style={styles.analyticsSection}>
+        <Text style={[styles.sectionTitle, { textAlign: getTextAlign() }]}>
+          {t('analytics.client_analytics')}
+        </Text>
+        <ClientAnalytics clientId={clientId} navigation={navigation} />
+      </View>
 
       {/* Cessions Section */}
       <View style={styles.sectionHeader}>
@@ -301,36 +339,59 @@ const styles = StyleSheet.create({
     fontSize: RESPONSIVE_STYLES.title.fontSize,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: hp(2),
+    marginBottom: hp(3),
   },
-  summaryGrid: {
+  summaryStatsContainer: {
+    marginTop: hp(1),
+  },
+  summaryStatsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-  },
-  summaryItem: {
-    width: wp(42),
-    alignItems: 'center',
     marginBottom: hp(2),
-    padding: wp(3),
+  },
+  summaryStatCard: {
+    flex: 1,
     backgroundColor: '#f8f9fa',
     borderRadius: RESPONSIVE_STYLES.card.borderRadius,
-    minHeight: hp(8),
+    padding: wp(4),
+    marginHorizontal: wp(1),
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    minHeight: hp(10),
+  },
+  statIconContainer: {
+    width: wp(12),
+    height: wp(12),
+    borderRadius: wp(6),
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp(3),
+  },
+  statIcon: {
+    fontSize: rf(16),
+    color: '#fff',
+  },
+  statContent: {
+    flex: 1,
     justifyContent: 'center',
   },
-  summaryNumber: {
-    fontSize: rf(18),
+  statNumber: {
+    fontSize: rf(20),
     fontWeight: 'bold',
     color: '#007AFF',
     marginBottom: hp(0.5),
-    textAlign: 'center',
   },
-  summaryLabel: {
-    fontSize: RESPONSIVE_STYLES.caption.fontSize,
+  statLabel: {
+    fontSize: rf(12),
     color: '#666',
-    textAlign: 'center',
     fontWeight: '500',
-    lineHeight: hp(2),
+    lineHeight: hp(1.8),
   },
   emptyCessions: {
     backgroundColor: '#fff',
@@ -346,6 +407,21 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: hp(3),
+  },
+  analyticsSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: wp(4),
+    marginVertical: hp(2),
+    borderRadius: RESPONSIVE_STYLES.card.borderRadius,
+    padding: wp(5),
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
 

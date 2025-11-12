@@ -237,19 +237,22 @@ class DataService {
           version: "1.0",
           recordCount: {
             clients: Array.isArray(data.clients) ? data.clients.length : 0,
-            cessions: Array.isArray(data.cessions) ? data.cessions.length : 0
+            cessions: Array.isArray(data.cessions) ? data.cessions.length : 0,
+            payments: Array.isArray(data.payments) ? data.payments.length : 0
           }
         },
         clients: Array.isArray(data.clients) 
           ? data.clients.map(client => sanitizeClientData(client)).filter(Boolean)
           : [],
-        cessions: Array.isArray(data.cessions) ? data.cessions : []
+        cessions: Array.isArray(data.cessions) ? data.cessions : [],
+        payments: Array.isArray(data.payments) ? data.payments : []
       };
 
       // Update record count after sanitization
       sanitized.metadata.recordCount = {
         clients: sanitized.clients.length,
-        cessions: sanitized.cessions.length
+        cessions: sanitized.cessions.length,
+        payments: sanitized.payments.length
       };
 
       return sanitized;
@@ -263,11 +266,13 @@ class DataService {
           version: "1.0",
           recordCount: {
             clients: 0,
-            cessions: 0
+            cessions: 0,
+            payments: 0
           }
         },
         clients: [],
-        cessions: []
+        cessions: [],
+        payments: []
       };
     }
   }

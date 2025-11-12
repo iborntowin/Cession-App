@@ -31,6 +31,15 @@ public class ExportStatus {
     @Column(name = "cession_count")
     private Integer cessionCount;
 
+    @Column(name = "payment_count")
+    private Integer paymentCount;
+
+    @Column(name = "workplace_count")
+    private Integer workplaceCount;
+
+    @Column(name = "job_count")
+    private Integer jobCount;
+
     @Column(name = "error_message", length = 2000)
     private String errorMessage;
 
@@ -52,13 +61,17 @@ public class ExportStatus {
 
     // Constructor for successful export
     public ExportStatus(LocalDateTime exportTimestamp, String supabaseUrl, String fileName, 
-                       Integer recordCount, Integer cessionCount, Long fileSizeBytes) {
+                       Integer recordCount, Integer cessionCount, Integer paymentCount, 
+                       Integer workplaceCount, Integer jobCount, Long fileSizeBytes) {
         this.exportTimestamp = exportTimestamp;
         this.status = ExportStatusEnum.SUCCESS;
         this.supabaseUrl = supabaseUrl;
         this.fileName = fileName;
         this.recordCount = recordCount;
         this.cessionCount = cessionCount;
+        this.paymentCount = paymentCount;
+        this.workplaceCount = workplaceCount;
+        this.jobCount = jobCount;
         this.fileSizeBytes = fileSizeBytes;
     }
 
@@ -125,6 +138,30 @@ public class ExportStatus {
 
     public void setCessionCount(Integer cessionCount) {
         this.cessionCount = cessionCount;
+    }
+
+    public Integer getPaymentCount() {
+        return paymentCount;
+    }
+
+    public void setPaymentCount(Integer paymentCount) {
+        this.paymentCount = paymentCount;
+    }
+
+    public Integer getWorkplaceCount() {
+        return workplaceCount;
+    }
+
+    public void setWorkplaceCount(Integer workplaceCount) {
+        this.workplaceCount = workplaceCount;
+    }
+
+    public Integer getJobCount() {
+        return jobCount;
+    }
+
+    public void setJobCount(Integer jobCount) {
+        this.jobCount = jobCount;
     }
 
     public String getErrorMessage() {

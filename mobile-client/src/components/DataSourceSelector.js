@@ -25,10 +25,10 @@ const DataSourceSelector = ({ visible, onClose, onDataSourceChange }) => {
 
   const loadCurrentSettings = async () => {
     try {
-      const connectionInfo = supabaseService.getConnectionInfo();
-      setMode(connectionInfo.mode || 'automatic');
-      setAvailableFiles(connectionInfo.availableFiles || []);
-      setSelectedFile(connectionInfo.selectedFile);
+      const connectionStatus = supabaseService.getConnectionStatus();
+      setMode(connectionStatus.mode || 'automatic');
+      setAvailableFiles(connectionStatus.availableFiles || []);
+      setSelectedFile(connectionStatus.selectedFile);
     } catch (error) {
       console.error('Error loading current settings:', error);
     }

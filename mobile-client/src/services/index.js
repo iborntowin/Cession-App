@@ -5,3 +5,7 @@ export { default as supabaseService } from './supabaseService';
 export { default as exportService } from './exportService';
 export { default as dataService } from './DataService';
 export { default as configService } from './configService';
+export { default as paymentService } from './paymentService';
+export { default as workplaceService } from './workplaceService';
+export { default as analyticsService } from './analyticsService';
+export { default as reportService } from './reportService';
