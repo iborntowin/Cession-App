@@ -11,6 +11,7 @@
   import { language } from '$lib/stores/language';
   import { fade, fly, slide, scale, blur } from 'svelte/transition';
   import { quintOut, cubicOut, elasticOut, backOut } from 'svelte/easing';
+  import DeductionDatePicker from '$lib/components/DeductionDatePicker.svelte';
 
   // RTL support
   $: isRTL = $language.code === 'ar';
@@ -35,6 +36,25 @@
   let itemDescription = '';
   let personalAddress = '';
   let selectedClientData = null;
+  
+  // Deduction date state
+  let deductionMonth = null;
+  let deductionDay = 20;
+  let deductionYear = null;
+  let deductionDateFormatted = '';
+  
+  // Initialize deduction date with next month
+  const initDate = new Date();
+  initDate.setMonth(initDate.getMonth() + 1);
+  deductionMonth = initDate.getMonth();
+  deductionYear = initDate.getFullYear();
+  
+  // Initialize formatted date
+  const arabicMonths = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+  deductionDateFormatted = `${deductionDay} ${arabicMonths[deductionMonth]} ${deductionYear}`;
   
   // 🔍 Advanced Search & UI State
   let searchTerm = '';
@@ -480,7 +500,7 @@
       // Worker/Client information (use client data if available, otherwise fallback to cession data)
       workerNumber: (clientData && clientData.workerNumber) ? clientData.workerNumber : (cession.clientNumber || ''),
       fullName: cession.clientName || '',
-      cin: cession.clientCin || '',
+      nationalId: cession.clientCin || '',
       address: (selectedClientData && selectedClientData.address) || cession.clientAddress || '',
       workplace: (selectedClientData && (selectedClientData.workplaceName || selectedClientData.workplace)) || cession.clientWorkplace || '',
       jobTitle: (selectedClientData && (selectedClientData.jobName || selectedClientData.jobTitle)) || cession.clientJob || '',
@@ -492,7 +512,12 @@
       amountInWords: numberToArabicWords(totalAmount),
       totalAmountNumeric: parseFloat(totalAmount) || 0.0,
       monthlyPayment: parseFloat(cession.monthlyPayment) || 0.0,
-      firstDeductionMonthArabic: format(addMonths(new Date(), 1), 'MMMM yyyy', { locale: ar })
+      
+      // Deduction start date - use custom values
+      deductionMonth: deductionMonth,
+      deductionDay: deductionDay,
+      deductionYear: deductionYear,
+      firstDeductionDate: deductionDateFormatted || null
     };
     
     console.log('PDF Data being sent:', pdfData);
@@ -1310,6 +1335,38 @@
               </div>
             </div>
           {/if}
+
+          <!-- 📅 Deduction Start Date Picker -->
+          <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-200 mt-8">
+            <div class="flex items-center mb-4">
+              <svg class="w-5 h-5 text-indigo-600 {isRTL ? 'ml-2' : 'mr-2'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <h3 class="text-lg font-semibold text-indigo-900">
+                تحديد تاريخ بداية الاقتطاع
+                <span class="text-sm font-normal text-indigo-700 ml-2">(Set Deduction Start Date)</span>
+              </h3>
+            </div>
+            
+            <DeductionDatePicker
+              bind:selectedMonth={deductionMonth}
+              bind:selectedDay={deductionDay}
+              bind:selectedYear={deductionYear}
+              on:change={(e) => { deductionDateFormatted = e.detail.formatted; }}
+            />
+            
+            <div class="text-xs text-indigo-700 bg-indigo-100/50 rounded-lg p-3 mt-4">
+              <div class="flex items-start">
+                <svg class="w-4 h-4 text-indigo-600 mt-0.5 {isRTL ? 'ml-2' : 'mr-2'} flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                  <p class="font-medium mb-1">ملاحظة:</p>
+                  <p>تم تعيين التاريخ افتراضياً إلى الشهر القادم (اليوم 20). يمكنك تغيير الشهر واليوم والسنة حسب الحاجة.</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Step Navigation -->
           <div class="flex justify-between mt-8">

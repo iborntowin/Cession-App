@@ -1,6 +1,7 @@
 package com.example.cessionappbackend.dto;
 
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 
 @Data
@@ -21,6 +22,8 @@ public class SalaryAssignmentDocumentDTO {
     private String clientId; // Add clientId to fetch correct worker number
     private String workerNumber;
     private String fullName;
+    
+    @JsonProperty("nationalId") // Accept both 'cin' and 'nationalId' from frontend
     private String cin;
     private String personalAddress;
     private String workplace;
@@ -34,6 +37,8 @@ public class SalaryAssignmentDocumentDTO {
     private Double totalAmountNumeric;
     private Double monthlyPayment;
     private String loanDuration;
+    
+    @JsonProperty("firstDeductionDate") // Accept 'firstDeductionDate' from frontend
     private String firstDeductionMonthArabic;
 
     public String getWorkerNumber() {

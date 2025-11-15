@@ -19,6 +19,7 @@
   import { token } from '$lib/stores';
   // import { openPDF } from '$lib/pdfGenerator'; // Converted to dynamic import
   import ClientAnalytics from '$lib/components/ClientAnalytics.svelte';
+  import DeductionDatePicker from '$lib/components/DeductionDatePicker.svelte';
 
   // Check if we came from salary cessions page
   $: fromSalaryCessions = $page.url.searchParams.get('from') === 'salary-cessions';
@@ -56,6 +57,25 @@
   let includeThirdCession = false;
   let selectedThirdCessionIndex = null;
   let liveMessage = '';
+
+  // Deduction date state for document generation
+  let deductionMonth = null;
+  let deductionDay = 20;
+  let deductionYear = null;
+  let deductionDateFormatted = '';
+  
+  // Initialize deduction date with next month
+  const initDate = new Date();
+  initDate.setMonth(initDate.getMonth() + 1);
+  deductionMonth = initDate.getMonth();
+  deductionYear = initDate.getFullYear();
+  
+  // Initialize formatted date
+  const arabicMonths = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+  deductionDateFormatted = `${deductionDay} ${arabicMonths[deductionMonth]} ${deductionYear}`;
 
   // Keyboard shortcut handler toggles for faster UX (1 = primary, 2 = second, 3 = third)
   function remainingForCession(c) {
@@ -499,7 +519,12 @@
         workplace: client.workplaceName,
         jobTitle: client.jobName,
         // Current date for printing
-        printingDate: format(new Date(), 'dd/MM/yyyy')
+        printingDate: format(new Date(), 'dd/MM/yyyy'),
+        // Deduction start date - use custom values
+        deductionMonth: deductionMonth,
+        deductionDay: deductionDay,
+        deductionYear: deductionYear,
+        firstDeductionDate: deductionDateFormatted || null
       };
 
       // Add cession data based on user selection when generating referral certificate
@@ -1081,7 +1106,27 @@
     ];
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
-    return months[nextMonth.getMonth()] + ' ' + nextMonth.getFullYear();
+    return '20 ' + months[nextMonth.getMonth()] + ' ' + nextMonth.getFullYear();
+  }
+
+  function formatDeductionDate(month, day, year) {
+    const arabicMonths = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+    
+    // If passed as a formatted string, return it
+    if (typeof month === 'string' && (month.includes('يناير') || month.includes('فبراير'))) {
+      return month;
+    }
+    
+    // If month is a number (0-11)
+    if (typeof month === 'number' && day && year) {
+      return `${day} ${arabicMonths[month]} ${year}`;
+    }
+    
+    // Default fallback
+    return getNextMonthInArabic();
   }
 
   function generateSalaryAssignmentHTML(data) {
@@ -1174,7 +1219,7 @@
         </div>
         <div class="field">
           <span class="field-label">تاريخ بداية سريان أول اقتطاع من الأجر: </span>
-          <span class="field-value">${getNextMonthInArabic()}</span>
+          <span class="field-value">${data.firstDeductionDate || formatDeductionDate(data.deductionMonth, data.deductionDay, data.deductionYear) || getNextMonthInArabic()}</span>
         </div>
         
         <div class="section-header">محتوى الاتفاق:</div>
@@ -2121,6 +2166,40 @@
                       </div>
                     {/each}
                   </div>
+
+                  <!-- Deduction Start Date Picker -->
+                  {#if selectedDocumentType === 'إحالة على الأجر التجارية'}
+                    <div class="mt-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-200">
+                      <div class="flex items-center mb-4">
+                        <svg class="w-5 h-5 text-indigo-600 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-indigo-900">
+                          تحديد تاريخ بداية الاقتطاع
+                          <span class="text-sm font-normal text-indigo-700 mr-2">(Set Deduction Start Date)</span>
+                        </h3>
+                      </div>
+                      
+                      <DeductionDatePicker
+                        bind:selectedMonth={deductionMonth}
+                        bind:selectedDay={deductionDay}
+                        bind:selectedYear={deductionYear}
+                        on:change={(e) => { deductionDateFormatted = e.detail.formatted; }}
+                      />
+                      
+                      <div class="text-xs text-indigo-700 bg-indigo-100/50 rounded-lg p-3 mt-4">
+                        <div class="flex items-start">
+                          <svg class="w-4 h-4 text-indigo-600 mt-0.5 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          <div>
+                            <p class="font-medium mb-1">ملاحظة:</p>
+                            <p>تم تعيين التاريخ افتراضياً إلى الشهر القادم (اليوم 20). يمكنك تغيير الشهر واليوم والسنة حسب الحاجة.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {/if}
 
                   <!-- Autocomplete Information -->
                   <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">

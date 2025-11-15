@@ -25,7 +25,7 @@ jsPDF.API.events.push([
   },
 ]);
 
-// Function to get next month in Arabic
+// Function to get next month in Arabic (default value)
 function getNextMonthInArabic() {
   const arabicMonths = [
     'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -36,7 +36,28 @@ function getNextMonthInArabic() {
   const nextMonth = (currentDate.getMonth() + 1) % 12;
   const year = currentDate.getMonth() === 11 ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
   
-  return `${arabicMonths[nextMonth]} ${year}`;
+  return `20 ${arabicMonths[nextMonth]} ${year}`;
+}
+
+// Function to format deduction start date (with day)
+function formatDeductionDate(month, day, year) {
+  const arabicMonths = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+  
+  // If passed as a formatted string, return it
+  if (typeof month === 'string' && month.includes('يناير') || month.includes('فبراير')) {
+    return month;
+  }
+  
+  // If month is a number (0-11)
+  if (typeof month === 'number' && day && year) {
+    return `${day} ${arabicMonths[month]} ${year}`;
+  }
+  
+  // Default fallback
+  return getNextMonthInArabic();
 }
 
 // Generate HTML content for the PDF with the requested styling
@@ -339,7 +360,7 @@ function generateSalaryAssignmentHTML(data) {
       </div>
       <div class="field">
         <span class="field-label">تاريخ بداية سريان أول اقتطاع من الأجر: </span>
-        <span class="field-value">${getNextMonthInArabic()}</span>
+        <span class="field-value">${data.firstDeductionDate || formatDeductionDate(data.deductionMonth, data.deductionDay, data.deductionYear) || getNextMonthInArabic()}</span>
       </div>
       
       <!-- Section Title - Agreement Content -->
